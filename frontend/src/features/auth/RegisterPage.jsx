@@ -15,6 +15,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import Button from '../../components/common/Button';
+import GoogleAuthModal from './GoogleAuthModal';
 import { getDashboardForRole } from '../../components/auth/PublicRoute';
 import {
   registerUser,
@@ -41,19 +42,25 @@ export const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     dispatch(clearAuthError());
+    setIsGoogleModalOpen(true);
+  };
+
+  const handleGoogleModalAuthenticate = async (googleEmail) => {
     const googleAuthKey = import.meta.env.VITE_GOOGLE_AUTH_KEY;
     const googlePayload = {
       credential: googleAuthKey || ('google_oauth_token_' + Date.now()),
-      email: formData.email ? formData.email.trim() : undefined,
+      email: googleEmail,
     };
 
     const result = await dispatch(googleLoginUser(googlePayload));
     if (googleLoginUser.fulfilled.match(result)) {
+      setIsGoogleModalOpen(false);
       const { user, account_status } = result.payload;
-      if (account_status === 'PENDING') {
+      if ((account_status || user?.account_status || 'PENDING').toUpperCase() === 'PENDING') {
         navigate('/pending-approval');
       } else {
         navigate(getDashboardForRole(user?.role));
@@ -374,6 +381,14 @@ export const RegisterPage = () => {
           </div>
         </div>
       </div>
+      <GoogleAuthModal
+        isOpen={isGoogleModalOpen}
+        onClose={() => setIsGoogleModalOpen(false)}
+        onAuthenticate={handleGoogleModalAuthenticate}
+        initialEmail={formData.email}
+        loading={loading}
+        error={authError}
+      />
     </div>
   );
 };

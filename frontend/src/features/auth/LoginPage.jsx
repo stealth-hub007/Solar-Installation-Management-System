@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import Button from '../../components/common/Button';
+import GoogleAuthModal from './GoogleAuthModal';
 import {
   loginUser,
   googleLoginUser,
@@ -34,6 +35,7 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('Admin@12345Password');
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
   const validateForm = () => {
     const errors = {};
@@ -81,16 +83,21 @@ export const LoginPage = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     dispatch(clearAuthError());
+    setIsGoogleModalOpen(true);
+  };
+
+  const handleGoogleModalAuthenticate = async (googleEmail) => {
     const googleAuthKey = import.meta.env.VITE_GOOGLE_AUTH_KEY;
     const googlePayload = {
       credential: googleAuthKey || ('google_oauth_token_' + Date.now()),
-      email: email ? email.trim() : undefined,
+      email: googleEmail,
     };
 
     const result = await dispatch(googleLoginUser(googlePayload));
     if (googleLoginUser.fulfilled.match(result)) {
+      setIsGoogleModalOpen(false);
       const { user, account_status } = result.payload;
       handleLoginSuccess(user, account_status);
     }
@@ -308,6 +315,14 @@ export const LoginPage = () => {
           </div>
         </div>
       </div>
+      <GoogleAuthModal
+        isOpen={isGoogleModalOpen}
+        onClose={() => setIsGoogleModalOpen(false)}
+        onAuthenticate={handleGoogleModalAuthenticate}
+        initialEmail={email}
+        loading={loading}
+        error={authError}
+      />
     </div>
   );
 };

@@ -1,8 +1,9 @@
 import React, { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
+import SalesLayout from '../components/layout/SalesLayout';
 
-// Lazy-loaded Feature Pages
+// Lazy-loaded Admin Pages
 const AdminDashboard = lazy(() => import('../features/dashboard/pages/AdminDashboard'));
 const CustomersPage = lazy(() => import('../features/customers/CustomersPage'));
 const EnquiriesPage = lazy(() => import('../features/enquiries/EnquiriesPage'));
@@ -24,6 +25,18 @@ const SettingsPage = lazy(() => import('../features/settings/SettingsPage'));
 const ProfileOverviewPage = lazy(() => import('../features/profile/ProfileOverviewPage'));
 const RolesPermissionsPage = lazy(() => import('../features/roles/RolesPermissionsPage'));
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
+
+// Lazy-loaded Sales Pages
+const SalesDashboard = lazy(() => import('../features/sales/pages/SalesDashboard'));
+const SalesCustomersPage = lazy(() => import('../features/sales/pages/CustomersPage'));
+const SalesCustomerDetailsPage = lazy(() => import('../features/sales/pages/CustomerDetailsPage'));
+const SalesEnquiriesPage = lazy(() => import('../features/sales/pages/EnquiriesPage'));
+const SalesEnquiryDetailsPage = lazy(() => import('../features/sales/pages/EnquiryDetailsPage'));
+const SalesFollowUpsPage = lazy(() => import('../features/sales/pages/FollowUpsPage'));
+const SalesSurveysPage = lazy(() => import('../features/sales/pages/SurveysPage'));
+const SalesQuotationsPage = lazy(() => import('../features/sales/pages/QuotationsPage'));
+const SalesQuotationDetailsPage = lazy(() => import('../features/sales/pages/QuotationDetailsPage'));
+const SalesOrdersPage = lazy(() => import('../features/sales/pages/OrdersPage'));
 
 export const router = createBrowserRouter([
   {
@@ -117,6 +130,56 @@ export const router = createBrowserRouter([
       {
         path: 'roles-permissions',
         element: <RolesPermissionsPage />,
+      },
+    ],
+  },
+  {
+    path: '/sales',
+    element: <SalesLayout />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/sales/dashboard" replace />,
+      },
+      {
+        path: 'dashboard',
+        element: <SalesDashboard />,
+      },
+      {
+        path: 'customers',
+        element: <SalesCustomersPage />,
+      },
+      {
+        path: 'customers/:customerId',
+        element: <SalesCustomerDetailsPage />,
+      },
+      {
+        path: 'enquiries',
+        element: <SalesEnquiriesPage />,
+      },
+      {
+        path: 'enquiries/:enquiryId',
+        element: <SalesEnquiryDetailsPage />,
+      },
+      {
+        path: 'follow-ups',
+        element: <SalesFollowUpsPage />,
+      },
+      {
+        path: 'surveys',
+        element: <SalesSurveysPage />,
+      },
+      {
+        path: 'quotations',
+        element: <SalesQuotationsPage />,
+      },
+      {
+        path: 'quotations/:quotationId',
+        element: <SalesQuotationDetailsPage />,
+      },
+      {
+        path: 'orders',
+        element: <SalesOrdersPage />,
       },
     ],
   },

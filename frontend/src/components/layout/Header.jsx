@@ -11,10 +11,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   Info,
+  TrendingUp,
 } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
 import { Dropdown, DropdownItem } from '../ui/Dropdown';
 import storageService from '../../services/storageService';
+import PortalSwitcher from './PortalSwitcher';
 
 export const Header = () => {
   const { toggleMobileSidebar } = useSidebar();
@@ -64,6 +66,11 @@ export const Header = () => {
             </React.Fragment>
           ))}
         </nav>
+
+        {/* 1-Tap Panel Switcher (Admin <-> Sales) */}
+        <div className="pl-2 border-l border-slate-200 hidden sm:block">
+          <PortalSwitcher />
+        </div>
       </div>
 
       {/* Center: Global Search Bar */}
@@ -87,6 +94,11 @@ export const Header = () => {
 
       {/* Right Controls: System Status, Notifications & User Profile */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Mobile Switcher */}
+        <div className="sm:hidden">
+          <PortalSwitcher />
+        </div>
+
         {/* System Status Pill (Dot Removed as requested) */}
         <div className="hidden sm:inline-flex items-center px-3 py-1 rounded-full bg-[#F0F7FF] border border-[#BAE6FD] text-[#0369A1] text-[11px] font-semibold tracking-wide">
           <span>System Live</span>
@@ -182,6 +194,9 @@ export const Header = () => {
           </DropdownItem>
           <DropdownItem icon={Shield} onClick={() => navigate('/admin/roles-permissions')}>
             Roles & Permissions
+          </DropdownItem>
+          <DropdownItem icon={TrendingUp} onClick={() => navigate('/sales/dashboard')}>
+            Switch to Sales Portal
           </DropdownItem>
           <div className="border-t border-slate-100 my-1" />
           <DropdownItem icon={LogOut} danger onClick={() => navigate('/login')}>

@@ -80,10 +80,13 @@ export const RolesPermissionsPage = () => {
     }
   };
 
+  const [simulateError, setSimulateError] = useState('');
+
   const handleSimulateSubmit = (e) => {
     e.preventDefault();
-    if (!simulateForm.name || !simulateForm.email) {
-      alert('Please fill in name and email');
+    setSimulateError('');
+    if (!simulateForm.name.trim() || !simulateForm.email.trim()) {
+      setSimulateError('Please fill in name and email');
       return;
     }
     storageService.createAccessRequest(simulateForm);
@@ -364,6 +367,12 @@ export const RolesPermissionsPage = () => {
           }
         >
           <form onSubmit={handleSimulateSubmit} className="space-y-3 text-xs sm:text-sm">
+            {simulateError && (
+              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{simulateError}</span>
+              </div>
+            )}
             <div>
               <label className="block text-slate-700 font-medium mb-1">Applicant Name *</label>
               <input

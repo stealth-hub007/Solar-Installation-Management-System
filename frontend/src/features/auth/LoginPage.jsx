@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Sun, Shield, Lock, Mail, User, Building, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Sun, Shield, Lock, Mail, User, Building, CheckCircle2, ArrowRight, AlertCircle } from 'lucide-react';
 import Button from '../../components/common/Button';
 import storageService from '../../services/storageService';
 
@@ -22,6 +22,7 @@ export const LoginPage = () => {
     reason: '',
   });
   const [requestSuccess, setRequestSuccess] = useState(false);
+  const [requestError, setRequestError] = useState('');
 
   const handleSignIn = (e) => {
     e.preventDefault();
@@ -29,16 +30,23 @@ export const LoginPage = () => {
       setSignInError('Please enter an email address');
       return;
     }
-    // Simulate authentication
-    localStorage.setItem('sims_auth_user', JSON.stringify({ email, role: 'Super Administrator' }));
-    storageService.logActivity(`Admin User authenticated into SIMS administrative console`, 'Authentication', 'Success');
-    navigate('/admin/dashboard');
+    // Check if sales portal or admin
+    if (email.toLowerCase().includes('sales')) {
+      localStorage.setItem('sims_auth_user', JSON.stringify({ email, name: 'Vikram Singh', role: 'Sales Executive' }));
+      storageService.logActivity(`Sales Officer ${email} signed into SIMS Sales Portal`, 'Authentication', 'Success');
+      navigate('/sales/dashboard');
+    } else {
+      localStorage.setItem('sims_auth_user', JSON.stringify({ email, name: 'Admin User', role: 'Super Administrator' }));
+      storageService.logActivity(`Admin User authenticated into SIMS administrative console`, 'Authentication', 'Success');
+      navigate('/admin/dashboard');
+    }
   };
 
   const handleRequestAccess = (e) => {
     e.preventDefault();
-    if (!requestForm.name || !requestForm.email) {
-      alert('Please fill in your name and corporate email address.');
+    setRequestError('');
+    if (!requestForm.name.trim() || !requestForm.email.trim()) {
+      setRequestError('Please fill in your name and corporate email address.');
       return;
     }
 
@@ -111,6 +119,31 @@ export const LoginPage = () => {
                 {signInError}
               </div>
             )}
+
+            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-lg text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setEmail('admin@solar-sims.com')}
+                className={`flex-1 py-1.5 rounded-md transition ${
+                  email === 'admin@solar-sims.com'
+                    ? 'bg-white text-[#0284C7] shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Admin Portal
+              </button>
+              <button
+                type="button"
+                onClick={() => setEmail('sales@solar-sims.com')}
+                className={`flex-1 py-1.5 rounded-md transition ${
+                  email === 'sales@solar-sims.com'
+                    ? 'bg-white text-[#0284C7] shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Sales Portal
+              </button>
+            </div>
 
             <form onSubmit={handleSignIn} className="space-y-3.5 text-xs sm:text-sm">
               <div>
@@ -189,6 +222,12 @@ export const LoginPage = () => {
               </div>
             ) : (
               <form onSubmit={handleRequestAccess} className="space-y-3 text-xs sm:text-sm">
+                {requestError && (
+                  <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{requestError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="block text-slate-700 font-medium mb-1">Full Name *</label>
                   <div className="relative">

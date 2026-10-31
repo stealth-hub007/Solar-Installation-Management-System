@@ -9,7 +9,7 @@ export const salesAPI = {
       return storageService.getSalesStats();
     }
     const response = await axiosInstance.get('/v1/sales/stats');
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async getSalesAnalytics() {
@@ -17,7 +17,7 @@ export const salesAPI = {
       return storageService.getSalesAnalytics();
     }
     const response = await axiosInstance.get('/v1/sales/analytics');
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async getUpcomingFollowUps() {
@@ -28,7 +28,7 @@ export const salesAPI = {
     const response = await axiosInstance.get('/v1/sales/follow-ups', {
       params: { filter: 'upcoming' },
     });
-    return response.data;
+    return response.data?.items || response.data?.data || response.data;
   },
 
   async getSalesActivities() {
@@ -41,9 +41,8 @@ export const salesAPI = {
       );
     }
     const response = await axiosInstance.get('/v1/sales/activities');
-    return response.data;
+    return response.data?.items || response.data?.data || response.data;
   },
 };
 
 export default salesAPI;
-

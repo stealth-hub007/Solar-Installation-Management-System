@@ -9,7 +9,7 @@ export const enquiryAPI = {
       return storageService.getEnquiries();
     }
     const response = await axiosInstance.get('/v1/sales/enquiries', { params });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : (response.data?.items || response.data?.data || []);
   },
 
   async getEnquiryById(id) {
@@ -18,7 +18,7 @@ export const enquiryAPI = {
       return enquiries.find((e) => e.id === id) || null;
     }
     const response = await axiosInstance.get(`/v1/sales/enquiries/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createEnquiry(enquiryData) {
@@ -26,7 +26,7 @@ export const enquiryAPI = {
       return storageService.createEnquiry(enquiryData);
     }
     const response = await axiosInstance.post('/v1/sales/enquiries', enquiryData);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateEnquiry(id, patch) {
@@ -34,7 +34,7 @@ export const enquiryAPI = {
       return storageService.updateEnquiry(id, patch);
     }
     const response = await axiosInstance.put(`/v1/sales/enquiries/${id}`, patch);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateEnquiryStatus(id, newStatus) {
@@ -42,7 +42,7 @@ export const enquiryAPI = {
       return storageService.updateEnquiry(id, { enquiryStatus: newStatus });
     }
     const response = await axiosInstance.patch(`/v1/sales/enquiries/${id}/status`, { status: newStatus });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteEnquiry(id) {
@@ -50,9 +50,8 @@ export const enquiryAPI = {
       return storageService.deleteEnquiry(id);
     }
     const response = await axiosInstance.delete(`/v1/sales/enquiries/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 };
 
 export default enquiryAPI;
-

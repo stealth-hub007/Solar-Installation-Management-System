@@ -9,7 +9,7 @@ export const followUpAPI = {
       return storageService.getFollowUps();
     }
     const response = await axiosInstance.get('/v1/sales/follow-ups', { params });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : (response.data?.items || response.data?.data || []);
   },
 
   async createFollowUp(followUpData) {
@@ -17,7 +17,7 @@ export const followUpAPI = {
       return storageService.createFollowUp(followUpData);
     }
     const response = await axiosInstance.post('/v1/sales/follow-ups', followUpData);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateFollowUp(id, patch) {
@@ -25,7 +25,7 @@ export const followUpAPI = {
       return storageService.updateFollowUp(id, patch);
     }
     const response = await axiosInstance.put(`/v1/sales/follow-ups/${id}`, patch);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async completeFollowUp(id, outcomeNotes) {
@@ -33,7 +33,7 @@ export const followUpAPI = {
       return storageService.completeFollowUp(id, outcomeNotes);
     }
     const response = await axiosInstance.patch(`/v1/sales/follow-ups/${id}/complete`, { outcomeNotes });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async rescheduleFollowUp(id, newDate, newTime, notes) {
@@ -45,7 +45,7 @@ export const followUpAPI = {
       followUpTime: newTime,
       notes,
     });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteFollowUp(id) {
@@ -53,9 +53,8 @@ export const followUpAPI = {
       return storageService.deleteFollowUp(id);
     }
     const response = await axiosInstance.delete(`/v1/sales/follow-ups/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 };
 
 export default followUpAPI;
-

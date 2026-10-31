@@ -9,7 +9,7 @@ export const quotationAPI = {
       return storageService.getQuotations();
     }
     const response = await axiosInstance.get('/v1/sales/quotations', { params });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : (response.data?.items || response.data?.data || []);
   },
 
   async getQuotationById(id) {
@@ -17,7 +17,7 @@ export const quotationAPI = {
       return storageService.getQuotationById(id);
     }
     const response = await axiosInstance.get(`/v1/sales/quotations/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createQuotation(quotationData) {
@@ -25,7 +25,7 @@ export const quotationAPI = {
       return storageService.createQuotation(quotationData);
     }
     const response = await axiosInstance.post('/v1/sales/quotations', quotationData);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateQuotation(id, patch) {
@@ -33,7 +33,7 @@ export const quotationAPI = {
       return storageService.updateQuotation(id, patch);
     }
     const response = await axiosInstance.put(`/v1/sales/quotations/${id}`, patch);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async submitQuotation(id) {
@@ -41,7 +41,7 @@ export const quotationAPI = {
       return storageService.updateQuotation(id, { approvalStatus: 'Pending', status: 'Submitted' });
     }
     const response = await axiosInstance.post(`/v1/sales/quotations/${id}/submit`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async approveQuotation(id) {
@@ -49,7 +49,7 @@ export const quotationAPI = {
       return storageService.approveQuotation(id);
     }
     const response = await axiosInstance.post(`/v1/sales/quotations/${id}/approve`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async acceptQuotation(id, convertToOrder = true) {
@@ -57,7 +57,7 @@ export const quotationAPI = {
       return storageService.acceptQuotation(id, convertToOrder);
     }
     const response = await axiosInstance.post(`/v1/sales/quotations/${id}/accept`, { convertToOrder });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteQuotation(id) {
@@ -65,9 +65,8 @@ export const quotationAPI = {
       return storageService.deleteQuotation(id);
     }
     const response = await axiosInstance.delete(`/v1/sales/quotations/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 };
 
 export default quotationAPI;
-

@@ -96,7 +96,6 @@ export const LoginPage = () => {
     } finally {
       setLoading(false);
     }
-    }
   };
 
   const handleRequestAccess = (e) => {

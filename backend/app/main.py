@@ -41,6 +41,7 @@ from app.routes.expenses import router as expenses_router
 from app.routes.reports import router as reports_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.notifications import router as notifications_router
+from app.routes.sales import router as sales_router
 
 # Configure logging
 logging.basicConfig(
@@ -158,6 +159,7 @@ api_v1_router.include_router(expenses_router)
 api_v1_router.include_router(reports_router)
 api_v1_router.include_router(dashboard_router)
 api_v1_router.include_router(notifications_router)
+api_v1_router.include_router(sales_router, prefix="/sales")
 
 app.include_router(api_v1_router)
 
@@ -184,8 +186,15 @@ api_router.include_router(expenses_router)
 api_router.include_router(reports_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(notifications_router)
+api_router.include_router(sales_router, prefix="/sales")
+api_router.include_router(sales_router, prefix="/v1/sales")
 
 app.include_router(api_router)
+
+# Also support direct /v1/sales mount
+v1_direct_router = APIRouter(prefix="/v1")
+v1_direct_router.include_router(sales_router, prefix="/sales")
+app.include_router(v1_direct_router)
 
 
 # Support both /docs and /api/v1/docs

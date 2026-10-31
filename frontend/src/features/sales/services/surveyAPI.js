@@ -9,7 +9,7 @@ export const surveyAPI = {
       return storageService.getSurveys();
     }
     const response = await axiosInstance.get('/v1/sales/surveys', { params });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : (response.data?.items || response.data?.data || []);
   },
 
   async getSurveyById(id) {
@@ -18,15 +18,15 @@ export const surveyAPI = {
       return surveys.find((s) => s.id === id) || null;
     }
     const response = await axiosInstance.get(`/v1/sales/surveys/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
-  async scheduleSurvey(surveyData) {
+  async createSurvey(surveyData) {
     if (useMock) {
-      return storageService.scheduleSurvey(surveyData);
+      return storageService.createSurvey(surveyData);
     }
     const response = await axiosInstance.post('/v1/sales/surveys', surveyData);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateSurvey(id, patch) {
@@ -34,7 +34,7 @@ export const surveyAPI = {
       return storageService.updateSurvey(id, patch);
     }
     const response = await axiosInstance.put(`/v1/sales/surveys/${id}`, patch);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteSurvey(id) {
@@ -42,9 +42,8 @@ export const surveyAPI = {
       return storageService.deleteSurvey(id);
     }
     const response = await axiosInstance.delete(`/v1/sales/surveys/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 };
 
 export default surveyAPI;
-

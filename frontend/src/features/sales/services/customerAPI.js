@@ -9,7 +9,7 @@ export const customerAPI = {
       return storageService.getCustomers();
     }
     const response = await axiosInstance.get('/v1/sales/customers', { params });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : (response.data?.items || response.data?.data || []);
   },
 
   async getCustomerById(id) {
@@ -18,7 +18,7 @@ export const customerAPI = {
       return customers.find((c) => c.id === id) || null;
     }
     const response = await axiosInstance.get(`/v1/sales/customers/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createCustomer(customerData) {
@@ -26,7 +26,7 @@ export const customerAPI = {
       return storageService.createCustomer(customerData);
     }
     const response = await axiosInstance.post('/v1/sales/customers', customerData);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateCustomer(id, patch) {
@@ -34,7 +34,7 @@ export const customerAPI = {
       return storageService.updateCustomer(id, patch);
     }
     const response = await axiosInstance.put(`/v1/sales/customers/${id}`, patch);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteCustomer(id) {
@@ -42,9 +42,8 @@ export const customerAPI = {
       return storageService.deleteCustomer(id);
     }
     const response = await axiosInstance.delete(`/v1/sales/customers/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 };
 
 export default customerAPI;
-

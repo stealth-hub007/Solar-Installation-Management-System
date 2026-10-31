@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Menu,
   Bell,
@@ -7,7 +8,6 @@ import {
   User,
   Shield,
   LogOut,
-  CheckCircle2,
   AlertTriangle,
   Info,
   Briefcase,
@@ -18,34 +18,36 @@ import { useSidebar } from '../../context/SidebarContext';
 import { Dropdown, DropdownItem } from '../ui/Dropdown';
 import storageService from '../../services/storageService';
 import PortalSwitcher from './PortalSwitcher';
+import { logoutUser, selectCurrentUser, selectUserRole } from '../../features/auth/authSlice';
 
 export const SalesHeader = ({ onQuickEnquiry }) => {
   const { toggleMobileSidebar } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const reduxUser = useSelector(selectCurrentUser);
+  const reduxRole = useSelector(selectUserRole);
   const [notifications, setNotifications] = useState([]);
 
   // Auth User check
-  const authUser = (() => {
+  const authUser = reduxUser || (() => {
     try {
       const saved = localStorage.getItem('sims_auth_user');
-      return saved ? JSON.parse(saved) : { email: 'admin@solar-sims.com', role: 'Super Administrator' };
+      return saved ? JSON.parse(saved) : { email: 'sales@sunpower.com', role: 'SALES', full_name: 'Sales Officer' };
     } catch {
-      return { email: 'admin@solar-sims.com', role: 'Super Administrator' };
+      return { email: 'sales@sunpower.com', role: 'SALES', full_name: 'Sales Officer' };
     }
   })();
 
-  const isAdminUser =
-    !authUser.email?.toLowerCase().includes('sales') ||
-    authUser.email?.toLowerCase().includes('admin') ||
-    authUser.role?.toLowerCase().includes('admin');
-  const displayName = isAdminUser ? (authUser.name || 'Admin User') : (authUser.name || 'Sales Officer');
-  const displayEmail = authUser.email || (isAdminUser ? 'admin@solar-sims.com' : 'sales@solar-sims.com');
-  const displayRole = isAdminUser ? 'Super Administrator' : 'Sr. Sales Officer';
-  const displayInitials = isAdminUser ? 'AD' : 'SO';
+  const role = (reduxRole || authUser.role || '').toUpperCase();
+  const isAdminUser = role === 'ADMIN' || authUser.email?.toLowerCase().includes('admin');
+  const displayName = authUser.full_name || authUser.name || (isAdminUser ? 'Admin User' : 'Sales Officer');
+  const displayEmail = authUser.email || (isAdminUser ? 'admin@sunpower.com' : 'sales@sunpower.com');
+  const displayRole = isAdminUser ? 'Super Administrator' : 'Sales Executive';
+  const displayInitials = displayName.substring(0, 2).toUpperCase();
 
   useEffect(() => {
-    // Sales notifications from activities
     const alerts = storageService.getAlerts();
     setNotifications(alerts.slice(0, 4));
   }, [location.pathname]);
@@ -54,8 +56,8 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
     setNotifications([]);
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem('sims_auth_token');
+  const handleSignOut = async () => {
+    await dispatch(logoutUser());
     navigate('/login');
   };
 
@@ -182,9 +184,11 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
             <DropdownItem icon={Target} onClick={() => navigate('/sales/dashboard')}>
               Sales Targets & KPIs
             </DropdownItem>
-            <DropdownItem icon={Shield} onClick={() => navigate('/admin/dashboard')}>
-              Switch to Admin Portal
-            </DropdownItem>
+            {isAdminUser && (
+              <DropdownItem icon={Shield} onClick={() => navigate('/admin/dashboard')}>
+                Switch to Admin Portal
+              </DropdownItem>
+            )}
           </div>
 
           <div className="border-t border-slate-100 py-1">
@@ -199,4 +203,3 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
 };
 
 export default SalesHeader;
-

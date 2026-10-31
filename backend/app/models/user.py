@@ -1,7 +1,8 @@
 import enum
 from datetime import datetime, timezone
+from typing import Optional, List
 import uuid
-from sqlalchemy import String, Boolean, DateTime, Enum, ForeignKey, Integer
+from sqlalchemy import String, Boolean, DateTime, Enum, ForeignKey, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -16,12 +17,86 @@ class UserRole(str, enum.Enum):
     WAREHOUSE = "WAREHOUSE"
 
 
+class AccountStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    SUSPENDED = "SUSPENDED"
+
+
+ROLE_DEFAULT_PERMISSIONS = {
+    UserRole.ADMIN: [
+        "admin.dashboard",
+        "admin.users.manage",
+        "sales.dashboard",
+        "warehouse.dashboard",
+        "technician.dashboard",
+        "project.monitor",
+        "approvals.manage",
+        "reports.view",
+        "sales.customers.view",
+        "sales.customers.manage",
+        "sales.enquiries.manage",
+        "sales.surveys.schedule",
+        "sales.quotations.manage",
+        "sales.orders.manage",
+        "warehouse.products.view",
+        "warehouse.inventory.manage",
+        "warehouse.suppliers.manage",
+        "warehouse.purchases.manage",
+        "warehouse.receipts.manage",
+        "warehouse.movements.view",
+        "warehouse.serials.manage",
+        "warehouse.dispatch.manage",
+        "warehouse.delivery.manage",
+        "technician.surveys.view",
+        "technician.surveys.submit",
+        "technician.installations.view",
+        "technician.installations.update",
+        "technician.checklists.manage",
+        "technician.equipment.verify",
+        "technician.handover.submit",
+    ],
+    UserRole.SALES: [
+        "sales.dashboard",
+        "sales.customers.view",
+        "sales.customers.manage",
+        "sales.enquiries.manage",
+        "sales.surveys.schedule",
+        "sales.quotations.manage",
+        "sales.orders.manage",
+    ],
+    UserRole.WAREHOUSE: [
+        "warehouse.dashboard",
+        "warehouse.products.view",
+        "warehouse.inventory.manage",
+        "warehouse.suppliers.manage",
+        "warehouse.purchases.manage",
+        "warehouse.receipts.manage",
+        "warehouse.movements.view",
+        "warehouse.serials.manage",
+        "warehouse.dispatch.manage",
+        "warehouse.delivery.manage",
+    ],
+    UserRole.TECHNICIAN: [
+        "technician.dashboard",
+        "technician.surveys.view",
+        "technician.surveys.submit",
+        "technician.installations.view",
+        "technician.installations.update",
+        "technician.checklists.manage",
+        "technician.equipment.verify",
+        "technician.handover.submit",
+    ],
+}
+
+
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
-    """Users table for all system roles (Admin, Sales, Technician, Warehouse)."""
+    """Users table for all system roles (Admin, Sales, Technician, Warehouse) with approval lifecycle."""
     __tablename__ = "users"
 
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
-    phone: Mapped[str] = mapped_column(String(20), nullable=True, index=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, index=True)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
@@ -30,8 +105,27 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=False,
         index=True,
     )
+    account_status: Mapped[AccountStatus] = mapped_column(
+        Enum(AccountStatus, name="account_status_enum", native_enum=False),
+        default=AccountStatus.PENDING,
+        nullable=False,
+        index=True,
+    )
+    auth_provider: Mapped[str] = mapped_column(String(50), default="LOCAL", nullable=False)
+    google_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Admin Approval Fields
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    rejection_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    suspended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    permissions: Mapped[Optional[List[str]]] = mapped_column(JSON, default=list, nullable=True)
 
     # Relationships
     password_reset_otps: Mapped[list["PasswordResetOTP"]] = relationship(
@@ -40,9 +134,10 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="desc(PasswordResetOTP.created_at)",
     )
+    approved_by: Mapped[Optional["User"]] = relationship("User", remote_side="User.id")
 
     def __repr__(self) -> str:
-        return f"<User {self.email} (Role: {self.role}, Active: {self.is_active})>"
+        return f"<User {self.email} (Role: {self.role}, Status: {self.account_status})>"
 
 
 class PasswordResetOTP(Base, UUIDPrimaryKeyMixin):
@@ -70,4 +165,3 @@ class PasswordResetOTP(Base, UUIDPrimaryKeyMixin):
 
     def __repr__(self) -> str:
         return f"<PasswordResetOTP user={self.user_id} expired={self.expires_at} used={self.is_used}>"
-

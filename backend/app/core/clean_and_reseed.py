@@ -3,6 +3,13 @@ Database Clean & Reseed for SunPower SIMS.
 Cleans up legacy/pytest test records and populates exact high-fidelity demo records matching the dashboard UI screenshots.
 """
 
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 import asyncio
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
@@ -10,7 +17,7 @@ import uuid
 
 from sqlalchemy import select, delete, text
 from app.core.database import AsyncSessionLocal
-from app.models.user import User, UserRole
+from app.models.user import User, UserRole, AccountStatus, ROLE_DEFAULT_PERMISSIONS
 from app.models.customer import Customer, CustomerAddress, Enquiry, EnquirySource, LeadStatus, SystemType, SystemCapacity, EnquiryFollowup
 from app.models.survey import SiteSurvey, SurveyPhoto, SurveyStatus, SurveyApprovalStatus, RoofOrientation
 from app.models.product import Product, ProductCategory, Package, PackageItem, WarrantyUnit
@@ -72,7 +79,7 @@ async def reseed_database():
 
         now = datetime.now(timezone.utc)
 
-        # 2. Ensure Admin & Tech Users
+        # 2. Ensure Staff Users for All Four Portals
         admin = (await session.execute(select(User).where(User.email == "admin@sunpower.com"))).scalar_one_or_none()
         if not admin:
             admin = User(
@@ -81,11 +88,17 @@ async def reseed_database():
                 phone="9998887776",
                 hashed_password=get_password_hash("Admin@12345Password"),
                 role=UserRole.ADMIN,
+                account_status=AccountStatus.APPROVED,
+                permissions=ROLE_DEFAULT_PERMISSIONS[UserRole.ADMIN],
                 is_active=True,
                 is_superuser=True,
+                approved_at=now,
             )
             session.add(admin)
             await session.flush()
+        else:
+            admin.account_status = AccountStatus.APPROVED
+            admin.permissions = ROLE_DEFAULT_PERMISSIONS[UserRole.ADMIN]
 
         tech1 = (await session.execute(select(User).where(User.email == "vikram.tech@sunpower.com"))).scalar_one_or_none()
         if not tech1:
@@ -95,9 +108,47 @@ async def reseed_database():
                 phone="9829011111",
                 hashed_password=get_password_hash("Tech@12345Pass"),
                 role=UserRole.TECHNICIAN,
+                account_status=AccountStatus.APPROVED,
+                permissions=ROLE_DEFAULT_PERMISSIONS[UserRole.TECHNICIAN],
                 is_active=True,
+                approved_at=now,
             )
             session.add(tech1)
+            await session.flush()
+        else:
+            tech1.account_status = AccountStatus.APPROVED
+            tech1.permissions = ROLE_DEFAULT_PERMISSIONS[UserRole.TECHNICIAN]
+
+        sales_user = (await session.execute(select(User).where(User.email == "sales@sunpower.com"))).scalar_one_or_none()
+        if not sales_user:
+            sales_user = User(
+                email="sales@sunpower.com",
+                full_name="Rohan Verma",
+                phone="9829011222",
+                hashed_password=get_password_hash("Sales@12345Pass"),
+                role=UserRole.SALES,
+                account_status=AccountStatus.APPROVED,
+                permissions=ROLE_DEFAULT_PERMISSIONS[UserRole.SALES],
+                is_active=True,
+                approved_at=now,
+            )
+            session.add(sales_user)
+            await session.flush()
+
+        wh_user = (await session.execute(select(User).where(User.email == "warehouse@sunpower.com"))).scalar_one_or_none()
+        if not wh_user:
+            wh_user = User(
+                email="warehouse@sunpower.com",
+                full_name="Anil Sharma",
+                phone="9829033444",
+                hashed_password=get_password_hash("Warehouse@12345Pass"),
+                role=UserRole.WAREHOUSE,
+                account_status=AccountStatus.APPROVED,
+                permissions=ROLE_DEFAULT_PERMISSIONS[UserRole.WAREHOUSE],
+                is_active=True,
+                approved_at=now,
+            )
+            session.add(wh_user)
             await session.flush()
 
         # 3. Ensure Products, Package & Inventory
@@ -136,16 +187,68 @@ async def reseed_database():
             )
             session.add(inv_entry)
 
+        # Inverter Product (Serial Tracked)
+        prod_inverter = (await session.execute(select(Product).where(Product.is_serial_tracked == True).limit(1))).scalar_one_or_none()
+        if not prod_inverter:
+            prod_inverter = Product(
+                category_id=cat_inv.id,
+                name="Growatt 5kW Dual MPPT String Inverter",
+                sku="INV-GRW-5KW",
+                selling_price=Decimal("45000.00"),
+                purchase_cost=Decimal("36000.00"),
+                is_serial_tracked=True,
+                minimum_stock_level=10,
+                warranty_duration=2,
+                warranty_unit=WarrantyUnit.YEARS,
+            )
+            session.add(prod_inverter)
+            await session.flush()
+
+            inv_entry_inv = Inventory(
+                product_id=prod_inverter.id,
+                total_quantity=Decimal("50.00"),
+                reserved_quantity=Decimal("10.00"),
+                minimum_stock_level=10,
+            )
+            session.add(inv_entry_inv)
+
         pkg = (await session.execute(select(Package).limit(1))).scalar_one_or_none()
         if not pkg:
             pkg = Package(
-                name="Standard 10kW On-Grid Rooftop Solution",
-                capacity_kw=Decimal("10.00"),
-                base_price=Decimal("450000.00"),
-                description="Turnkey 10kW On-Grid System with Net Metering & Subsidy Assistance",
+                name="Standard 5kW On-Grid Rooftop Solution",
+                capacity=SystemCapacity.KW_5,
+                system_type=SystemType.ON_GRID,
+                base_package_price=Decimal("250000.00"),
+                installation_charge=Decimal("25000.00"),
+                is_active=True,
             )
             session.add(pkg)
             await session.flush()
+
+            pkg_item1 = PackageItem(
+                package_id=pkg.id,
+                product_id=prod_panel.id,
+                quantity=Decimal("10.00"),
+            )
+            pkg_item2 = PackageItem(
+                package_id=pkg.id,
+                product_id=prod_inverter.id,
+                quantity=Decimal("1.00"),
+            )
+            session.add_all([pkg_item1, pkg_item2])
+            await session.flush()
+        else:
+            # Ensure package has both panel and serialized inverter
+            existing_items = (await session.execute(select(PackageItem).where(PackageItem.package_id == pkg.id))).scalars().all()
+            if not existing_items:
+                session.add_all([
+                    PackageItem(package_id=pkg.id, product_id=prod_panel.id, quantity=Decimal("10.00")),
+                    PackageItem(package_id=pkg.id, product_id=prod_inverter.id, quantity=Decimal("1.00")),
+                ])
+                await session.flush()
+            elif len(existing_items) == 1 and prod_inverter:
+                session.add(PackageItem(package_id=pkg.id, product_id=prod_inverter.id, quantity=Decimal("1.00")))
+                await session.flush()
 
         # 4. Seed the 10 Demo Customers exactly matching the screenshot
         demo_customers_data = [

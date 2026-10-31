@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_, desc, asc
+from sqlalchemy.orm import selectinload
 
 from app.models.customer import Customer, CustomerAddress, Enquiry, LeadStatus
 from app.models.survey import SiteSurvey, SurveyApprovalStatus, SurveyStatus
@@ -11,10 +12,10 @@ from app.models.quotation import Quotation, QuotationStatus
 from app.models.order import Order, OrderStatus, Payment, PaymentRecordStatus
 from app.models.inventory import Inventory
 from app.models.product import Product
-from app.models.installation import InstallationJob, InstallationStatus, TechnicianWorkLog
+from app.models.installation import InstallationJob, InstallationStatus, TechnicianWorkLog, InstallationChecklist, InstallationSignoff
 from app.models.service_ticket import ServiceTicket, TicketStatus
 from app.models.dispatch import Dispatch, DispatchStatus
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.system import AuditLog, Notification
 from app.schemas.dashboard import (
     AdminDashboardResponse,
@@ -119,41 +120,69 @@ class DashboardService:
 
     @staticmethod
     async def get_technician_dashboard(db: AsyncSession, tech_user: User) -> TechnicianDashboardResponse:
-        assigned_surveys = (await db.execute(
-            select(func.count(SiteSurvey.id)).where(SiteSurvey.assigned_technician_id == tech_user.id)
-        )).scalar_one()
+        is_admin = tech_user.role == UserRole.ADMIN
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        pending_surveys = (await db.execute(
-            select(func.count(SiteSurvey.id)).where(
-                SiteSurvey.assigned_technician_id == tech_user.id,
-                SiteSurvey.survey_status.in_([SurveyStatus.SCHEDULED, SurveyStatus.IN_PROGRESS]),
-            )
-        )).scalar_one()
+        # Base survey query
+        survey_base = select(SiteSurvey)
+        if not is_admin:
+            survey_base = survey_base.where(SiteSurvey.assigned_technician_id == tech_user.id)
+        survey_res = await db.execute(survey_base)
+        surveys = list(survey_res.scalars().all())
 
-        assigned_inst = (await db.execute(
-            select(func.count(InstallationJob.id)).where(InstallationJob.assigned_technician_id == tech_user.id)
-        )).scalar_one()
-
-        completed_inst = (await db.execute(
-            select(func.count(InstallationJob.id)).where(
-                InstallationJob.assigned_technician_id == tech_user.id,
-                InstallationJob.installation_status == InstallationStatus.COMPLETED,
-            )
-        )).scalar_one()
-
-        hours_res = await db.execute(
-            select(func.coalesce(func.sum(TechnicianWorkLog.total_hours), Decimal("0.00"))).where(
-                TechnicianWorkLog.technician_id == tech_user.id
-            )
+        # Base installation query
+        inst_base = select(InstallationJob).options(
+            selectinload(InstallationJob.checklist),
+            selectinload(InstallationJob.signoff),
         )
-        total_hours = hours_res.scalar_one()
+        if not is_admin:
+            inst_base = inst_base.where(InstallationJob.assigned_technician_id == tech_user.id)
+        inst_res = await db.execute(inst_base)
+        installations = list(inst_res.scalars().all())
 
-        assigned_tickets = (await db.execute(
-            select(func.count(ServiceTicket.id)).where(
-                ServiceTicket.assigned_technician_id == tech_user.id,
-                ServiceTicket.ticket_status != TicketStatus.CLOSED,
-            )
-        )).scalar_one()
+        # Base service tickets query
+        ticket_base = select(ServiceTicket)
+        if not is_admin:
+            ticket_base = ticket_base.where(ServiceTicket.assigned_technician_id == tech_user.id)
+        ticket_res = await db.execute(ticket_base)
+        tickets = list(ticket_res.scalars().all())
+
+        # Work hours logged
+        hours_query = select(func.coalesce(func.sum(TechnicianWorkLog.total_hours), Decimal("0.00")))
+        if not is_admin:
+            hours_query = hours_query.where(TechnicianWorkLog.technician_id == tech_user.id)
+        total_hours = (await db.execute(hours_query)).scalar_one()
+
+        # Operational metrics
+        assigned_surveys = len(surveys)
+        pending_surveys = sum(1 for s in surveys if s.survey_status in [SurveyStatus.SCHEDULED, SurveyStatus.IN_PROGRESS])
+        in_progress_surveys = sum(1 for s in surveys if s.survey_status == SurveyStatus.IN_PROGRESS)
+        submitted_surveys = sum(1 for s in surveys if s.survey_status in [SurveyStatus.SUBMITTED, SurveyStatus.COMPLETED])
+        surveys_awaiting_approval = sum(1 for s in surveys if s.approval_status == SurveyApprovalStatus.PENDING_APPROVAL)
+        surveys_requiring_corrections = sum(1 for s in surveys if s.approval_status == SurveyApprovalStatus.REJECTED)
+
+        upcoming_visits = sum(1 for s in surveys if s.scheduled_date and s.scheduled_date > today_end)
+        today_surveys = sum(1 for s in surveys if s.scheduled_date and today_start <= s.scheduled_date <= today_end)
+
+        assigned_inst = len(installations)
+        pending_inst = sum(1 for j in installations if j.installation_status in [InstallationStatus.PENDING_ASSIGNMENT, InstallationStatus.SCHEDULED])
+        in_progress_inst = sum(1 for j in installations if j.installation_status in [InstallationStatus.IN_PROGRESS, InstallationStatus.TESTING])
+        completed_inst = sum(1 for j in installations if j.installation_status == InstallationStatus.COMPLETED)
+        today_inst = sum(1 for j in installations if j.scheduled_date and today_start <= j.scheduled_date <= today_end)
+
+        overdue_surveys = sum(1 for s in surveys if s.scheduled_date and s.scheduled_date < today_start and s.survey_status not in [SurveyStatus.COMPLETED, SurveyStatus.CANCELLED])
+        overdue_inst = sum(1 for j in installations if j.scheduled_date and j.scheduled_date < today_start and j.installation_status not in [InstallationStatus.COMPLETED, InstallationStatus.CANCELLED])
+        overdue_total = overdue_surveys + overdue_inst
+
+        pending_checklists = sum(1 for j in installations if j.installation_status != InstallationStatus.COMPLETED and (not j.checklist or not j.checklist.is_fully_completed()))
+        pending_signoffs = sum(1 for j in installations if j.installation_status != InstallationStatus.COMPLETED and not j.signoff)
+        pending_equipment = sum(1 for j in installations if j.installation_status in [InstallationStatus.SCHEDULED, InstallationStatus.IN_PROGRESS] and (not j.checklist or not j.checklist.solar_panels_installed or not j.checklist.inverter_installed))
+
+        total_tasks = assigned_surveys + assigned_inst + len(tickets)
+        today_tasks = today_surveys + today_inst
+        active_tickets = len([t for t in tickets if t.ticket_status != TicketStatus.CLOSED])
 
         return TechnicianDashboardResponse(
             assigned_surveys_count=assigned_surveys,
@@ -161,7 +190,23 @@ class DashboardService:
             assigned_installations_count=assigned_inst,
             completed_installations_count=completed_inst,
             total_work_hours_logged=total_hours,
-            assigned_service_tickets_count=assigned_tickets,
+            assigned_service_tickets_count=active_tickets,
+
+            total_assigned_tasks=total_tasks,
+            today_tasks=today_tasks,
+            pending_site_surveys=pending_surveys,
+            in_progress_surveys=in_progress_surveys,
+            submitted_surveys=submitted_surveys,
+            surveys_awaiting_approval=surveys_awaiting_approval,
+            surveys_requiring_corrections=surveys_requiring_corrections,
+            upcoming_site_visits=upcoming_visits,
+            pending_installations=pending_inst,
+            in_progress_installations=in_progress_inst,
+            completed_installations=completed_inst,
+            overdue_assignments=overdue_total,
+            pending_equipment_verification=pending_equipment,
+            pending_checklists=pending_checklists,
+            pending_customer_sign_offs=pending_signoffs,
         )
 
     @staticmethod

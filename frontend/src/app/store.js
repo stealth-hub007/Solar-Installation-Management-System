@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import authReducer from '../features/auth/authSlice';
 import dashboardReducer from '../features/dashboard/dashboardSlice';
 import salesDashboardReducer from '../features/sales/slices/salesDashboardSlice';
 import salesCustomerReducer from '../features/sales/slices/customerSlice';
@@ -13,9 +14,15 @@ import assignedInstallationReducer from '../features/technician/slices/assignedI
 import installationChecklistReducer from '../features/technician/slices/installationChecklistSlice';
 import equipmentVerificationReducer from '../features/technician/slices/equipmentVerificationSlice';
 import installationSignoffReducer from '../features/technician/slices/installationSignoffSlice';
+import warehouseDashboardReducer from '../features/warehouse/slices/warehouseDashboardSlice';
+import warehouseInventoryReducer from '../features/warehouse/slices/warehouseInventorySlice';
+import warehouseProductReducer from '../features/warehouse/slices/warehouseProductSlice';
+import warehouseProcurementReducer from '../features/warehouse/slices/warehouseProcurementSlice';
+import warehouseDispatchReducer from '../features/warehouse/slices/warehouseDispatchSlice';
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     dashboard: dashboardReducer,
     salesDashboard: salesDashboardReducer,
     salesCustomers: salesCustomerReducer,
@@ -30,6 +37,11 @@ export const store = configureStore({
     installationChecklist: installationChecklistReducer,
     equipmentVerification: equipmentVerificationReducer,
     installationSignoff: installationSignoffReducer,
+    warehouseDashboard: warehouseDashboardReducer,
+    warehouseInventory: warehouseInventoryReducer,
+    warehouseProducts: warehouseProductReducer,
+    warehouseProcurement: warehouseProcurementReducer,
+    warehouseDispatch: warehouseDispatchReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -42,4 +54,3 @@ export const store = configureStore({
 });
 
 export default store;
-

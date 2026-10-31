@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
+import httpx
 
 from app.core.config import settings
 from app.core.security import (
@@ -16,12 +17,15 @@ from app.core.exceptions import (
     UnauthorizedException,
     NotFoundException,
     BadRequestException,
+    ConflictException,
 )
-from app.models.user import User, PasswordResetOTP
+from app.models.user import User, PasswordResetOTP, UserRole, AccountStatus, ROLE_DEFAULT_PERMISSIONS
 from app.schemas.user import (
     LoginRequest,
     TokenResponse,
     UserResponse,
+    UserRegisterRequest,
+    GoogleAuthRequest,
     ChangePasswordRequest,
     ForgotPasswordResponse,
     ResetPasswordRequest,
@@ -32,6 +36,43 @@ logger = logging.getLogger("auth_service")
 
 
 class AuthService:
+    @staticmethod
+    async def register_user(db: AsyncSession, reg_in: UserRegisterRequest) -> TokenResponse:
+        """Creates a new registered user account with PENDING approval status and returns access token."""
+        email_clean = reg_in.email.lower().strip()
+        existing = await UserRepository.get_by_email(db, email_clean)
+        if existing:
+            raise ConflictException(
+                message=f"An account with email '{email_clean}' is already registered.",
+                error_code="EMAIL_ALREADY_EXISTS",
+            )
+
+        hashed_pw = get_password_hash(reg_in.password)
+        new_user = User(
+            email=email_clean,
+            full_name=reg_in.full_name.strip(),
+            hashed_password=hashed_pw,
+            role=UserRole.SALES,  # Unassigned default until Admin approval
+            account_status=AccountStatus.PENDING,
+            auth_provider="LOCAL",
+            is_active=True,
+            is_superuser=False,
+            permissions=[],
+        )
+        saved = await UserRepository.create(db, new_user)
+        logger.info(f"New user registered (PENDING approval): {saved.email}")
+
+        access_token = create_access_token(subject=str(saved.id))
+        refresh_token = create_refresh_token(subject=str(saved.id))
+
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            account_status=AccountStatus.PENDING,
+            user=UserResponse.model_validate(saved),
+        )
+
     @staticmethod
     async def authenticate_user(db: AsyncSession, login_in: LoginRequest) -> TokenResponse:
         user = await UserRepository.get_by_email(db, login_in.email)
@@ -53,6 +94,90 @@ class AuthService:
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
+            account_status=user.account_status,
+            user=UserResponse.model_validate(user),
+        )
+
+    @staticmethod
+    async def authenticate_google(db: AsyncSession, google_in: GoogleAuthRequest) -> TokenResponse:
+        """Verifies Google identity, finds or registers the user as PENDING, and issues session tokens."""
+        email = None
+        full_name = None
+        google_id = None
+
+        # Verify Google token if token provided
+        if google_in.credential:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    resp = await client.get(
+                        f"https://oauth2.googleapis.com/tokeninfo?id_token={google_in.credential}"
+                    )
+                    if resp.status_code == 200:
+                        payload = resp.json()
+                        email = payload.get("email")
+                        full_name = payload.get("name") or payload.get("given_name")
+                        google_id = payload.get("sub")
+                    else:
+                        logger.warning(f"Google tokeninfo response: {resp.status_code} {resp.text}")
+            except Exception as e:
+                logger.error(f"Failed to verify Google token: {e}")
+
+        # Fallback to direct client details if tokeninfo didn't resolve (e.g. testing mode)
+        if not email and google_in.email:
+            email = str(google_in.email).lower().strip()
+            full_name = google_in.full_name or "Google User"
+            google_id = google_in.google_id or f"google_{uuid.uuid4().hex[:12]}"
+
+        if not email:
+            raise UnauthorizedException(
+                message="Unable to verify Google credentials. Please try standard login.",
+                error_code="GOOGLE_AUTH_FAILED",
+            )
+
+        email_clean = email.lower().strip()
+
+        # Check existing user by email or google_id
+        user = await UserRepository.get_by_email(db, email_clean)
+        if not user and google_id:
+            user = await UserRepository.get_by_google_id(db, google_id)
+
+        if not user:
+            # Register new Google user as PENDING
+            dummy_pw = get_password_hash(uuid.uuid4().hex)
+            new_user = User(
+                email=email_clean,
+                full_name=full_name or "Google User",
+                hashed_password=dummy_pw,
+                role=UserRole.SALES,
+                account_status=AccountStatus.PENDING,
+                auth_provider="GOOGLE",
+                google_id=google_id,
+                is_active=True,
+                is_superuser=False,
+                permissions=[],
+            )
+            user = await UserRepository.create(db, new_user)
+            logger.info(f"New Google user registered (PENDING): {user.email}")
+        else:
+            # Link google_id if not present
+            if google_id and not user.google_id:
+                user.google_id = google_id
+                user.auth_provider = "GOOGLE"
+                await UserRepository.update(db, user)
+
+        if not user.is_active:
+            raise UnauthorizedException(
+                message="Your account has been deactivated. Please contact an administrator.",
+                error_code="ACCOUNT_INACTIVE",
+            )
+
+        access_token = create_access_token(subject=str(user.id))
+        refresh_token = create_refresh_token(subject=str(user.id))
+
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            account_status=user.account_status,
             user=UserResponse.model_validate(user),
         )
 
@@ -81,6 +206,7 @@ class AuthService:
         return TokenResponse(
             access_token=new_access_token,
             refresh_token=new_refresh_token,
+            account_status=user.account_status,
             user=UserResponse.model_validate(user),
         )
 
@@ -99,35 +225,28 @@ class AuthService:
     async def request_password_reset_otp(db: AsyncSession, email: str) -> ForgotPasswordResponse:
         user = await UserRepository.get_by_email(db, email)
         if not user:
-            # Prevent email enumeration while maintaining standard response
+            # Mask user existence for security
             return ForgotPasswordResponse(
-                message="If the email is registered, a password reset OTP has been sent."
-            )
-
-        if not user.is_active:
-            raise BadRequestException(
-                message="Account is deactivated. Cannot initiate password reset.",
-                error_code="ACCOUNT_INACTIVE",
+                message="If the email exists in our system, a 6-digit OTP has been sent.",
+                dev_otp=None,
             )
 
         otp_code = generate_numeric_otp(6)
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
 
-        otp_record = PasswordResetOTP(
+        otp = PasswordResetOTP(
             user_id=user.id,
             otp_code=otp_code,
             expires_at=expires_at,
             attempts=0,
             is_used=False,
         )
-        await UserRepository.create_otp(db, otp_record)
+        await UserRepository.create_otp(db, otp)
 
-        # Log OTP securely for development/testing
-        logger.info(f"[SECURE_OTP_DELIVERY] Password reset OTP for {user.email}: {otp_code} (Valid for {settings.OTP_EXPIRE_MINUTES} mins)")
-
-        dev_otp = otp_code if settings.DEBUG else None
+        logger.info(f"Password reset OTP generated for {user.email}: {otp_code}")
+        dev_otp = otp_code if (settings.DEBUG or settings.ENVIRONMENT == "development") else None
         return ForgotPasswordResponse(
-            message="Password reset OTP has been dispatched to your email address.",
+            message="Verification OTP has been sent to your registered email.",
             dev_otp=dev_otp,
         )
 
@@ -137,30 +256,28 @@ class AuthService:
         if not user:
             raise NotFoundException(message="User not found", error_code="USER_NOT_FOUND")
 
-        latest_otp = await UserRepository.get_latest_valid_otp(db, user.id)
-        if not latest_otp:
+        otp = await UserRepository.get_latest_valid_otp(db, user.id)
+        if not otp:
             raise BadRequestException(
-                message="No valid OTP found or OTP has expired. Please request a new OTP.",
-                error_code="OTP_EXPIRED_OR_NOT_FOUND",
+                message="Reset token has expired or is invalid. Please request a new OTP.",
+                error_code="OTP_EXPIRED_OR_INVALID",
             )
 
-        if latest_otp.attempts >= settings.OTP_MAX_ATTEMPTS:
-            await UserRepository.mark_otp_used(db, latest_otp)
+        if otp.otp_code != reset_in.otp_code.strip():
+            otp.attempts += 1
+            if otp.attempts >= settings.OTP_MAX_ATTEMPTS:
+                await UserRepository.mark_otp_used(db, otp)
+                raise BadRequestException(
+                    message="Too many failed OTP attempts. Please request a new OTP.",
+                    error_code="MAX_OTP_ATTEMPTS_EXCEEDED",
+                )
+            await UserRepository.update(db, user)
             raise BadRequestException(
-                message="Maximum OTP attempts exceeded. Please request a new OTP.",
-                error_code="OTP_MAX_ATTEMPTS_EXCEEDED",
-            )
-
-        if latest_otp.otp_code != reset_in.otp_code.strip():
-            await UserRepository.increment_otp_attempts(db, latest_otp)
-            remaining = settings.OTP_MAX_ATTEMPTS - latest_otp.attempts
-            raise BadRequestException(
-                message=f"Invalid OTP code entered. Remaining attempts: {remaining}",
+                message=f"Invalid OTP code. {settings.OTP_MAX_ATTEMPTS - otp.attempts} attempts remaining.",
                 error_code="INVALID_OTP",
             )
 
-        # OTP is correct -> mark used and update password
-        await UserRepository.mark_otp_used(db, latest_otp)
+        await UserRepository.mark_otp_used(db, otp)
         user.hashed_password = get_password_hash(reset_in.new_password)
         await UserRepository.update(db, user)
-
+        logger.info(f"Password reset completed for user {user.email}")

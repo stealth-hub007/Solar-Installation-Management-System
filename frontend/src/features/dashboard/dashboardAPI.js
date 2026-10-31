@@ -18,8 +18,14 @@ export const dashboardAPI = {
       const stats = storageService.getStats(params?.timeRange);
       return { success: true, data: stats };
     }
-    const response = await axiosInstance.get('/dashboard/stats', { params: params || {} });
-    return response.data;
+    try {
+      const response = await axiosInstance.get('/dashboard/stats', { params: params || {} });
+      return response.data;
+    } catch (err) {
+      console.warn('Backend /dashboard/stats unavailable, falling back:', err.message);
+      const stats = storageService.getStats(params?.timeRange);
+      return { success: true, data: stats, isFallback: true };
+    }
   },
 
   async getRevenueAnalytics(period = '12m') {
@@ -74,8 +80,17 @@ export const dashboardAPI = {
       }
       return { success: true, data: alerts };
     }
-    const response = await axiosInstance.get('/dashboard/alerts', { params });
-    return response.data;
+    try {
+      const response = await axiosInstance.get('/dashboard/alerts', { params });
+      return response.data;
+    } catch (err) {
+      console.warn('Backend /dashboard/alerts unavailable, falling back:', err.message);
+      let alerts = storageService.getAlerts();
+      if (params.severity && params.severity !== 'all') {
+        alerts = alerts.filter((a) => a.severity === params.severity);
+      }
+      return { success: true, data: alerts, isFallback: true };
+    }
   },
 
   async createAlert(alertData) {

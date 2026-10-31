@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Menu,
   Bell,
@@ -7,24 +8,28 @@ import {
   User,
   Shield,
   LogOut,
-  CheckCircle2,
   AlertTriangle,
   Info,
   TrendingUp,
+  UserCheck,
 } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
 import { Dropdown, DropdownItem } from '../ui/Dropdown';
 import storageService from '../../services/storageService';
 import PortalSwitcher from './PortalSwitcher';
+import { logoutUser, selectCurrentUser } from '../../features/auth/authSlice';
 
 export const Header = () => {
   const { toggleMobileSidebar } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const reduxUser = useSelector(selectCurrentUser);
   const [notifications, setNotifications] = useState([]);
 
-  // Retrieve authenticated user
-  const currentUser = (() => {
+  // Retrieve authenticated user with redux fallback to local storage
+  const currentUser = reduxUser || (() => {
     try {
       const stored = localStorage.getItem('sims_auth_user');
       return stored ? JSON.parse(stored) : null;
@@ -32,10 +37,15 @@ export const Header = () => {
       return null;
     }
   })() || {
+    full_name: 'Admin User',
     name: 'Admin User',
     email: 'admin@sunpower.com',
-    role: 'Super Administrator',
+    role: 'ADMIN',
   };
+
+  const displayName = currentUser.full_name || currentUser.name || 'Admin User';
+  const displayEmail = currentUser.email || 'admin@sunpower.com';
+  const displayRole = currentUser.role === 'ADMIN' ? 'Super Administrator' : currentUser.role;
 
   useEffect(() => {
     const list = storageService.getAlerts();
@@ -46,9 +56,8 @@ export const Header = () => {
     setNotifications([]);
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem('sims_auth_token');
-    localStorage.removeItem('sims_auth_user');
+  const handleSignOut = async () => {
+    await dispatch(logoutUser());
     navigate('/login');
   };
 
@@ -77,7 +86,7 @@ export const Header = () => {
           <PortalSwitcher />
         </div>
 
-        {/* System Status Pill (Dot Removed as requested) */}
+        {/* System Status Pill */}
         <div className="hidden sm:inline-flex items-center px-3 py-1 rounded-full bg-[#F0F7FF] border border-[#BAE6FD] text-[#0369A1] text-[11px] font-semibold tracking-wide">
           <span>System Live</span>
         </div>
@@ -153,14 +162,14 @@ export const Header = () => {
           trigger={
             <button className="flex items-center gap-2 p-1 pl-2 rounded-lg hover:bg-slate-100 transition focus:outline-none text-left">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0284C7] to-[#38BDF8] text-white font-semibold text-xs flex items-center justify-center shadow-xs uppercase">
-                {currentUser.name ? currentUser.name.slice(0, 2) : 'AD'}
+                {displayName.slice(0, 2)}
               </div>
               <div className="hidden lg:block">
                 <div className="text-xs font-semibold text-slate-800 leading-tight">
-                  {currentUser.name || 'Admin User'}
+                  {displayName}
                 </div>
                 <div className="text-[10px] text-slate-400 leading-tight">
-                  {currentUser.role || 'Super Administrator'}
+                  {displayRole}
                 </div>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
@@ -168,11 +177,14 @@ export const Header = () => {
           }
         >
           <div className="px-3 py-2 border-b border-slate-100">
-            <p className="text-xs font-semibold text-slate-900">{currentUser.name || 'Admin Account'}</p>
-            <p className="text-[11px] text-slate-500 truncate">{currentUser.email || 'admin@sunpower.com'}</p>
+            <p className="text-xs font-semibold text-slate-900">{displayName}</p>
+            <p className="text-[11px] text-slate-500 truncate">{displayEmail}</p>
           </div>
           <DropdownItem icon={User} onClick={() => navigate('/admin/profile')}>
             Profile Overview
+          </DropdownItem>
+          <DropdownItem icon={UserCheck} onClick={() => navigate('/admin/users')}>
+            User Management & Approvals
           </DropdownItem>
           <DropdownItem icon={Shield} onClick={() => navigate('/admin/roles-permissions')}>
             Roles & Permissions

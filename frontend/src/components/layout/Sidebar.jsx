@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
+  UserCheck,
   MessageSquareMore,
   ClipboardCheck,
   Package,
@@ -158,6 +159,12 @@ export const navigationItems = [
         shortName: 'Roles',
         path: '/admin/roles-permissions',
         icon: Shield,
+      },
+      {
+        name: 'Users & Approvals',
+        shortName: 'Users',
+        path: '/admin/users',
+        icon: UserCheck,
       },
       {
         name: 'Settings',

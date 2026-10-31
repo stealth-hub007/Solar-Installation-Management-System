@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 
-from app.models.user import User, PasswordResetOTP, UserRole
+from app.models.user import User, PasswordResetOTP, UserRole, AccountStatus
 
 
 class UserRepository:
@@ -17,6 +17,12 @@ class UserRepository:
     @staticmethod
     async def get_by_email(db: AsyncSession, email: str) -> Optional[User]:
         stmt = select(User).where(func.lower(User.email) == email.lower().strip())
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_by_google_id(db: AsyncSession, google_id: str) -> Optional[User]:
+        stmt = select(User).where(User.google_id == google_id)
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -39,6 +45,7 @@ class UserRepository:
         skip: int = 0,
         limit: int = 20,
         role: Optional[UserRole] = None,
+        account_status: Optional[AccountStatus] = None,
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
     ) -> Tuple[List[User], int]:
@@ -48,6 +55,10 @@ class UserRepository:
         if role is not None:
             stmt = stmt.where(User.role == role)
             count_stmt = count_stmt.where(User.role == role)
+
+        if account_status is not None:
+            stmt = stmt.where(User.account_status == account_status)
+            count_stmt = count_stmt.where(User.account_status == account_status)
 
         if is_active is not None:
             stmt = stmt.where(User.is_active == is_active)
@@ -99,9 +110,3 @@ class UserRepository:
     async def mark_otp_used(db: AsyncSession, otp: PasswordResetOTP) -> None:
         otp.is_used = True
         await db.commit()
-
-    @staticmethod
-    async def increment_otp_attempts(db: AsyncSession, otp: PasswordResetOTP) -> None:
-        otp.attempts += 1
-        await db.commit()
-

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Menu,
   Bell,
@@ -16,26 +17,33 @@ import { useSidebar } from '../../context/SidebarContext';
 import { Dropdown, DropdownItem } from '../ui/Dropdown';
 import storageService from '../../services/storageService';
 import PortalSwitcher from './PortalSwitcher';
+import { logoutUser, selectCurrentUser, selectUserRole } from '../../features/auth/authSlice';
 
 export const TechnicianHeader = () => {
   const { toggleMobileSidebar } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const reduxUser = useSelector(selectCurrentUser);
+  const reduxRole = useSelector(selectUserRole);
   const [notifications, setNotifications] = useState([]);
 
   // Auth User check
-  const authUser = (() => {
+  const authUser = reduxUser || (() => {
     try {
       const saved = localStorage.getItem('sims_auth_user');
-      return saved ? JSON.parse(saved) : { email: 'vikram.tech@sunpower.com', name: 'Vikram Singh', role: 'Field Technician' };
+      return saved ? JSON.parse(saved) : { email: 'vikram.tech@sunpower.com', name: 'Vikram Singh', role: 'TECHNICIAN' };
     } catch {
-      return { email: 'vikram.tech@sunpower.com', name: 'Vikram Singh', role: 'Field Technician' };
+      return { email: 'vikram.tech@sunpower.com', name: 'Vikram Singh', role: 'TECHNICIAN' };
     }
   })();
 
-  const displayName = authUser.name || 'Vikram Singh';
+  const role = (reduxRole || authUser.role || '').toUpperCase();
+  const displayName = authUser.full_name || authUser.name || 'Vikram Singh';
   const displayEmail = authUser.email || 'vikram.tech@sunpower.com';
-  const displayRole = authUser.role || 'Field Technician (Lead)';
+  const displayRole = role === 'ADMIN' ? 'Super Administrator' : 'Field Technician (Lead)';
+  const displayInitials = displayName.substring(0, 2).toUpperCase();
 
   useEffect(() => {
     const alerts = [
@@ -46,8 +54,8 @@ export const TechnicianHeader = () => {
     setNotifications(alerts);
   }, [location.pathname]);
 
-  const handleSignOut = () => {
-    localStorage.removeItem('sims_auth_token');
+  const handleSignOut = async () => {
+    await dispatch(logoutUser());
     navigate('/login');
   };
 
@@ -115,7 +123,7 @@ export const TechnicianHeader = () => {
           trigger={
             <button className="flex items-center gap-2 p-1 pl-1.5 sm:pr-2.5 rounded-lg hover:bg-slate-100 transition border border-transparent hover:border-slate-200">
               <div className="w-8 h-8 rounded-full bg-[#0284C7] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                VS
+                {displayInitials}
               </div>
               <div className="hidden sm:flex flex-col items-start text-left leading-tight">
                 <span className="text-xs font-bold text-slate-800">{displayName}</span>
@@ -142,7 +150,7 @@ export const TechnicianHeader = () => {
               Installation Jobs
             </DropdownItem>
             <div className="my-1 border-t border-slate-100" />
-            <DropdownItem icon={LogOut} variant="danger" onClick={handleSignOut}>
+            <DropdownItem icon={LogOut} danger onClick={handleSignOut}>
               Sign Out
             </DropdownItem>
           </div>
@@ -153,4 +161,3 @@ export const TechnicianHeader = () => {
 };
 
 export default TechnicianHeader;
-

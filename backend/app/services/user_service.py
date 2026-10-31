@@ -1,10 +1,18 @@
 import math
 import uuid
 from typing import Optional
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserUpdate, UserResponse
+from app.models.user import User, UserRole, AccountStatus, ROLE_DEFAULT_PERMISSIONS
+from app.schemas.user import (
+    UserCreate,
+    UserUpdate,
+    UserResponse,
+    UserApprovalRequest,
+    UserRejectionRequest,
+    UserSuspensionRequest,
+)
 from app.schemas.common import PaginatedData
 from app.repositories.user_repository import UserRepository
 from app.core.security import get_password_hash
@@ -28,8 +36,11 @@ class UserService:
             phone=user_in.phone.strip() if user_in.phone else None,
             hashed_password=hashed_pw,
             role=user_in.role,
+            account_status=AccountStatus.APPROVED,
+            auth_provider="LOCAL",
             is_active=True,
             is_superuser=(user_in.role == UserRole.ADMIN),
+            permissions=ROLE_DEFAULT_PERMISSIONS.get(user_in.role, []),
         )
         return await UserRepository.create(db, user)
 
@@ -51,7 +62,77 @@ class UserService:
         if update_in.role is not None:
             user.role = update_in.role
             user.is_superuser = (update_in.role == UserRole.ADMIN)
+            user.permissions = ROLE_DEFAULT_PERMISSIONS.get(update_in.role, [])
+        if update_in.account_status is not None:
+            user.account_status = update_in.account_status
 
+        return await UserRepository.update(db, user)
+
+    @staticmethod
+    async def approve_user(
+        db: AsyncSession,
+        user_id: uuid.UUID,
+        current_admin_id: uuid.UUID,
+        approve_in: UserApprovalRequest,
+    ) -> User:
+        """Approves a registered user, assigns operational role, records admin approval, and initializes permissions."""
+        user = await UserService.get_user_by_id(db, user_id)
+        user.account_status = AccountStatus.APPROVED
+        user.role = approve_in.role
+        user.is_superuser = (approve_in.role == UserRole.ADMIN)
+        user.approved_by_id = current_admin_id
+        user.approved_at = datetime.now(timezone.utc)
+        user.rejection_reason = None
+        user.suspended_at = None
+        user.is_active = True
+
+        # Assign permissions (default for role or custom provided)
+        perms = approve_in.permissions or ROLE_DEFAULT_PERMISSIONS.get(approve_in.role, [])
+        user.permissions = perms
+
+        return await UserRepository.update(db, user)
+
+    @staticmethod
+    async def reject_user(
+        db: AsyncSession,
+        user_id: uuid.UUID,
+        reject_in: UserRejectionRequest,
+    ) -> User:
+        """Rejects a pending user with an optional explanation message."""
+        user = await UserService.get_user_by_id(db, user_id)
+        user.account_status = AccountStatus.REJECTED
+        user.rejection_reason = reject_in.reason or "Account application rejected by administrator."
+        return await UserRepository.update(db, user)
+
+    @staticmethod
+    async def suspend_user(
+        db: AsyncSession,
+        user_id: uuid.UUID,
+        current_admin_id: uuid.UUID,
+        suspend_in: UserSuspensionRequest,
+    ) -> User:
+        """Suspends user access with an audit timestamp and reason."""
+        if user_id == current_admin_id:
+            raise BusinessRuleException(
+                message="Administrators cannot suspend their own account",
+                error_code="CANNOT_SUSPEND_SELF",
+            )
+        user = await UserService.get_user_by_id(db, user_id)
+        user.account_status = AccountStatus.SUSPENDED
+        user.suspended_at = datetime.now(timezone.utc)
+        user.rejection_reason = suspend_in.reason or "Account suspended by administrator."
+        return await UserRepository.update(db, user)
+
+    @staticmethod
+    async def reactivate_user(db: AsyncSession, user_id: uuid.UUID) -> User:
+        """Restores a suspended or rejected user back to APPROVED status."""
+        user = await UserService.get_user_by_id(db, user_id)
+        user.account_status = AccountStatus.APPROVED
+        user.suspended_at = None
+        user.rejection_reason = None
+        user.is_active = True
+        if not user.permissions:
+            user.permissions = ROLE_DEFAULT_PERMISSIONS.get(user.role, [])
         return await UserRepository.update(db, user)
 
     @staticmethod
@@ -77,12 +158,19 @@ class UserService:
         page: int = 1,
         size: int = 20,
         role: Optional[UserRole] = None,
+        account_status: Optional[AccountStatus] = None,
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
     ) -> PaginatedData[UserResponse]:
         skip = (page - 1) * size
         users, total = await UserRepository.list_users(
-            db, skip=skip, limit=size, role=role, is_active=is_active, search=search
+            db,
+            skip=skip,
+            limit=size,
+            role=role,
+            account_status=account_status,
+            is_active=is_active,
+            search=search,
         )
         total_pages = math.ceil(total / size) if total > 0 else 0
 
@@ -94,4 +182,3 @@ class UserService:
             size=size,
             total_pages=total_pages,
         )
-

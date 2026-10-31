@@ -31,12 +31,30 @@ class SalesDashboardResponse(BaseModel):
 
 
 class TechnicianDashboardResponse(BaseModel):
+    # Backward compatible fields
     assigned_surveys_count: int
     pending_surveys_count: int
     assigned_installations_count: int
     completed_installations_count: int
     total_work_hours_logged: Decimal
     assigned_service_tickets_count: int
+
+    # 15 Specific Operational KPIs (Phase 4.1)
+    total_assigned_tasks: int = 0
+    today_tasks: int = 0
+    pending_site_surveys: int = 0
+    in_progress_surveys: int = 0
+    submitted_surveys: int = 0
+    surveys_awaiting_approval: int = 0
+    surveys_requiring_corrections: int = 0
+    upcoming_site_visits: int = 0
+    pending_installations: int = 0
+    in_progress_installations: int = 0
+    completed_installations: int = 0
+    overdue_assignments: int = 0
+    pending_equipment_verification: int = 0
+    pending_checklists: int = 0
+    pending_customer_sign_offs: int = 0
 
 
 class WarehouseDashboardResponse(BaseModel):

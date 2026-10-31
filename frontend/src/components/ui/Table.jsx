@@ -38,7 +38,7 @@ export const Table = ({
                   <th
                     key={col.header || col.accessor || colIdx}
                     scope="col"
-                    className={`px-3 py-2.5 whitespace-nowrap ${
+                    className={`px-4 py-3 sm:py-3.5 whitespace-nowrap ${
                       col.align === 'right'
                         ? 'text-right'
                         : col.align === 'center'
@@ -97,7 +97,7 @@ export const Table = ({
                     return (
                       <td
                         key={col.accessor || col.header || colIdx}
-                        className={`px-3 py-2.5 text-slate-700 leading-tight ${
+                        className={`px-4 py-3 sm:py-3.5 text-slate-700 leading-tight ${
                           col.align === 'right'
                             ? 'text-right'
                             : col.align === 'center'

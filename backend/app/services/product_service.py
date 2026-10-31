@@ -113,6 +113,25 @@ class ProductService:
         return product
 
     @staticmethod
+    async def delete_product(db: AsyncSession, product_id: uuid.UUID) -> None:
+        product = await ProductService.get_product_by_id(db, product_id)
+
+        # Remove associated package items if any
+        stmt_pkg = select(PackageItem).where(PackageItem.product_id == product_id)
+        pkg_items = (await db.execute(stmt_pkg)).scalars().all()
+        for pi in pkg_items:
+            await db.delete(pi)
+
+        # Remove associated inventory record if any
+        stmt_inv = select(Inventory).where(Inventory.product_id == product_id)
+        inv = (await db.execute(stmt_inv)).scalar_one_or_none()
+        if inv:
+            await db.delete(inv)
+
+        await db.delete(product)
+        await db.commit()
+
+    @staticmethod
     async def list_products(
         db: AsyncSession,
         page: int = 1,
@@ -209,6 +228,25 @@ class ProductService:
         )
         res = await db.execute(stmt)
         package = res.scalars().first()
+        if not package:
+            # Fallback to closest available package for the system type or default active package
+            fallback_stmt = (
+                select(Package)
+                .options(selectinload(Package.items).selectinload(PackageItem.product))
+                .where(Package.system_type == system_type, Package.is_active == True)
+                .order_by(Package.capacity.desc())
+            )
+            fallback_res = await db.execute(fallback_stmt)
+            package = fallback_res.scalars().first()
+            if not package:
+                any_pkg = await db.execute(
+                    select(Package)
+                    .options(selectinload(Package.items).selectinload(PackageItem.product))
+                    .where(Package.is_active == True)
+                    .limit(1)
+                )
+                package = any_pkg.scalars().first()
+
         if not package:
             raise NotFoundException(
                 message=f"No configured package found for {capacity.value} ({system_type.value})",

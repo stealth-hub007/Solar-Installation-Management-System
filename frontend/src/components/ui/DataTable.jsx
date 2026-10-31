@@ -39,13 +39,13 @@ export const DataTable = ({
   className = '',
 }) => {
   return (
-    <div className={`bg-white rounded-xl shadow-card overflow-hidden ${bordered ? 'border border-slate-200/80' : ''} ${className}`}>
+    <div className={`bg-white rounded-xl shadow-sm overflow-hidden ${bordered ? 'border border-slate-200/90' : ''} ${className}`}>
       {/* Top Toolbar: Search, Filters, Custom Header Actions */}
       {(onSearchChange || filters || headerActions) && (
-        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/40">
-          <div className="flex flex-1 flex-wrap items-center gap-2.5">
+        <div className="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-slate-50/50">
+          <div className="flex flex-1 flex-wrap items-center gap-2.5 sm:gap-3">
             {onSearchChange && (
-              <div className="w-full md:w-64">
+              <div className="w-full md:w-72">
                 <SearchBar
                   value={search}
                   onChange={onSearchChange}
@@ -58,7 +58,7 @@ export const DataTable = ({
           </div>
 
           {headerActions && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
               {headerActions}
             </div>
           )}
@@ -69,7 +69,7 @@ export const DataTable = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-200/80 bg-slate-50/60 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            <tr className="border-b border-slate-200/90 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
               {columns.map((col, idx) => {
                 const isSortable = col.sortable && onSort;
                 const isSorted = sortColumn === col.accessor;
@@ -77,8 +77,8 @@ export const DataTable = ({
                 return (
                   <th
                     key={col.accessor || idx}
-                    className={`px-4 py-3 select-none ${col.headerClassName || ''} ${
-                      isSortable ? 'cursor-pointer hover:bg-slate-100/80 transition' : ''
+                    className={`px-4 sm:px-5 py-3.5 select-none ${col.headerClassName || ''} ${
+                      isSortable ? 'cursor-pointer hover:bg-slate-100 transition' : ''
                     }`}
                     onClick={() => isSortable && onSort(col.accessor)}
                   >
@@ -104,13 +104,13 @@ export const DataTable = ({
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+          <tbody className="divide-y divide-slate-100 text-xs sm:text-sm text-slate-700">
             {isLoading ? (
               // Loading Skeleton Rows
               Array.from({ length: pageSize > 5 ? 5 : pageSize }).map((_, rIdx) => (
                 <tr key={rIdx} className="hover:bg-slate-50/40">
                   {columns.map((_, cIdx) => (
-                    <td key={cIdx} className="px-4 py-3.5">
+                    <td key={cIdx} className="px-4 sm:px-5 py-4">
                       <Skeleton className="h-4 w-full max-w-[120px] rounded" />
                     </td>
                   ))}
@@ -119,7 +119,7 @@ export const DataTable = ({
             ) : error ? (
               // Error State
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center">
+                <td colSpan={columns.length} className="px-4 sm:px-5 py-12 text-center">
                   <div className="text-rose-500 font-semibold text-sm mb-1">Failed to load data</div>
                   <div className="text-slate-400 text-xs">{error}</div>
                 </td>
@@ -127,7 +127,7 @@ export const DataTable = ({
             ) : data.length === 0 ? (
               // Empty State
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center">
+                <td colSpan={columns.length} className="px-4 sm:px-5 py-12 text-center">
                   <EmptyState title={emptyTitle} message={emptyMessage} />
                 </td>
               </tr>
@@ -143,7 +143,7 @@ export const DataTable = ({
                     return (
                       <td
                         key={col.accessor || cIdx}
-                        className={`px-4 py-3.5 align-middle ${col.className || ''}`}
+                        className={`px-4 sm:px-5 py-3.5 sm:py-4 align-middle ${col.className || ''}`}
                       >
                         {col.cell ? col.cell({ value, row, index: rIdx }) : value}
                       </td>
@@ -172,4 +172,3 @@ export const DataTable = ({
 };
 
 export default DataTable;
-

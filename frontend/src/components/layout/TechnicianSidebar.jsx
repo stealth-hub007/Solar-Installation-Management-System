@@ -27,6 +27,12 @@ export const technicianGroups = [
         badge: 'Live',
       },
       {
+        name: 'My Tasks',
+        path: '/technician/tasks',
+        icon: CheckSquare,
+        badge: 'Unified',
+      },
+      {
         name: 'Assigned Surveys',
         path: '/technician/surveys',
         icon: ClipboardCheck,

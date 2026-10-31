@@ -20,6 +20,12 @@ import {
   mockSalesStats,
   mockSalesAnalytics,
 } from './mockData';
+import {
+  mockSuppliers,
+  mockPurchaseOrders,
+  mockGoodsReceipts,
+  mockTransfers,
+} from '../features/warehouse/utils/warehouseMockData';
 
 const KEYS = {
   PROJECTS: 'sims_projects_data',
@@ -36,6 +42,10 @@ const KEYS = {
   SURVEYS: 'sims_surveys_data',
   QUOTATIONS: 'sims_quotations_data',
   ORDERS: 'sims_orders_data',
+  WAREHOUSE_SUPPLIERS: 'sims_wh_suppliers_data',
+  WAREHOUSE_PURCHASES: 'sims_wh_purchases_data',
+  WAREHOUSE_RECEIPTS: 'sims_wh_receipts_data',
+  WAREHOUSE_TRANSFERS: 'sims_wh_transfers_data',
 };
 
 // Safe JSON parse from localStorage with fallback
@@ -1407,6 +1417,145 @@ export const storageService = {
 
   getSalesAnalytics() {
     return mockSalesAnalytics;
+  },
+
+  // --------------------------------------------------------------------------
+  // WAREHOUSE PROCUREMENT MODULE (SUPPLIERS, PURCHASES, RECEIPTS, TRANSFERS)
+  // --------------------------------------------------------------------------
+  getWarehouseSuppliers() {
+    return getStored(KEYS.WAREHOUSE_SUPPLIERS, mockSuppliers);
+  },
+
+  saveWarehouseSupplier(supplier) {
+    const list = this.getWarehouseSuppliers();
+    const existingIndex = list.findIndex((s) => s.id === supplier.id);
+    let updated;
+    if (existingIndex >= 0) {
+      updated = [...list];
+      updated[existingIndex] = { ...list[existingIndex], ...supplier };
+    } else {
+      const newSup = { ...supplier, id: supplier.id || `sup-${Date.now()}` };
+      updated = [newSup, ...list];
+    }
+    setStored(KEYS.WAREHOUSE_SUPPLIERS, updated);
+    this.logActivity(`Saved supplier ${supplier.name}`, 'Warehouse', 'Supplier');
+    return updated;
+  },
+
+  deleteWarehouseSupplier(id) {
+    const list = this.getWarehouseSuppliers();
+    const updated = list.filter((s) => s.id !== id);
+    setStored(KEYS.WAREHOUSE_SUPPLIERS, updated);
+    this.logActivity(`Removed supplier ${id}`, 'Warehouse', 'Supplier');
+    return updated;
+  },
+
+  getWarehousePurchases() {
+    return getStored(KEYS.WAREHOUSE_PURCHASES, mockPurchaseOrders);
+  },
+
+  saveWarehousePurchase(purchase) {
+    const list = this.getWarehousePurchases();
+    const existingIndex = list.findIndex((p) => p.id === purchase.id || p.poNumber === purchase.poNumber);
+    let updated;
+    if (existingIndex >= 0) {
+      updated = [...list];
+      updated[existingIndex] = { ...list[existingIndex], ...purchase };
+    } else {
+      const newPo = {
+        ...purchase,
+        id: purchase.id || `po-${Date.now()}`,
+        poNumber: purchase.poNumber || `PO-2026-${String(list.length + 881).padStart(4, '0')}`,
+      };
+      updated = [newPo, ...list];
+    }
+    setStored(KEYS.WAREHOUSE_PURCHASES, updated);
+    this.logActivity(`Saved Purchase Order ${purchase.poNumber || 'New'}`, 'Warehouse', 'Purchase');
+    return updated;
+  },
+
+  getWarehouseReceipts() {
+    return getStored(KEYS.WAREHOUSE_RECEIPTS, mockGoodsReceipts);
+  },
+
+  saveWarehouseReceipt(receipt) {
+    const list = this.getWarehouseReceipts();
+    const existingIndex = list.findIndex((r) => r.id === receipt.id || r.receiptNumber === receipt.receiptNumber);
+    let updated;
+    if (existingIndex >= 0) {
+      updated = [...list];
+      updated[existingIndex] = { ...list[existingIndex], ...receipt };
+    } else {
+      const newGrn = {
+        ...receipt,
+        id: receipt.id || `grn-${Date.now()}`,
+        receiptNumber: receipt.receiptNumber || `GRN-2026-${String(list.length + 81).padStart(3, '0')}`,
+      };
+      updated = [newGrn, ...list];
+    }
+    setStored(KEYS.WAREHOUSE_RECEIPTS, updated);
+    this.logActivity(`Saved Goods Receipt ${receipt.receiptNumber || 'New'}`, 'Warehouse', 'Receipt');
+    return updated;
+  },
+
+  deleteWarehouseSupplier(id) {
+    const list = this.getWarehouseSuppliers();
+    const target = list.find((s) => s.id === id);
+    const updated = list.filter((s) => s.id !== id);
+    setStored(KEYS.WAREHOUSE_SUPPLIERS, updated);
+    this.logActivity(`Deleted Supplier ${target?.name || id}`, 'Warehouse', 'Supplier');
+    return updated;
+  },
+
+  deleteWarehousePurchase(id) {
+    const list = this.getWarehousePurchases();
+    const target = list.find((p) => p.id === id);
+    const updated = list.filter((p) => p.id !== id);
+    setStored(KEYS.WAREHOUSE_PURCHASES, updated);
+    this.logActivity(`Deleted Purchase Order ${target?.poNumber || id}`, 'Warehouse', 'Purchase');
+    return updated;
+  },
+
+  deleteWarehouseReceipt(id) {
+    const list = this.getWarehouseReceipts();
+    const target = list.find((r) => r.id === id);
+    const updated = list.filter((r) => r.id !== id);
+    setStored(KEYS.WAREHOUSE_RECEIPTS, updated);
+    this.logActivity(`Deleted Goods Receipt ${target?.receiptNumber || id}`, 'Warehouse', 'Receipt');
+    return updated;
+  },
+
+  deleteWarehouseTransfer(id) {
+    const list = this.getWarehouseTransfers();
+    const target = list.find((t) => t.id === id);
+    const updated = list.filter((t) => t.id !== id);
+    setStored(KEYS.WAREHOUSE_TRANSFERS, updated);
+    this.logActivity(`Deleted Transfer Order ${target?.transferNumber || id}`, 'Warehouse', 'Transfer');
+    return updated;
+  },
+
+  getWarehouseTransfers() {
+    return getStored(KEYS.WAREHOUSE_TRANSFERS, mockTransfers);
+  },
+
+  saveWarehouseTransfer(transfer) {
+    const list = this.getWarehouseTransfers();
+    const existingIndex = list.findIndex((t) => t.id === transfer.id || t.transferNumber === transfer.transferNumber);
+    let updated;
+    if (existingIndex >= 0) {
+      updated = [...list];
+      updated[existingIndex] = { ...list[existingIndex], ...transfer };
+    } else {
+      const newTr = {
+        ...transfer,
+        id: transfer.id || `tr-${Date.now()}`,
+        transferNumber: transfer.transferNumber || `TR-2026-${String(list.length + 41).padStart(4, '0')}`,
+      };
+      updated = [newTr, ...list];
+    }
+    setStored(KEYS.WAREHOUSE_TRANSFERS, updated);
+    this.logActivity(`Recorded Warehouse Transfer ${transfer.transferNumber || 'New'}`, 'Warehouse', 'Transfer');
+    return updated;
   },
 
   // --------------------------------------------------------------------------

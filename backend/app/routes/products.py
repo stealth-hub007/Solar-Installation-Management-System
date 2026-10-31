@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.dependencies.auth import get_current_user, require_admin
+from app.dependencies.auth import get_current_user, require_admin, require_warehouse_or_admin
 from app.models.user import User
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.schemas.product import (
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/products", tags=["Product Management"])
 )
 async def create_category(
     cat_in: CategoryCreate,
-    current_admin: User = Depends(require_admin),
+    current_user: User = Depends(require_warehouse_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     cat = await ProductService.create_category(db, cat_in)
@@ -63,7 +63,7 @@ async def list_categories(
 )
 async def create_product(
     prod_in: ProductCreate,
-    current_admin: User = Depends(require_admin),
+    current_user: User = Depends(require_warehouse_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     prod = await ProductService.create_product(db, prod_in)
@@ -125,7 +125,7 @@ async def get_product(
 async def update_product(
     product_id: uuid.UUID,
     update_in: ProductUpdate,
-    current_admin: User = Depends(require_admin),
+    current_user: User = Depends(require_warehouse_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     updated = await ProductService.update_product(db, product_id, update_in)
@@ -135,3 +135,21 @@ async def update_product(
         data=ProductResponse.model_validate(updated),
     )
 
+
+
+@router.delete(
+    "/{product_id}",
+    response_model=APIResponse[None],
+    summary="Delete Product (Warehouse / Admin)",
+)
+async def delete_product(
+    product_id: uuid.UUID,
+    current_user: User = Depends(require_warehouse_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await ProductService.delete_product(db, product_id)
+    return APIResponse(
+        success=True,
+        message="Product deleted successfully",
+        data=None,
+    )

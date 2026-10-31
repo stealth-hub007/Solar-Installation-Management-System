@@ -10,9 +10,9 @@ export const Card = ({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-xl border border-slate-200/80 shadow-subtle transition-all duration-200 ${
-        hoverEffect ? 'hover:shadow-card hover:border-slate-300' : ''
-      } ${padding ? 'p-5 sm:p-6' : ''} ${className}`}
+      className={`bg-white rounded-xl border border-slate-200/90 shadow-sm transition-all duration-200 ${
+        hoverEffect ? 'hover:shadow-md hover:border-slate-300' : ''
+      } ${padding ? 'p-5 sm:p-6 lg:p-7' : ''} ${className}`}
     >
       {children}
     </div>
@@ -27,16 +27,16 @@ export const CardHeader = ({
   className = '',
 }) => {
   return (
-    <div className={`flex items-start justify-between gap-4 mb-4 ${className}`}>
+    <div className={`flex items-start justify-between gap-4 mb-5 sm:mb-6 ${className}`}>
       <div className="flex items-center gap-3">
         {Icon && (
-          <div className="p-2 rounded-lg bg-sky-50 text-[#0284C7]">
+          <div className="p-2.5 rounded-lg bg-sky-50 text-[#0284C7] shrink-0">
             <Icon className="w-5 h-5" />
           </div>
         )}
         <div>
-          {title && <h3 className="text-base font-semibold text-[#17221E]">{title}</h3>}
-          {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+          {title && <h3 className="text-base sm:text-lg font-semibold text-slate-900">{title}</h3>}
+          {subtitle && <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{subtitle}</p>}
         </div>
       </div>
       {action && <div className="shrink-0">{action}</div>}
@@ -45,4 +45,3 @@ export const CardHeader = ({
 };
 
 export default Card;
-

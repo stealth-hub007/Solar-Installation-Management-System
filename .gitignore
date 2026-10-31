@@ -52,6 +52,13 @@ Thumbs.db
 backend/uploads/**
 !backend/uploads/**/
 !backend/uploads/**/.gitkeep
+uploads/**
+!uploads/**/
+!uploads/**/.gitkeep
+
+# Vite cache
+frontend/.vite/
+.vite/
 
 # IDEs
 .idea/

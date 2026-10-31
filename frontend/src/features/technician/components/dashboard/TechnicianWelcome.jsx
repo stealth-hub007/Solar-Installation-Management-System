@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, ClipboardCheck, Wrench, Clock, CheckCircle2 } from 'lucide-react';
+import { Calendar, ClipboardCheck, Wrench, CheckSquare, Clock } from 'lucide-react';
 import Button from '../../../../components/common/Button';
 
 export const TechnicianWelcome = ({
-  technicianName = 'Vikram Singh',
-  assignedSurveys = 4,
-  assignedInstallations = 5,
-  loggedHours = 34.5,
+  technicianName = 'Field Technician',
+  assignedSurveys = 0,
+  assignedInstallations = 0,
+  loggedHours = 0,
 }) => {
   const navigate = useNavigate();
   const currentDate = new Date().toLocaleDateString('en-GB', {
@@ -43,7 +43,7 @@ export const TechnicianWelcome = ({
         <p className="text-sky-100 text-xs sm:text-sm leading-relaxed mb-6 max-w-2xl">
           You have <strong className="text-white font-bold">{assignedSurveys} site surveys</strong> and{' '}
           <strong className="text-white font-bold">{assignedInstallations} installation jobs</strong> assigned. Total{' '}
-          <strong className="text-white font-bold">{loggedHours} hours</strong> logged on site this month across active solar arrays.
+          <strong className="text-white font-bold">{loggedHours} hours</strong> logged on site across active solar arrays.
         </p>
 
         {/* Quick Action Pills */}
@@ -51,11 +51,21 @@ export const TechnicianWelcome = ({
           <Button
             variant="secondary"
             size="sm"
-            icon={ClipboardCheck}
-            onClick={() => navigate('/technician/surveys')}
+            icon={CheckSquare}
+            onClick={() => navigate('/technician/tasks')}
             className="bg-white text-[#0369A1] hover:bg-sky-50 font-bold border-none shadow-sm"
           >
-            Assigned Surveys
+            Unified My Tasks
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            icon={ClipboardCheck}
+            onClick={() => navigate('/technician/surveys')}
+            className="bg-white/10 hover:bg-white/20 text-white border-white/30 backdrop-blur-sm"
+          >
+            Assigned Surveys ({assignedSurveys})
           </Button>
 
           <Button
@@ -65,7 +75,7 @@ export const TechnicianWelcome = ({
             onClick={() => navigate('/technician/installations')}
             className="bg-white/10 hover:bg-white/20 text-white border-white/30 backdrop-blur-sm"
           >
-            Installation Jobs
+            Installation Jobs ({assignedInstallations})
           </Button>
 
           <Button
@@ -75,7 +85,7 @@ export const TechnicianWelcome = ({
             onClick={() => navigate('/technician/profile')}
             className="bg-white/10 hover:bg-white/20 text-white border-white/30 backdrop-blur-sm hidden sm:inline-flex"
           >
-            Work Hours & Attendance
+            Work Hours Logged ({loggedHours}h)
           </Button>
         </div>
       </div>
@@ -84,4 +94,3 @@ export const TechnicianWelcome = ({
 };
 
 export default TechnicianWelcome;
-

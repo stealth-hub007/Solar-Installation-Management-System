@@ -13,13 +13,12 @@ export const axiosInstance = axios.create({
   },
 });
 
-// Request Interceptor
+// Request Interceptor: Attach JWT Bearer token if present
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Add auth token if present in future auth phases
     const token = localStorage.getItem('sims_auth_token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = 'Bearer ' + token;
     }
     return config;
   },
@@ -28,23 +27,30 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response Interceptor
+// Response Interceptor: Handle errors, session expiry, and standardize error responses
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
+    // If backend returns 401 Unauthorized on a protected call (not auth endpoints)
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login') && !error.config?.url?.includes('/auth/register')) {
+      localStorage.removeItem('sims_auth_token');
+      localStorage.removeItem('sims_auth_user');
+      window.dispatchEvent(new CustomEvent('sims:session-expired'));
+    }
+
     let errorMessage = 'An unexpected error occurred. Please try again.';
 
     if (error.response) {
       // Backend returned an error response (4xx, 5xx)
       const data = error.response.data;
       if (data && typeof data === 'object') {
-        errorMessage = data.detail || data.message || `Server Error (${error.response.status})`;
+        errorMessage = data.detail || data.message || ('Server Error (' + error.response.status + ')');
       } else if (typeof data === 'string' && data.length < 200) {
         errorMessage = data;
       } else {
-        errorMessage = `Request failed with status ${error.response.status}`;
+        errorMessage = 'Request failed with status ' + error.response.status;
       }
     } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
       errorMessage = 'Request timed out. Please verify your connection or backend server.';
@@ -57,6 +63,7 @@ axiosInstance.interceptors.response.use(
 
     const customError = new Error(errorMessage);
     customError.status = error.response?.status;
+    customError.data = error.response?.data;
     customError.originalError = error;
 
     return Promise.reject(customError);
@@ -64,4 +71,3 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
-

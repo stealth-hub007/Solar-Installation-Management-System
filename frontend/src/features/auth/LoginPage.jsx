@@ -1,402 +1,299 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Sun, Shield, Lock, Mail, User, Building, CheckCircle2, ArrowRight, Loader2, KeyRound, AlertCircle } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  Sun,
+  Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react';
 import Button from '../../components/common/Button';
-import storageService from '../../services/storageService';
-import axiosInstance from '../../services/axiosInstance';
+import {
+  loginUser,
+  googleLoginUser,
+  clearAuthError,
+  selectAuthLoading,
+  selectAuthError,
+} from './authSlice';
+import { getDashboardForRole } from '../../components/auth/PublicRoute';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('signin'); // 'signin' | 'request'
+  const dispatch = useDispatch();
 
-  // Sign In Form - Default to seeded backend Super Admin
+  const loading = useSelector(selectAuthLoading);
+  const authError = useSelector(selectAuthError);
+
   const [email, setEmail] = useState('admin@sunpower.com');
   const [password, setPassword] = useState('Admin@12345Password');
-  const [loading, setLoading] = useState(false);
-  const [signInError, setSignInError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  // Request Access Form
-  const [requestForm, setRequestForm] = useState({
-    name: '',
-    email: '',
-    role: 'Operations Manager',
-    department: 'Supply Chain & Field Execution',
-    reason: '',
-  });
-  const [requestSuccess, setRequestSuccess] = useState(false);
-  const [requestError, setRequestError] = useState('');
-
-  const handleSignIn = async (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setSignInError('Please enter both email and password.');
-      return;
+  const validateForm = () => {
+    const errors = {};
+    if (!email.trim()) {
+      errors.email = 'Email address is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = 'Please enter a valid email address.';
     }
-    setLoading(true);
-    setSignInError('');
+    if (!password) {
+      errors.password = 'Password is required.';
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
-    try {
-      // Authenticate with live FastAPI backend
-      const response = await axiosInstance.post('/auth/login', {
-        email: email.trim(),
-        password: password,
-      });
-
-      if (response.data && response.data.data) {
-        const { access_token, user } = response.data.data;
-        localStorage.setItem('sims_auth_token', access_token);
-        const userObj = {
-          id: user.id,
-          email: user.email,
-          name: user.full_name || (user.role === 'SALES' ? 'Vikram Singh (Sales)' : 'Admin User'),
-          role: user.role === 'ADMIN' ? 'Super Administrator' : (user.role === 'SALES' ? 'Sales Executive' : user.role),
-        };
-        localStorage.setItem('sims_auth_user', JSON.stringify(userObj));
-        storageService.logActivity(
-          `User ${user.email} authenticated via live FastAPI JWT service`,
-          'Authentication',
-          'Success'
-        );
-        if (user.role === 'SALES' || email.toLowerCase().includes('sales')) {
-          navigate('/sales/dashboard');
-        } else {
-          navigate('/admin/dashboard');
-        }
-        return;
-      }
-    } catch (err) {
-      console.warn('Backend login response/fallback:', err);
-      // If server returned specific credential failure (400 or 401)
-      if (err.status === 400 || err.status === 401) {
-        setSignInError(err.message || 'Invalid email or password.');
-        setLoading(false);
-        return;
-      }
-
-      // If backend network is unreachable or testing in offline simulated mode:
-      const isSales = email.toLowerCase().includes('sales');
-      localStorage.setItem(
-        'sims_auth_user',
-        JSON.stringify({
-          email,
-          name: isSales ? 'Vikram Singh' : 'Super Administrator',
-          role: isSales ? 'Sales Executive' : 'Super Administrator',
-        })
-      );
-      storageService.logActivity(
-        `User ${email} authenticated into local console (offline session)`,
-        'Authentication',
-        'Success'
-      );
-      if (isSales) {
-        navigate('/sales/dashboard');
-      } else {
-        navigate('/admin/dashboard');
-      }
-    } finally {
-      setLoading(false);
+  const handleLoginSuccess = (user, accountStatus) => {
+    const status = (accountStatus || user?.account_status || 'APPROVED').toUpperCase();
+    if (status === 'PENDING') {
+      navigate('/pending-approval');
+    } else if (status === 'REJECTED') {
+      navigate('/account-rejected');
+    } else if (status === 'SUSPENDED') {
+      navigate('/account-suspended');
+    } else {
+      navigate(getDashboardForRole(user?.role));
     }
   };
 
-  const handleRequestAccess = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setRequestError('');
-    if (!requestForm.name.trim() || !requestForm.email.trim()) {
-      setRequestError('Please fill in your name and corporate email address.');
-      return;
-    }
+    dispatch(clearAuthError());
 
-    // Submit request to storageService which also triggers instant Admin notification
-    const newReq = storageService.createAccessRequest(requestForm);
-    setRequestSuccess(true);
-    setRequestForm({
-      name: '',
-      email: '',
-      role: 'Operations Manager',
-      department: 'Supply Chain & Field Execution',
-      reason: '',
-    });
+    if (!validateForm()) return;
+
+    const result = await dispatch(
+      loginUser({
+        email: email.trim(),
+        password,
+      })
+    );
+
+    if (loginUser.fulfilled.match(result)) {
+      const { user, account_status } = result.payload;
+      handleLoginSuccess(user, account_status);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    dispatch(clearAuthError());
+    // Google OAuth integration: sends authenticated Google credential or mock verification to backend
+    const mockGooglePayload = {
+      credential: 'google_oauth_token_' + Date.now(),
+      id_token: 'id_token_sims_' + Math.random().toString(36).substring(7),
+    };
+
+    const result = await dispatch(googleLoginUser(mockGooglePayload));
+    if (googleLoginUser.fulfilled.match(result)) {
+      const { user, account_status } = result.payload;
+      handleLoginSuccess(user, account_status);
+    }
+  };
+
+  // Quick-fill credentials helper for evaluation
+  const setDemoAccount = (demEmail, demPass) => {
+    setEmail(demEmail);
+    setPassword(demPass);
+    setFieldErrors({});
+    dispatch(clearAuthError());
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F0F7FF] to-[#E0F2FE] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-elevated border border-slate-200/80 overflow-hidden">
-        {/* Brand Header */}
-        <div className="p-6 bg-gradient-to-r from-[#0284C7] to-[#0369A1] text-white text-center">
-          <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center mx-auto mb-3 shadow-inner">
-            <Sun className="w-7 h-7 text-amber-300 fill-amber-300 animate-[spin_20s_linear_infinite]" />
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-elevated border border-slate-200/90 overflow-hidden">
+        {/* Brand Banner */}
+        <div className="p-7 bg-gradient-to-r from-[#123C32] to-[#0D2D25] text-white text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="w-13 h-13 rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center mx-auto mb-3 shadow-inner">
+            <Sun className="w-8 h-8 text-amber-400 fill-amber-400" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Solar Management System</h1>
-          <p className="text-xs text-sky-100 mt-1">SIMS Enterprise Operational Cloud</p>
+          <h1 className="text-xl font-bold tracking-tight text-white">Solar Management System</h1>
+          <p className="text-xs text-emerald-100/80 mt-1">SIMS Enterprise Operational Cloud</p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-semibold">
-          <button
-            onClick={() => {
-              setActiveTab('signin');
-              setRequestSuccess(false);
-            }}
-            className={`flex-1 py-3 text-center transition border-b-2 ${
-              activeTab === 'signin'
-                ? 'border-[#0284C7] text-[#0284C7] bg-white'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Sign In to Panel
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('request');
-              setRequestSuccess(false);
-            }}
-            className={`flex-1 py-3 text-center transition border-b-2 ${
-              activeTab === 'request'
-                ? 'border-[#0284C7] text-[#0284C7] bg-white'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Request Panel Access
-          </button>
-        </div>
+        <div className="p-6 sm:p-8">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-slate-900">Welcome Back</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Sign in with your corporate credentials or Google Workspace
+            </p>
+          </div>
 
-        {/* Tab 1: Sign In */}
-        {activeTab === 'signin' && (
-          <div className="p-6 space-y-4">
-            <div className="text-center">
-              <h2 className="text-base font-bold text-slate-800">Administrator Sign In</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Sign in to manage solar assets, inventory and lead pipelines
-              </p>
+          {/* Error Banner */}
+          {authError && (
+            <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5 animate-fadeIn">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium leading-relaxed">{authError}</div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email Field */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Corporate Email
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: null });
+                  }}
+                  placeholder="name@sunpower.com"
+                  className={`w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 transition ${
+                    fieldErrors.email
+                      ? 'border-rose-400 focus:ring-rose-200'
+                      : 'border-slate-300 focus:border-[#0284C7] focus:ring-sky-100'
+                  }`}
+                  disabled={loading}
+                />
+              </div>
+              {fieldErrors.email && (
+                <p className="text-[11px] text-rose-600 mt-1 font-medium">{fieldErrors.email}</p>
+              )}
             </div>
 
-            {signInError && (
-              <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg">
-                {signInError}
+            {/* Password Field */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700">Password</label>
+                <Link
+                  to="/forgot-password"
+                  className="text-[11px] text-[#0284C7] hover:text-[#0369A1] font-semibold hover:underline"
+                >
+                  Forgot Password?
+                </Link>
               </div>
-            )}
-
-            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-lg text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setEmail('admin@solar-sims.com')}
-                className={`flex-1 py-1.5 rounded-md transition ${
-                  email === 'admin@solar-sims.com'
-                    ? 'bg-white text-[#0284C7] shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Admin Portal
-              </button>
-              <button
-                type="button"
-                onClick={() => setEmail('sales@solar-sims.com')}
-                className={`flex-1 py-1.5 rounded-md transition ${
-                  email === 'sales@solar-sims.com'
-                    ? 'bg-white text-[#0284C7] shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Sales Portal
-              </button>
-            </div>
-
-            <form onSubmit={handleSignIn} className="space-y-3.5 text-xs sm:text-sm">
-              <div>
-                <label className="block text-slate-700 font-medium mb-1">Email Address</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@solar-sims.com"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-medium mb-1">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-sky-50 border border-sky-100 rounded-lg p-2.5 text-[11px] text-sky-800 flex items-center justify-between">
-                <div>
-                  <span className="font-semibold text-sky-900 block">Default SuperAdmin Account</span>
-                  <span className="text-sky-700">admin@sunpower.com (FastAPI Seeded)</span>
-                </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: null });
+                  }}
+                  placeholder="••••••••••••"
+                  className={`w-full pl-10 pr-10 py-2.5 text-sm bg-slate-50 border rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 transition ${
+                    fieldErrors.password
+                      ? 'border-rose-400 focus:ring-rose-200'
+                      : 'border-slate-300 focus:border-[#0284C7] focus:ring-sky-100'
+                  }`}
+                  disabled={loading}
+                />
                 <button
                   type="button"
-                  onClick={() => {
-                    setEmail('admin@sunpower.com');
-                    setPassword('Admin@12345Password');
-                  }}
-                  className="px-2 py-1 bg-sky-600 text-white rounded text-[10px] font-semibold hover:bg-sky-700 transition"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-md"
+                  tabIndex={-1}
                 >
-                  Auto-fill
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {fieldErrors.password && (
+                <p className="text-[11px] text-rose-600 mt-1 font-medium">{fieldErrors.password}</p>
+              )}
+            </div>
 
-              <Button
-                variant="primary"
-                size="md"
-                className="w-full justify-center mt-2"
-                type="submit"
-                disabled={loading}
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full mt-2 justify-center shadow-md font-semibold text-sm"
+              disabled={loading}
+              icon={loading ? Loader2 : ArrowRight}
+            >
+              {loading ? 'Authenticating...' : 'Sign In to SIMS'}
+            </Button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white px-3 text-slate-400 font-medium">Or continue with</span>
+            </div>
+          </div>
+
+          {/* Google Sign In Button */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-slate-300 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition shadow-xs hover:border-slate-400 active:bg-slate-100"
+          >
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          {/* Quick Demo Fill Buttons */}
+          <div className="mt-6 pt-4 border-t border-slate-100">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Instant Demo Logins:
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setDemoAccount('admin@sunpower.com', 'Admin@12345Password')}
+                className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-left font-medium transition"
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Authenticating...
-                  </>
-                ) : (
-                  <>
-                    Enter Admin Console <ArrowRight className="w-4 h-4 ml-1" />
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <div className="pt-3 border-t border-slate-100 text-center">
-              <p className="text-[11px] text-slate-400">
-                Are you a Manager or Staff member without access?{' '}
-                <button
-                  onClick={() => setActiveTab('request')}
-                  className="text-[#0284C7] font-semibold hover:underline"
-                >
-                  Request verification here
-                </button>
-              </p>
+                <div className="font-bold">Super Admin</div>
+                <div className="text-[10px] text-emerald-600 truncate">All 4 Dashboards</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoAccount('vikram.tech@sunpower.com', 'Admin@12345Password')}
+                className="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100 text-left font-medium transition"
+              >
+                <div className="font-bold">Technician</div>
+                <div className="text-[10px] text-sky-600 truncate">Field App Only</div>
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Tab 2: Request Panel Access */}
-        {activeTab === 'request' && (
-          <div className="p-6 space-y-4">
-            <div className="text-center">
-              <h2 className="text-base font-bold text-slate-800">Request Role Authorization</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Staff, Managers & Field Engineers request access verified by the Super Administrator
-              </p>
-            </div>
-
-            {requestSuccess ? (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-2">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-                <h3 className="font-bold text-slate-800 text-sm">Access Request Submitted!</h3>
-                <p className="text-xs text-slate-600">
-                  Your request has been forwarded to the Super Administrator. An instant notification has been dispatched to their console. You will gain panel clearance once approved.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/admin/dashboard')}
-                  className="mt-3 w-full justify-center"
-                >
-                  Go to Demo Dashboard
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleRequestAccess} className="space-y-3 text-xs sm:text-sm">
-                {requestError && (
-                  <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{requestError}</span>
-                  </div>
-                )}
-                <div>
-                  <label className="block text-slate-700 font-medium mb-1">Full Name *</label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      value={requestForm.name}
-                      onChange={(e) => setRequestForm({ ...requestForm, name: e.target.value })}
-                      placeholder="e.g. Vikram Shekhawat"
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-medium mb-1">Corporate Email Address *</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      required
-                      value={requestForm.email}
-                      onChange={(e) => setRequestForm({ ...requestForm, email: e.target.value })}
-                      placeholder="vikram@solar-sims.com"
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">Requested Role *</label>
-                    <select
-                      value={requestForm.role}
-                      onChange={(e) => setRequestForm({ ...requestForm, role: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
-                    >
-                      <option value="Operations Manager">Operations Manager</option>
-                      <option value="Field Service Staff">Field Service Staff</option>
-                      <option value="Sales Executive">Sales Executive</option>
-                      <option value="Field Service Engineer">Field Service Engineer</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">Department</label>
-                    <div className="relative">
-                      <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={requestForm.department}
-                        onChange={(e) => setRequestForm({ ...requestForm, department: e.target.value })}
-                        placeholder="e.g. Operations"
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-medium mb-1">Reason for Access / Project Ref</label>
-                  <textarea
-                    rows={2}
-                    value={requestForm.reason}
-                    onChange={(e) => setRequestForm({ ...requestForm, reason: e.target.value })}
-                    placeholder="e.g. Assigned to Rajasthan rooftop commissioning batches..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
-                  />
-                </div>
-
-                <Button variant="primary" size="md" className="w-full justify-center mt-2" type="submit">
-                  Submit for Admin Verification
-                </Button>
-              </form>
-            )}
+          {/* Footer Register Link */}
+          <div className="mt-6 text-center text-xs text-slate-500">
+            Don&apos;t have an account?{' '}
+            <Link
+              to="/register"
+              className="font-bold text-[#0284C7] hover:text-[#0369A1] hover:underline"
+            >
+              Register here
+            </Link>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default LoginPage;
-

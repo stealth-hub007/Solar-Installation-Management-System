@@ -30,7 +30,19 @@ async def test_inventory_dispatch_and_automatic_warranty(async_client: AsyncClie
     order_id = order_data["id"]
     order_items = order_data["items"]
 
-    # 2. Reserve Stock for Order
+    # 2. Replenish stock to ensure test idempotency across multiple runs
+    for item in order_items:
+        await async_client.post(
+            "/api/v1/inventory/add-stock",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "product_id": item["product_id"],
+                "quantity": 50,
+                "remarks": "Automated test replenishment",
+            },
+        )
+
+    # 3. Reserve Stock for Order
     reserve_resp = await async_client.post(
         f"/api/v1/inventory/reserve/{order_id}",
         headers={"Authorization": f"Bearer {token}"},

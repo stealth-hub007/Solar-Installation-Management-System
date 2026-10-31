@@ -53,7 +53,7 @@ export const PortalSwitcher = ({ className = '' }) => {
 
   return (
     <div
-      className={`inline-flex items-center p-0.5 sm:p-1 bg-slate-100/90 border border-slate-200/90 rounded-xl shadow-inner select-none ${className}`}
+      className={`inline-flex items-center p-0.5 sm:p-1 bg-slate-100/90 border border-slate-200/90 rounded-xl shadow-inner select-none shrink-0 ${className}`}
       role="tablist"
       aria-label="Panel Selector"
     >

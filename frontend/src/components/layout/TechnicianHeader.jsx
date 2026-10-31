@@ -54,7 +54,7 @@ export const TechnicianHeader = () => {
   return (
     <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4">
       {/* Left: Mobile Toggle & Top 1-Tap Portal Switcher */}
-      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
         <button
           onClick={toggleMobileSidebar}
           className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
@@ -64,26 +64,22 @@ export const TechnicianHeader = () => {
         </button>
 
         {/* TOP 1-TAP PORTAL SWITCHER */}
-        <div className="hidden sm:block">
+        <div className="hidden sm:block shrink-0">
           <PortalSwitcher />
         </div>
       </div>
 
-      {/* Right: Quick Action, Notifications, Technician Profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      {/* Right: Status Pill, Notifications, Technician Profile */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Mobile 1-Tap Switcher */}
         <div className="sm:hidden">
           <PortalSwitcher />
         </div>
 
-        {/* Quick Action: Start Survey */}
-        <button
-          onClick={() => navigate('/technician/surveys')}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-95"
-        >
-          <Wrench className="w-3.5 h-3.5" />
-          <span>My Surveys</span>
-        </button>
+        {/* System Status Pill matching Admin */}
+        <div className="hidden sm:inline-flex items-center px-3 py-1 rounded-full bg-[#F0F7FF] border border-[#BAE6FD] text-[#0369A1] text-[11px] font-semibold tracking-wide shrink-0">
+          <span>System Live</span>
+        </div>
 
         {/* Notifications Dropdown */}
         <Dropdown

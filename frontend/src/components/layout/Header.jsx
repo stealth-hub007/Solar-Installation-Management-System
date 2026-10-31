@@ -55,7 +55,7 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4">
       {/* Left: Mobile Toggle & 1-Tap Panel Switcher */}
-      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
         <button
           onClick={toggleMobileSidebar}
           className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
@@ -65,7 +65,7 @@ export const Header = () => {
         </button>
 
         {/* 1-Tap Panel Switcher (Admin <-> Sales <-> Warehouse <-> Technician) */}
-        <div className="hidden sm:block">
+        <div className="hidden sm:block shrink-0">
           <PortalSwitcher />
         </div>
       </div>

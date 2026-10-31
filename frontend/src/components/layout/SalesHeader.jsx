@@ -62,7 +62,7 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
   return (
     <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4">
       {/* Left: Mobile Toggle & Top 1-Tap Portal Switcher */}
-      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
         <button
           onClick={toggleMobileSidebar}
           className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
@@ -72,13 +72,13 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
         </button>
 
         {/* TOP 1-TAP PORTAL SWITCHER */}
-        <div className="hidden sm:block">
+        <div className="hidden sm:block shrink-0">
           <PortalSwitcher />
         </div>
       </div>
 
       {/* Right: Quick Action, Search, Notifications, Sales Profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Mobile 1-Tap Switcher */}
         <div className="sm:hidden">
           <PortalSwitcher />
@@ -93,7 +93,7 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
               navigate('/sales/enquiries?create=true');
             }
           }}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-95"
+          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-95 shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Lead</span>

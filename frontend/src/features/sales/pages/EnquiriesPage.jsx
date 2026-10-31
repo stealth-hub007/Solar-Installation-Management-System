@@ -185,11 +185,21 @@ export const EnquiriesPage = () => {
       header: 'Lead Source',
       accessor: 'enquirySource',
       sortable: true,
-      cell: ({ value, row }) => (
-        <span className="text-slate-700 text-xs font-medium">
-          {value || row.source || 'Website Form'}
-        </span>
-      ),
+      cell: ({ value, row }) => {
+        const src = value || row.source || 'Website Form';
+        const isWebsite = src.toLowerCase().includes('website');
+        return (
+          <span
+            className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 whitespace-nowrap ${
+              isWebsite
+                ? 'bg-sky-50 text-[#0284C7] border border-sky-200'
+                : 'text-slate-700 bg-slate-100 border border-slate-200'
+            }`}
+          >
+            {src}
+          </span>
+        );
+      },
     },
     {
       header: 'Capacity',

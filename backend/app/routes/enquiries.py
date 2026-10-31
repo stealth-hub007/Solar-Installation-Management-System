@@ -1,20 +1,91 @@
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.dependencies.auth import get_current_user, require_sales_or_admin
 from app.models.user import User
-from app.models.customer import LeadStatus, EnquirySource
+from app.models.customer import LeadStatus, EnquirySource, SystemCapacity, SystemType
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.schemas.customer import (
-    EnquiryCreate, EnquiryUpdate, EnquiryAssign, EnquiryStatusUpdate,
+    EnquiryCreate, PublicEnquiryCreate, EnquiryUpdate, EnquiryAssign, EnquiryStatusUpdate,
     FollowupCreate, EnquiryResponse, FollowupResponse
 )
 from app.services.customer_service import CustomerService
 
 router = APIRouter(prefix="/enquiries", tags=["Enquiry & Lead Management"])
+
+
+@router.post(
+    "/public",
+    response_model=APIResponse[Dict[str, Any]],
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit Public Website Solar Enquiry",
+    description="Public customer-facing endpoint to submit an installation enquiry from the company website.",
+)
+async def submit_public_enquiry(
+    public_in: PublicEnquiryCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    if public_in.honeypot:
+        # Silently reject bot submission
+        return APIResponse(
+            success=True,
+            message="Thank you! Your installation request has been submitted successfully.",
+            data={"status": "received"},
+        )
+
+    # Map capacity string to SystemCapacity enum if possible
+    cap_val = SystemCapacity.KW_3
+    if public_in.required_solar_capacity:
+        cleaned_cap = public_in.required_solar_capacity.strip()
+        for c in SystemCapacity:
+            if c.value.lower() == cleaned_cap.lower() or c.value.lower().replace("kw", "") == cleaned_cap.lower().replace("kw", ""):
+                cap_val = c
+                break
+
+    sys_type = SystemType.ON_GRID
+
+    enquiry_data = EnquiryCreate(
+        customer_name=public_in.full_name.strip(),
+        customer_phone=public_in.phone.strip(),
+        customer_email=public_in.email,
+        address_line=public_in.property_address or public_in.city,
+        city=public_in.city.strip(),
+        source=EnquirySource.WEBSITE_FORM,
+        system_capacity=cap_val,
+        system_type=sys_type,
+        customer_requirements=f"Service: {public_in.interested_service} | Property: {public_in.property_type} | Message: {public_in.message}",
+        remarks="Submitted via Public Website Contact Form (Port 3001)",
+    )
+    enquiry = await CustomerService.create_enquiry(db, enquiry_data)
+
+    # Notify Admin and Sales in real-time
+    try:
+        from app.services.notification_service import NotificationService
+        from app.models.notification import NotificationSeverity
+        await NotificationService.notify_admins(
+            db,
+            title="New Website Solar Enquiry",
+            message=f"Received website enquiry from {public_in.full_name} ({public_in.city}) for {public_in.interested_service}.",
+            severity=NotificationSeverity.INFO,
+            action_route="/sales/enquiries",
+            dedup_key=f"website_enquiry_{enquiry.id}",
+        )
+    except Exception:
+        pass
+
+    return APIResponse(
+        success=True,
+        message="Thank you! Your installation request has been submitted successfully. Our Sales team has received your request and will contact you as soon as possible.",
+        data={
+            "enquiry_id": str(enquiry.id),
+            "customer_name": public_in.full_name,
+            "status": "NEW",
+            "source": "WEBSITE_FORM",
+        },
+    )
 
 
 @router.post(

@@ -72,6 +72,21 @@ class EnquiryCreate(BaseModel):
     remarks: Optional[str] = None
 
 
+class PublicEnquiryCreate(BaseModel):
+    """Schema for public website contact form submissions without employee credentials."""
+    full_name: str = Field(..., min_length=2, max_length=150, description="Customer's full name")
+    phone: str = Field(..., min_length=8, max_length=20, description="Customer's phone number")
+    email: EmailStr = Field(..., description="Customer's email address")
+    city: str = Field(..., min_length=2, max_length=100, description="City / Location")
+    property_type: str = Field("Residential", max_length=50, description="Residential, Commercial, Industrial, Other")
+    interested_service: str = Field(..., min_length=2, max_length=100, description="Solar Rooftop, Net Metering, Battery, etc.")
+    property_address: Optional[str] = Field(None, max_length=255, description="Specific street or landmark address")
+    required_solar_capacity: Optional[str] = Field(None, max_length=50, description="e.g. 3kW, 5kW, 10kW or Not sure")
+    message: str = Field(..., min_length=5, max_length=2000, description="Customer project requirements / message")
+    consent: bool = Field(True, description="Consent to be contacted")
+    honeypot: Optional[str] = Field(None, description="Bot mitigation field — must remain empty")
+
+
 class EnquiryUpdate(BaseModel):
     system_capacity: Optional[SystemCapacity] = None
     system_type: Optional[SystemType] = None

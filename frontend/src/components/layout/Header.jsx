@@ -31,6 +31,20 @@ export const Header = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
 
+  // Retrieve authenticated user
+  const currentUser = (() => {
+    try {
+      const stored = localStorage.getItem('sims_auth_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })() || {
+    name: 'Admin User',
+    email: 'admin@sunpower.com',
+    role: 'Super Administrator',
+  };
+
   useEffect(() => {
     const list = storageService.getAlerts();
     setNotifications(list);
@@ -38,6 +52,12 @@ export const Header = () => {
 
   const handleMarkAllRead = () => {
     setNotifications([]);
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('sims_auth_token');
+    localStorage.removeItem('sims_auth_user');
+    navigate('/login');
   };
 
   return (
@@ -110,7 +130,7 @@ export const Header = () => {
             </button>
           }
         >
-          <div className="w-72 sm:w-80">
+          <div className="w-72 sm:w-80 max-w-[calc(100vw-2rem)]">
             <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
               <span className="text-xs font-semibold text-slate-900">
                 Notifications ({notifications.length} active)
@@ -162,20 +182,24 @@ export const Header = () => {
           align="right"
           trigger={
             <button className="flex items-center gap-2 p-1 pl-2 rounded-lg hover:bg-slate-100 transition focus:outline-none text-left">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0284C7] to-[#38BDF8] text-white font-semibold text-xs flex items-center justify-center shadow-xs">
-                AD
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0284C7] to-[#38BDF8] text-white font-semibold text-xs flex items-center justify-center shadow-xs uppercase">
+                {currentUser.name ? currentUser.name.slice(0, 2) : 'AD'}
               </div>
               <div className="hidden lg:block">
-                <div className="text-xs font-semibold text-slate-800 leading-tight">Admin User</div>
-                <div className="text-[10px] text-slate-400 leading-tight">Super Administrator</div>
+                <div className="text-xs font-semibold text-slate-800 leading-tight">
+                  {currentUser.name || 'Admin User'}
+                </div>
+                <div className="text-[10px] text-slate-400 leading-tight">
+                  {currentUser.role || 'Super Administrator'}
+                </div>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
             </button>
           }
         >
           <div className="px-3 py-2 border-b border-slate-100">
-            <p className="text-xs font-semibold text-slate-900">Admin Account</p>
-            <p className="text-[11px] text-slate-500 truncate">admin@solar-sims.com</p>
+            <p className="text-xs font-semibold text-slate-900">{currentUser.name || 'Admin Account'}</p>
+            <p className="text-[11px] text-slate-500 truncate">{currentUser.email || 'admin@sunpower.com'}</p>
           </div>
           <DropdownItem icon={User} onClick={() => navigate('/admin/profile')}>
             Profile Overview
@@ -184,7 +208,7 @@ export const Header = () => {
             Roles & Permissions
           </DropdownItem>
           <div className="border-t border-slate-100 my-1" />
-          <DropdownItem icon={LogOut} danger onClick={() => navigate('/login')}>
+          <DropdownItem icon={LogOut} danger onClick={handleSignOut}>
             Sign Out
           </DropdownItem>
         </Dropdown>

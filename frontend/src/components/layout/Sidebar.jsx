@@ -29,13 +29,19 @@ import { useSidebar } from '../../context/SidebarContext';
 
 export const navigationItems = [
   {
-    category: 'Core Operations',
+    category: 'Executive Overview',
     items: [
       {
-        name: 'Dashboard',
+        name: 'Executive Dashboard',
+        shortName: 'Dashboard',
         path: '/admin/dashboard',
         icon: LayoutDashboard,
       },
+    ],
+  },
+  {
+    category: 'Customer to Order Flow',
+    items: [
       {
         name: 'Customer Management',
         shortName: 'Customers',
@@ -43,27 +49,16 @@ export const navigationItems = [
         icon: Users,
       },
       {
-        name: 'Enquiry Management',
+        name: 'Customer Enquiries & Leads',
         shortName: 'Enquiries',
         path: '/admin/enquiries',
         icon: MessageSquareMore,
       },
       {
         name: 'Site Survey Management',
-        shortName: 'Surveys',
+        shortName: 'Site Surveys',
         path: '/admin/surveys',
         icon: ClipboardCheck,
-      },
-    ],
-  },
-  {
-    category: 'Commercial & Sales',
-    items: [
-      {
-        name: 'Product & Package',
-        shortName: 'Products',
-        path: '/admin/products',
-        icon: Package,
       },
       {
         name: 'Quotation Management',
@@ -78,7 +73,7 @@ export const navigationItems = [
         icon: ShoppingCart,
       },
       {
-        name: 'Payment Management',
+        name: 'Payment & Invoicing',
         shortName: 'Payments',
         path: '/admin/payments',
         icon: CreditCard,
@@ -86,39 +81,40 @@ export const navigationItems = [
     ],
   },
   {
-    category: 'Supply Chain & Execution',
+    category: 'Supply Chain & Field Execution',
     items: [
       {
-        name: 'Inventory Management',
+        name: 'Products & Packages',
+        shortName: 'Products & BOM',
+        path: '/admin/products',
+        icon: Package,
+      },
+      {
+        name: 'Inventory & Serial Tracking',
         shortName: 'Inventory',
         path: '/admin/inventory',
         icon: Boxes,
       },
       {
-        name: 'Dispatch Management',
-        shortName: 'Dispatch',
+        name: 'Dispatch & Delivery',
+        shortName: 'Dispatch & Delivery',
         path: '/admin/dispatch',
         icon: Truck,
       },
       {
-        name: 'Installation Management',
-        shortName: 'Installations',
-        path: '/admin/installations',
-        icon: Wrench,
-      },
-    ],
-  },
-  {
-    category: 'Post-Install & Quality',
-    items: [
-      {
-        name: 'Warranty Management',
-        shortName: 'Warranty',
+        name: 'Warranty Certificates',
+        shortName: 'Warranties',
         path: '/admin/warranty',
         icon: ShieldCheck,
       },
       {
-        name: 'Service Ticket Management',
+        name: 'Installation & Testing',
+        shortName: 'Installations',
+        path: '/admin/installations',
+        icon: Wrench,
+      },
+      {
+        name: 'After-Sales Service Tickets',
         shortName: 'Service Tickets',
         path: '/admin/service-tickets',
         icon: Headphones,
@@ -126,43 +122,37 @@ export const navigationItems = [
     ],
   },
   {
-    category: 'Analytics & Administration',
+    category: 'Finance & Administration',
     items: [
       {
-        name: 'Finance Management',
+        name: 'Financial Profitability',
         shortName: 'Finance',
         path: '/admin/finance',
         icon: DollarSign,
       },
       {
-        name: 'Reports & Analytics',
+        name: 'Business Reports & Analytics',
         shortName: 'Reports',
         path: '/admin/reports',
         icon: BarChart3,
       },
       {
-        name: 'Notifications',
+        name: 'System Notifications',
         shortName: 'Notifications',
         path: '/admin/notifications',
         icon: Bell,
       },
       {
-        name: 'Audit Logs',
+        name: 'System Audit Logs',
         shortName: 'Audit Logs',
         path: '/admin/audit-logs',
         icon: History,
       },
       {
-        name: 'Roles & Permissions',
-        shortName: 'Roles',
+        name: 'User & Role Management',
+        shortName: 'User Management',
         path: '/admin/roles-permissions',
         icon: Shield,
-      },
-      {
-        name: 'System Settings',
-        shortName: 'Settings',
-        path: '/admin/settings',
-        icon: Settings,
       },
     ],
   },

@@ -50,14 +50,14 @@ export const DashboardWelcome = ({
         </div>
 
         {/* Right Controls: Time Range, Refresh & Reset Demo Data */}
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <div className="inline-flex rounded-xl bg-white p-1 border border-slate-200/90 shadow-xs">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0 w-full sm:w-auto">
+          <div className="inline-flex rounded-xl bg-white p-1 border border-slate-200/90 shadow-xs max-w-full overflow-x-auto scrollbar-none">
             {timeRanges.map((range) => (
               <button
                 key={range.value}
                 type="button"
                 onClick={() => onTimeRangeChange && onTimeRangeChange(range.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap ${
                   timeRange === range.value
                     ? 'bg-[#0284C7] text-white font-semibold shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -68,29 +68,31 @@ export const DashboardWelcome = ({
             ))}
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            isLoading={isRefreshing}
-            icon={RotateCw}
-            className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-[#0284C7]"
-            title="Refresh All Dashboard Data"
-          >
-            Refresh
-          </Button>
-
-          {onResetData && (
+          <div className="flex items-center gap-2">
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
-              onClick={onResetData}
-              icon={RotateCcw}
-              title="Reset sample data back to baseline defaults"
+              onClick={onRefresh}
+              isLoading={isRefreshing}
+              icon={RotateCw}
+              className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-[#0284C7]"
+              title="Refresh All Dashboard Data"
             >
-              Reset Sample Data
+              Refresh
             </Button>
-          )}
+
+            {onResetData && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onResetData}
+                icon={RotateCcw}
+                title="Reset sample data back to baseline defaults"
+              >
+                Reset Sample Data
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

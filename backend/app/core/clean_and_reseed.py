@@ -12,14 +12,17 @@ from sqlalchemy import select, delete, text
 from app.core.database import AsyncSessionLocal
 from app.models.user import User, UserRole
 from app.models.customer import Customer, CustomerAddress, Enquiry, EnquirySource, LeadStatus, SystemType, SystemCapacity, EnquiryFollowup
-from app.models.survey import SiteSurvey, SurveyStatus, SurveyApprovalStatus, RoofOrientation
+from app.models.survey import SiteSurvey, SurveyPhoto, SurveyStatus, SurveyApprovalStatus, RoofOrientation
 from app.models.product import Product, ProductCategory, Package, PackageItem, WarrantyUnit
 from app.models.quotation import Quotation, QuotationItem, QuotationStatus
 from app.models.order import Order, OrderStatus, Payment, PaymentMethod, PaymentRecordStatus, PaymentType, PaymentStatus
-from app.models.installation import InstallationJob, InstallationStatus
+from app.models.installation import (
+    InstallationJob, InstallationChecklist, InstallationPhoto,
+    TechnicianWorkLog, InstallationSignoff, InstallationStatus
+)
 from app.models.service_ticket import ServiceTicket, TicketStatus
 from app.models.system import AuditLog, Notification
-from app.models.inventory import Inventory
+from app.models.inventory import Inventory, ProductSerial, SerialStatus
 from app.models.dispatch import Dispatch, DispatchItem, DispatchStatus
 from app.core.security import get_password_hash
 
@@ -247,12 +250,73 @@ async def reseed_database():
         await session.flush()
         print("✅ Seeded 7 Follow-ups (5 Pending, 2 Completed).")
 
-        # 7. Seed Exactly 4 Site Surveys (3 Scheduled, 1 Completed)
+        # 7. Seed Exactly 4 Site Surveys (3 Scheduled/In Progress, 1 Completed) with Measurements & Photos
         survey_seeds = [
-            {"cust": "Sunita Agarwal", "enq_idx": 0, "status": SurveyStatus.SCHEDULED, "days": 2},
-            {"cust": "Kailash Yadav", "enq_idx": 1, "status": SurveyStatus.SCHEDULED, "days": 3},
-            {"cust": "Golden Hospitality", "enq_idx": 3, "status": SurveyStatus.SCHEDULED, "days": 4},
-            {"cust": "Rajesh Sharma", "enq_idx": 6, "status": SurveyStatus.COMPLETED, "days": -2},
+            {
+                "cust": "Sunita Agarwal",
+                "enq_idx": 0,
+                "status": SurveyStatus.SCHEDULED,
+                "days": 2,
+                "orientation": RoofOrientation.SOUTH,
+                "area": Decimal("850.00"),
+                "shadow_free": Decimal("750.00"),
+                "tilt": 15.0,
+                "bill": Decimal("8500.00"),
+                "cable": Decimal("18.00"),
+                "remarks": "Optimal south-facing shadow-free area available on main rooftop terrace.",
+                "photos": [
+                    ("uploads/surveys/roof_terrace_view.jpg", "roof_terrace_view.jpg", "Clear south-facing parapet view"),
+                    ("uploads/surveys/electrical_meter_board.jpg", "electrical_meter_board.jpg", "3-Phase bidirectional net meter panel"),
+                ],
+            },
+            {
+                "cust": "Kailash Yadav",
+                "enq_idx": 1,
+                "status": SurveyStatus.IN_PROGRESS,
+                "days": 3,
+                "orientation": RoofOrientation.SOUTH_WEST,
+                "area": Decimal("1400.00"),
+                "shadow_free": Decimal("1200.00"),
+                "tilt": 12.0,
+                "bill": Decimal("14200.00"),
+                "cable": Decimal("25.00"),
+                "remarks": "Tin shed structure requires specialized rail clamps and mid/end fixers.",
+                "photos": [
+                    ("uploads/surveys/tin_shed_rafter_inspection.jpg", "tin_shed_rafter_inspection.jpg", "Purlin spacing measured at 1.2m"),
+                    ("uploads/surveys/earthing_bore_location.jpg", "earthing_bore_location.jpg", "Proposed earthing pit location in North-East boundary"),
+                ],
+            },
+            {
+                "cust": "Golden Hospitality",
+                "enq_idx": 3,
+                "status": SurveyStatus.SCHEDULED,
+                "days": 4,
+                "orientation": RoofOrientation.SOUTH,
+                "area": Decimal("2600.00"),
+                "shadow_free": Decimal("2200.00"),
+                "tilt": 18.0,
+                "bill": Decimal("26500.00"),
+                "cable": Decimal("35.00"),
+                "remarks": "Resort rooftop terrace, requires 8ft elevated structure to preserve walkway space.",
+                "photos": [],
+            },
+            {
+                "cust": "Rajesh Sharma",
+                "enq_idx": 6,
+                "status": SurveyStatus.COMPLETED,
+                "days": -2,
+                "orientation": RoofOrientation.SOUTH,
+                "area": Decimal("1100.00"),
+                "shadow_free": Decimal("980.00"),
+                "tilt": 16.0,
+                "bill": Decimal("9800.00"),
+                "cable": Decimal("15.00"),
+                "remarks": "Survey verified and approved. Elevated columns anchored with Hilti chemicals.",
+                "photos": [
+                    ("uploads/surveys/superstructure_pedestals.jpg", "superstructure_pedestals.jpg", "Pedestal curing completed and load-bearing test passed"),
+                    ("uploads/surveys/distribution_box.jpg", "distribution_box.jpg", "Main AC/DC distribution board with Type-2 surge protection"),
+                ],
+            },
         ]
         created_surveys = []
         for sseed in survey_seeds:
@@ -265,15 +329,32 @@ async def reseed_database():
                 scheduled_date=now + timedelta(days=sseed["days"]),
                 survey_status=sseed["status"],
                 approval_status=SurveyApprovalStatus.APPROVED if sseed["status"] == SurveyStatus.COMPLETED else SurveyApprovalStatus.PENDING_APPROVAL,
-                roof_orientation=RoofOrientation.SOUTH,
-                roof_area_sqft=Decimal("1500.00"),
-                technician_remarks="RCC flat roof with zero south obstruction. Structural integrity verified.",
+                roof_orientation=sseed["orientation"],
+                roof_area_sqft=sseed["area"],
+                shadow_free_area_sqft=sseed["shadow_free"],
+                roof_tilt_degrees=sseed["tilt"],
+                monthly_bill=sseed["bill"],
+                cable_distance_meters=sseed["cable"],
+                grid_connection_suitable=True,
+                technician_remarks=sseed["remarks"],
             )
             session.add(srv)
+            await session.flush()
+
+            # Add Survey Photos
+            for p_path, p_name, p_caption in sseed.get("photos", []):
+                photo = SurveyPhoto(
+                    survey_id=srv.id,
+                    file_path=p_path,
+                    file_name=p_name,
+                    caption=p_caption,
+                )
+                session.add(photo)
+
             created_surveys.append(srv)
 
         await session.flush()
-        print("✅ Seeded 4 Site Surveys (3 Scheduled, 1 Completed).")
+        print("✅ Seeded 4 Site Surveys with technical measurements & photos.")
 
         # 8. Seed Exactly 5 Quotations (QUO-701 .. QUO-705) matching screenshot
         # 3 Pending/Sent/Draft, 2 Accepted
@@ -426,6 +507,275 @@ async def reseed_database():
 
         await session.flush()
         print(f"✅ Seeded {len(dispatch_seeds)} Dispatches (DSP-701 to DSP-709).")
+
+        # 12. Seed Installation Jobs assigned to Vikram Singh (tech1)
+        # 5 Jobs: 2 In Progress, 2 Scheduled, 1 Completed with Sign-off
+        installation_seeds = [
+            {
+                "num": "INS-8001",
+                "job_number": "JOB-2026-8001",
+                "order": "ORD-8001",
+                "cust": "Rajesh Sharma",
+                "status": InstallationStatus.IN_PROGRESS,
+                "days": -1,
+                "start_hours_ago": 6,
+                "end_hours_ago": None,
+                "power": None,
+                "testing": None,
+                "checklist": {
+                    "mounting_stands_installed": True,
+                    "solar_panels_installed": True,
+                    "inverter_installed": True,
+                    "battery_installed": False,
+                    "wiring_completed": True,
+                    "safety_equipment_installed": True,
+                    "earthing_completed": True,
+                    "system_tested": True,
+                    "power_generation_verified": False,
+                },
+                "work_log": {
+                    "start_hours_ago": 6,
+                    "end_hours_ago": 0.5,
+                    "hours": Decimal("5.50"),
+                },
+                "signoff": None,
+            },
+            {
+                "num": "INS-8002",
+                "job_number": "JOB-2026-8002",
+                "order": "ORD-8002",
+                "cust": "Apex Textiles Ltd.",
+                "status": InstallationStatus.SCHEDULED,
+                "days": 3,
+                "start_hours_ago": None,
+                "end_hours_ago": None,
+                "power": None,
+                "testing": None,
+                "checklist": {
+                    "mounting_stands_installed": True,
+                    "solar_panels_installed": False,
+                    "inverter_installed": False,
+                    "battery_installed": False,
+                    "wiring_completed": False,
+                    "safety_equipment_installed": True,
+                    "earthing_completed": False,
+                    "system_tested": False,
+                    "power_generation_verified": False,
+                },
+                "work_log": None,
+                "signoff": None,
+            },
+            {
+                "num": "INS-8003",
+                "job_number": "JOB-2026-8003",
+                "order": "ORD-8003",
+                "cust": "Priya Meena",
+                "status": InstallationStatus.COMPLETED,
+                "days": -4,
+                "start_hours_ago": 105,
+                "end_hours_ago": 96.5,
+                "power": Decimal("4850.00"),
+                "testing": "All 10x Adani 540W modules open circuit voltage 485V. Growatt 5kW hybrid inverter synchronised at 230V 50Hz. LiFePO4 battery communication BMS active.",
+                "checklist": {
+                    "mounting_stands_installed": True,
+                    "solar_panels_installed": True,
+                    "inverter_installed": True,
+                    "battery_installed": True,
+                    "wiring_completed": True,
+                    "safety_equipment_installed": True,
+                    "earthing_completed": True,
+                    "system_tested": True,
+                    "power_generation_verified": True,
+                },
+                "work_log": {
+                    "start_hours_ago": 105,
+                    "end_hours_ago": 96.5,
+                    "hours": Decimal("8.50"),
+                },
+                "signoff": {
+                    "name": "Priya Meena",
+                    "rating": 5,
+                    "remarks": "Neat rooftop cabling, certified earthing, system generating 22 kWh per day. Highly satisfied with Vikram Singh and team.",
+                    "sig_path": "uploads/signatures/demo_sig.png",
+                },
+            },
+            {
+                "num": "INS-8004",
+                "job_number": "JOB-2026-8004",
+                "order": "ORD-8004",
+                "cust": "Golden Hospitality",
+                "status": InstallationStatus.SCHEDULED,
+                "days": 5,
+                "start_hours_ago": None,
+                "end_hours_ago": None,
+                "power": None,
+                "testing": None,
+                "checklist": {
+                    "mounting_stands_installed": False,
+                    "solar_panels_installed": False,
+                    "inverter_installed": False,
+                    "battery_installed": False,
+                    "wiring_completed": False,
+                    "safety_equipment_installed": False,
+                    "earthing_completed": False,
+                    "system_tested": False,
+                    "power_generation_verified": False,
+                },
+                "work_log": None,
+                "signoff": None,
+            },
+            {
+                "num": "INS-8005",
+                "job_number": "JOB-2026-8005",
+                "order": "ORD-8001",
+                "cust": "Mukesh Choudhary",
+                "status": InstallationStatus.IN_PROGRESS,
+                "days": -2,
+                "start_hours_ago": 7,
+                "end_hours_ago": None,
+                "power": None,
+                "testing": None,
+                "checklist": {
+                    "mounting_stands_installed": True,
+                    "solar_panels_installed": True,
+                    "inverter_installed": True,
+                    "battery_installed": False,
+                    "wiring_completed": True,
+                    "safety_equipment_installed": True,
+                    "earthing_completed": False,
+                    "system_tested": False,
+                    "power_generation_verified": False,
+                },
+                "work_log": {
+                    "start_hours_ago": 7,
+                    "end_hours_ago": 1,
+                    "hours": Decimal("6.00"),
+                },
+                "signoff": None,
+            },
+        ]
+
+        created_jobs = []
+        for iseed in installation_seeds:
+            cust = created_cust_map[iseed["cust"]]
+            order = created_orders[iseed["order"]]
+            job = InstallationJob(
+                job_number=iseed["job_number"],
+                order_id=order.id,
+                customer_id=cust.id,
+                assigned_technician_id=tech1.id,
+                scheduled_date=now + timedelta(days=iseed["days"]),
+                start_time=now - timedelta(hours=iseed["start_hours_ago"]) if iseed["start_hours_ago"] is not None else None,
+                end_time=now - timedelta(hours=iseed["end_hours_ago"]) if iseed["end_hours_ago"] is not None else None,
+                installation_status=iseed["status"],
+                power_generated_watts=iseed["power"],
+                testing_results=iseed["testing"],
+            )
+            session.add(job)
+            await session.flush()
+
+            # Seed Checklist
+            chk_data = iseed["checklist"]
+            checklist = InstallationChecklist(
+                installation_id=job.id,
+                mounting_stands_installed=chk_data["mounting_stands_installed"],
+                solar_panels_installed=chk_data["solar_panels_installed"],
+                inverter_installed=chk_data["inverter_installed"],
+                battery_installed=chk_data["battery_installed"],
+                wiring_completed=chk_data["wiring_completed"],
+                safety_equipment_installed=chk_data["safety_equipment_installed"],
+                earthing_completed=chk_data["earthing_completed"],
+                system_tested=chk_data["system_tested"],
+                power_generation_verified=chk_data["power_generation_verified"],
+            )
+            session.add(checklist)
+
+            # Seed Work Log if available
+            wl_data = iseed.get("work_log")
+            if wl_data:
+                wl = TechnicianWorkLog(
+                    technician_id=tech1.id,
+                    installation_id=job.id,
+                    start_time=now - timedelta(hours=wl_data["start_hours_ago"]),
+                    end_time=now - timedelta(hours=wl_data["end_hours_ago"]),
+                    total_hours=wl_data["hours"],
+                    hourly_rate=Decimal("300.00"),
+                    total_cost=(wl_data["hours"] * Decimal("300.00")).quantize(Decimal("0.01")),
+                )
+                session.add(wl)
+
+            # Seed Sign-off if available
+            sig_data = iseed.get("signoff")
+            if sig_data:
+                signoff = InstallationSignoff(
+                    installation_id=job.id,
+                    customer_name=sig_data["name"],
+                    signature_path=sig_data["sig_path"],
+                    feedback_rating=sig_data["rating"],
+                    feedback_remarks=sig_data["remarks"],
+                    signoff_date=now - timedelta(hours=iseed["end_hours_ago"] or 96),
+                )
+                session.add(signoff)
+
+            created_jobs.append(job)
+
+        # 13. Additional Work Logs to bring Vikram Singh's total logged hours to exactly 34.5 hrs
+        extra_worklogs = [
+            {"hours": Decimal("4.00"), "start_days": 6, "end_hours": 4},
+            {"hours": Decimal("6.50"), "start_days": 8, "end_hours": 6.5},
+            {"hours": Decimal("4.00"), "start_days": 10, "end_hours": 4},
+        ]
+        first_job = created_jobs[0]
+        for ewl in extra_worklogs:
+            s_time = now - timedelta(days=ewl["start_days"])
+            e_time = s_time + timedelta(hours=float(ewl["hours"]))
+            wl = TechnicianWorkLog(
+                technician_id=tech1.id,
+                installation_id=first_job.id,
+                start_time=s_time,
+                end_time=e_time,
+                total_hours=ewl["hours"],
+                hourly_rate=Decimal("300.00"),
+                total_cost=(ewl["hours"] * Decimal("300.00")).quantize(Decimal("0.01")),
+            )
+            session.add(wl)
+
+        await session.flush()
+        print(f"✅ Seeded 5 Installation Jobs, Checklists, Sign-offs, and 34.5 Logged Hours for Vikram Singh.")
+
+        # 14. Seed Product Serials for Equipment Serial Verification
+        serial_seeds = [
+            {"sn": "GRW-10K-2026-001", "cust": "Rajesh Sharma", "order": "ORD-8001", "status": SerialStatus.DELIVERED},
+            {"sn": "GRW-5K-2026-002", "cust": "Priya Meena", "order": "ORD-8003", "status": SerialStatus.DELIVERED},
+            {"sn": "BAT-48V-2026-003", "cust": "Priya Meena", "order": "ORD-8003", "status": SerialStatus.DELIVERED},
+            {"sn": "SNG-50K-2026-004", "cust": "Apex Textiles Ltd.", "order": "ORD-8002", "status": SerialStatus.DISPATCHED},
+            {"sn": "SNG-30K-2026-005", "cust": "Mukesh Choudhary", "order": "ORD-8001", "status": SerialStatus.DELIVERED},
+            {"sn": "HDG-STR-2026-010", "cust": "Rajesh Sharma", "order": "ORD-8001", "status": SerialStatus.DELIVERED},
+            {"sn": "EARTH-KIT-2026-011", "cust": "Rajesh Sharma", "order": "ORD-8001", "status": SerialStatus.DELIVERED},
+        ]
+        # Also add 20 solar panel serials for Rajesh Sharma
+        for p_idx in range(1, 21):
+            serial_seeds.append({
+                "sn": f"ADN-540-2026-{p_idx:03d}",
+                "cust": "Rajesh Sharma",
+                "order": "ORD-8001",
+                "status": SerialStatus.DELIVERED,
+            })
+
+        for sdata in serial_seeds:
+            cust = created_cust_map.get(sdata["cust"])
+            order = created_orders.get(sdata["order"])
+            pserial = ProductSerial(
+                product_id=prod_panel.id,
+                serial_number=sdata["sn"],
+                status=sdata["status"],
+                customer_id=cust.id if cust else None,
+                order_id=order.id if order else None,
+            )
+            session.add(pserial)
+
+        await session.flush()
+        print(f"✅ Seeded {len(serial_seeds)} Product Serials for Equipment BOM & Inverter/Battery Verification.")
 
         await session.commit()
         print("🎉 Database successfully reset and reseeded with clean, exact demo data!")

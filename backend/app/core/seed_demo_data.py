@@ -12,13 +12,17 @@ from sqlalchemy import select, delete, text
 from app.core.database import AsyncSessionLocal
 from app.models.user import User, UserRole
 from app.models.customer import Customer, CustomerAddress, Enquiry, EnquirySource, LeadStatus, SystemType
-from app.models.survey import SiteSurvey
+from app.models.survey import SiteSurvey, SurveyPhoto, SurveyStatus, SurveyApprovalStatus, RoofOrientation
 from app.models.product import Product, ProductCategory, Package, WarrantyUnit
 from app.models.quotation import Quotation, QuotationStatus
 from app.models.order import Order, OrderStatus, Payment, PaymentMethod, PaymentRecordStatus, PaymentType
-from app.models.installation import InstallationJob, InstallationStatus
+from app.models.installation import (
+    InstallationJob, InstallationChecklist, InstallationPhoto,
+    TechnicianWorkLog, InstallationSignoff, InstallationStatus
+)
 from app.models.service_ticket import ServiceTicket, TicketStatus
 from app.models.system import AuditLog, Notification
+from app.models.inventory import ProductSerial, SerialStatus
 from app.core.security import get_password_hash
 
 
@@ -194,8 +198,52 @@ async def seed_all():
                     assigned_technician_id=tech1.id,
                     installation_status=InstallationStatus.COMPLETED if pdata["status"] == OrderStatus.COMPLETED else InstallationStatus.IN_PROGRESS,
                     scheduled_date=order_date + timedelta(days=2),
+                    start_time=order_date + timedelta(days=2, hours=9),
+                    end_time=order_date + timedelta(days=2, hours=16) if pdata["status"] == OrderStatus.COMPLETED else None,
+                    power_generated_watts=Decimal("5000.00") if pdata["status"] == OrderStatus.COMPLETED else None,
+                    testing_results="System passed 10-point commissioning checklist and net meter synchronization." if pdata["status"] == OrderStatus.COMPLETED else None,
                 )
                 session.add(job)
+                await session.flush()
+
+                # Add Checklist
+                chk = InstallationChecklist(
+                    installation_id=job.id,
+                    mounting_stands_installed=True,
+                    solar_panels_installed=True,
+                    inverter_installed=True,
+                    battery_installed=(pdata["status"] == OrderStatus.COMPLETED),
+                    wiring_completed=True,
+                    safety_equipment_installed=True,
+                    earthing_completed=True,
+                    system_tested=(pdata["status"] == OrderStatus.COMPLETED),
+                    power_generation_verified=(pdata["status"] == OrderStatus.COMPLETED),
+                )
+                session.add(chk)
+
+                # Add Work Log
+                wl = TechnicianWorkLog(
+                    technician_id=tech1.id,
+                    installation_id=job.id,
+                    start_time=order_date + timedelta(days=2, hours=9),
+                    end_time=order_date + timedelta(days=2, hours=15),
+                    total_hours=Decimal("6.00"),
+                    hourly_rate=Decimal("300.00"),
+                    total_cost=Decimal("1800.00"),
+                )
+                session.add(wl)
+
+                # Add Signoff if completed
+                if pdata["status"] == OrderStatus.COMPLETED:
+                    sig = InstallationSignoff(
+                        installation_id=job.id,
+                        customer_name=cust.name,
+                        signature_path="uploads/signatures/demo_sig.png",
+                        feedback_rating=5,
+                        feedback_remarks="Excellent installation quality, verified generation output.",
+                        signoff_date=order_date + timedelta(days=2, hours=15, minutes=30),
+                    )
+                    session.add(sig)
             created_orders[pdata["num"]] = order
 
         await session.flush()

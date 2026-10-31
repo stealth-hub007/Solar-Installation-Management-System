@@ -134,6 +134,10 @@ export const router = createBrowserRouter([
         path: 'roles-permissions',
         element: <RolesPermissionsPage />,
       },
+      {
+        path: 'roles',
+        element: <RolesPermissionsPage />,
+      },
     ],
   },
   {

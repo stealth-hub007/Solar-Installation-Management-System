@@ -60,6 +60,7 @@ export const StatusBadge = ({ status, size = 'md', className = '' }) => {
   if (
     normalized.includes('complete') ||
     normalized.includes('approved') ||
+    normalized.includes('sufficient') ||
     normalized.includes('paid') ||
     normalized.includes('success') ||
     normalized.includes('active') ||
@@ -94,6 +95,10 @@ export const StatusBadge = ({ status, size = 'md', className = '' }) => {
     normalized.includes('open') ||
     normalized.includes('draft') ||
     normalized.includes('sent') ||
+    normalized.includes('accepted') ||
+    normalized.includes('in execution') ||
+    normalized.includes('execution') ||
+    normalized.includes('dispatched') ||
     normalized.includes('quoted') ||
     normalized.includes('review')
   ) {

@@ -85,7 +85,6 @@ export const RecentProjects = ({
       header: 'Capacity',
       accessor: 'capacity',
       sortable: true,
-      align: 'right',
       cell: ({ value }) => (
         <span className="font-bold text-slate-900">{formatNumber(value)} kW</span>
       ),

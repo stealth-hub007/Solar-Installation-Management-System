@@ -30,8 +30,19 @@ const initialQuotations = [
 export const QuotationsPage = () => {
   const [quotations, setQuotations] = useState(() => {
     try {
-      const saved = localStorage.getItem('sims_quotations_data');
-      return saved ? JSON.parse(saved) : initialQuotations;
+      const stored = storageService.getQuotations();
+      if (Array.isArray(stored) && stored.length > 0) {
+        return stored.map((q) => ({
+          ...q,
+          capacity: q.capacity ?? q.systemCapacity,
+          dailyGen: q.dailyGen ?? q.dailyGeneration,
+          totalCost: q.totalCost ?? q.subtotal ?? q.finalAmount ?? 0,
+          netPayable: q.netPayable ?? q.finalAmount ?? q.subtotal ?? 0,
+          subsidy: q.subsidy ?? 0,
+          date: q.date ?? q.createdDate ?? null,
+        }));
+      }
+      return initialQuotations;
     } catch {
       return initialQuotations;
     }
@@ -66,15 +77,15 @@ export const QuotationsPage = () => {
     {
       header: 'Customer Name',
       accessor: 'customerName',
-      cell: ({ value }) => <span className="font-semibold text-slate-800 max-w-[130px] truncate block" title={value}>{value}</span>,
+      cell: ({ value }) => <span className="font-semibold text-slate-800 max-w-[150px] truncate block" title={value}>{value}</span>,
     },
     {
       header: 'Capacity',
       accessor: 'capacity',
       cell: ({ value, row }) => (
         <div>
-          <span className="font-bold text-slate-900">{value} kW</span>
-          <span className="block text-[11px] text-sky-700">~{row.dailyGen}/d</span>
+          <span className="font-bold text-slate-900">{value ? `${value} kW` : 'kW'}</span>
+          <span className="block text-[11px] text-sky-700">{row.dailyGen ? `~${row.dailyGen}/d` : '~/d'}</span>
         </div>
       ),
     },
@@ -83,7 +94,7 @@ export const QuotationsPage = () => {
       accessor: 'totalCost',
       align: 'right',
       cell: ({ value }) => (
-        <span className="font-bold text-slate-900">{formatCurrency(value)}</span>
+        <span className="font-bold text-slate-900">{formatCurrency(value || 0)}</span>
       ),
     },
     {
@@ -92,7 +103,7 @@ export const QuotationsPage = () => {
       align: 'right',
       cell: ({ value, row }) => (
         <div>
-          <span className="font-bold text-[#0284C7]">{formatCurrency(value)}</span>
+          <span className="font-bold text-[#0284C7]">{formatCurrency(value || 0)}</span>
           {row.subsidy > 0 && (
             <span className="block text-[11px] text-amber-600">Sub: -{formatCurrency(row.subsidy, { compact: true })}</span>
           )}
@@ -107,7 +118,11 @@ export const QuotationsPage = () => {
     {
       header: 'Created Date',
       accessor: 'date',
-      cell: ({ value }) => <span className="text-xs text-slate-500">{formatDate(value, { format: 'short' })}</span>,
+      cell: ({ value }) => (
+        <span className="text-xs text-slate-500">
+          {value ? formatDate(value, { format: 'short' }) : '—'}
+        </span>
+      ),
     },
     {
       header: 'Actions',

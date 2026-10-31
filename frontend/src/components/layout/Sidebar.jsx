@@ -127,7 +127,7 @@ export const navigationItems = [
     ],
   },
   {
-    category: 'FINANCE & ADMINISTRATION',
+    category: 'ANALYTICS & ADMINISTRATION',
     items: [
       {
         name: 'Finance',
@@ -154,10 +154,16 @@ export const navigationItems = [
         icon: History,
       },
       {
-        name: 'User Management',
-        shortName: 'User Management',
+        name: 'Roles',
+        shortName: 'Roles',
         path: '/admin/roles-permissions',
         icon: Shield,
+      },
+      {
+        name: 'Settings',
+        shortName: 'Settings',
+        path: '/admin/settings',
+        icon: Settings,
       },
     ],
   },
@@ -216,7 +222,9 @@ export const Sidebar = () => {
             )}
             {group.items.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive =
+                location.pathname === item.path ||
+                (item.path === '/admin/roles-permissions' && location.pathname === '/admin/roles');
 
               return (
                 <NavLink

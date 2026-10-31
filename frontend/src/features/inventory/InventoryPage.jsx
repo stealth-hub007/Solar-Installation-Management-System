@@ -109,16 +109,16 @@ export const InventoryPage = () => {
 
   const columns = [
     {
-      header: 'Category',
+      header: 'Equipment Category',
       accessor: 'category',
       cell: ({ value }) => (
-        <span className="font-semibold text-xs text-slate-800 max-w-[200px] truncate block" title={value}>
+        <span className="font-semibold text-xs text-slate-800 max-w-[240px] truncate block" title={value}>
           {value}
         </span>
       ),
     },
     {
-      header: 'Available',
+      header: 'Available Stock',
       accessor: 'available',
       align: 'right',
       cell: ({ value }) => (
@@ -126,23 +126,23 @@ export const InventoryPage = () => {
       ),
     },
     {
-      header: 'Reserved',
+      header: 'Reserved for Projects',
       accessor: 'reserved',
       align: 'right',
       cell: ({ value }) => (
-        <span className="font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded whitespace-nowrap">
+        <span className="font-medium text-amber-600 whitespace-nowrap">
           {value} units
         </span>
       ),
     },
     {
-      header: 'Safety Min',
+      header: 'Safety Buffer',
       accessor: 'lowStock',
       align: 'right',
       cell: ({ value }) => <span className="text-slate-500 whitespace-nowrap">{value} threshold</span>,
     },
     {
-      header: 'Status',
+      header: 'Stock Status',
       align: 'center',
       cell: ({ row }) => {
         if (row.outOfStock > 0 || row.available === 0) {

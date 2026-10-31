@@ -80,7 +80,7 @@ export const WarrantyPage = () => {
         <Table
           columns={[
             {
-              header: 'Certificate ID',
+              header: 'Warranty Certificate',
               accessor: 'id',
               cell: ({ value }) => (
                 <span className="font-mono text-xs font-semibold text-[#0284C7] whitespace-nowrap">{value}</span>
@@ -90,15 +90,24 @@ export const WarrantyPage = () => {
               header: 'Customer',
               accessor: 'customer',
               cell: ({ row }) => (
-                <div className="max-w-[170px] truncate" title={`${row.customer} (${row.projectId} - ${row.capacity})`}>
+                <div className="max-w-[190px] truncate" title={`${row.customer} (${row.capacity})`}>
                   <span className="font-semibold text-slate-800">{row.customer}</span>
                   <span className="text-[11px] text-slate-400 font-mono ml-1.5">({row.capacity})</span>
                 </div>
               ),
             },
             {
-              header: 'PV Modules',
+              header: 'PV Module Policy',
               accessor: 'moduleWarranty',
+              cell: ({ value }) => (
+                <span className="text-xs text-slate-700 max-w-[240px] truncate block" title={value}>
+                  {value}
+                </span>
+              ),
+            },
+            {
+              header: 'Inverter Policy',
+              accessor: 'inverterWarranty',
               cell: ({ value }) => (
                 <span className="text-xs text-slate-700 max-w-[200px] truncate block" title={value}>
                   {value}
@@ -106,16 +115,7 @@ export const WarrantyPage = () => {
               ),
             },
             {
-              header: 'Inverters',
-              accessor: 'inverterWarranty',
-              cell: ({ value }) => (
-                <span className="text-xs text-slate-700 max-w-[170px] truncate block" title={value}>
-                  {value}
-                </span>
-              ),
-            },
-            {
-              header: 'Status',
+              header: 'Policy Status',
               accessor: 'status',
               cell: ({ value }) => <StatusBadge status={value} />,
             },

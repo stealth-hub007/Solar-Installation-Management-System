@@ -58,6 +58,18 @@ export const WarehouseDashboard = () => {
 
   const { metrics, inventory, dispatches, loading } = useSelector((state) => state.warehouseDashboard);
   const { searchedSerial } = useSelector((state) => state.warehouseDispatch);
+  const reduxUser = useSelector((state) => state.auth?.user);
+
+  const authUser = reduxUser || (() => {
+    try {
+      const saved = localStorage.getItem('sims_auth_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })() || { full_name: 'Warehouse Manager', role: 'WAREHOUSE' };
+
+  const warehouseUserName = authUser.full_name || authUser.name || 'Warehouse Manager';
 
   const [isAddStockOpen, setIsAddStockOpen] = useState(false);
   const [isSerialLookupOpen, setIsSerialLookupOpen] = useState(false);
@@ -163,7 +175,7 @@ export const WarehouseDashboard = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Real-time solar inventory tracking, stock reservations, procurement, and material dispatch fulfillment.
+            Welcome back, <span className="font-semibold text-slate-800">{warehouseUserName}</span> • Real-time solar inventory tracking, stock reservations, procurement, and material dispatch fulfillment.
           </p>
         </div>
 

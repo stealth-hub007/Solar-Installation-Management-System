@@ -2,8 +2,8 @@ import React from 'react';
 import { Plus, Users, Calendar, FileText } from 'lucide-react';
 
 export const SalesWelcome = ({
-  salesRepName = 'Admin User',
-  isAdmin = true,
+  salesRepName = 'Sales Executive',
+  isAdmin = false,
   stats,
   onAddCustomer,
   onCreateEnquiry,
@@ -32,7 +32,7 @@ export const SalesWelcome = ({
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-xs font-medium text-white/90 mb-3">
             <Calendar className="w-3.5 h-3.5 text-white/80" />
             <span>
-              {todayFormatted} • {isAdmin ? 'Administrator Console • Sales Operations Oversight' : 'Solar Commercial Division'}
+              {todayFormatted} • {isAdmin ? 'Administrator Console • Sales Operations Oversight' : 'Solar Commercial Division • Sales Executive Workspace'}
             </span>
           </div>
 
@@ -47,8 +47,7 @@ export const SalesWelcome = ({
               </>
             ) : (
               <>
-                You are on track to achieve <span className="font-bold text-white">{targetPercent}%</span> of your monthly solar sales quota. 
-                There are <span className="font-bold text-white">{pendingFollowUpsCount} follow-ups</span> and <span className="font-bold text-white">{upcomingSurveysCount} site surveys</span> scheduled this week.
+                You are currently managing your <span className="font-bold text-white">Solar Commercial Sales Pipeline</span> as <span className="font-bold text-white">Sales Executive</span>. You have achieved <span className="font-bold text-white">{targetPercent}%</span> of this month's revenue target with <span className="font-bold text-white">{pendingFollowUpsCount} follow-ups</span> and <span className="font-bold text-white">{upcomingSurveysCount} site surveys</span> scheduled across active leads.
               </>
             )}
           </p>

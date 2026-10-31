@@ -90,7 +90,31 @@ class UserService:
         perms = approve_in.permissions or ROLE_DEFAULT_PERMISSIONS.get(approve_in.role, [])
         user.permissions = perms
 
-        return await UserRepository.update(db, user)
+        updated_user = await UserRepository.update(db, user)
+
+        # Mark registration notification as read and notify the user
+        try:
+            from app.models.system import Notification
+            from sqlalchemy import update
+            await db.execute(
+                update(Notification)
+                .where(Notification.reference_id == user.id, Notification.event_type == "USER_REGISTRATION")
+                .values(is_read=True)
+            )
+            notif = Notification(
+                user_id=user.id,
+                title="Account Approved!",
+                message=f"Your account has been approved with role {approve_in.role.value}. You can now access your dashboard.",
+                event_type="ACCOUNT_APPROVED",
+                reference_id=user.id,
+                is_read=False,
+            )
+            db.add(notif)
+            await db.commit()
+        except Exception:
+            pass
+
+        return updated_user
 
     @staticmethod
     async def reject_user(

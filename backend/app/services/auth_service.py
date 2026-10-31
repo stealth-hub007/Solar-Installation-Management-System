@@ -31,6 +31,7 @@ from app.schemas.user import (
     ResetPasswordRequest,
 )
 from app.repositories.user_repository import UserRepository
+from app.services.notification_service import NotificationService
 
 logger = logging.getLogger("auth_service")
 
@@ -55,15 +56,28 @@ class AuthService:
             phone=reg_in.phone,
             hashed_password=hashed_pw,
             role=assigned_role,
-            account_status=AccountStatus.APPROVED,
+            account_status=AccountStatus.PENDING,
             auth_provider="LOCAL",
             is_active=True,
-            is_superuser=(assigned_role == UserRole.ADMIN),
+            is_superuser=False,
             permissions=ROLE_DEFAULT_PERMISSIONS.get(assigned_role, []),
-            approved_at=datetime.now(timezone.utc),
+            approved_at=None,
         )
         saved = await UserRepository.create(db, new_user)
-        logger.info(f"New user registered in database: {saved.email} (Role: {saved.role})")
+        logger.info(f"New user registered in database (PENDING approval): {saved.email} (Role: {saved.role})")
+
+        # Notify all system administrators
+        try:
+            await NotificationService.notify_admins(
+                db=db,
+                title=f"New User Access Request: {saved.full_name}",
+                message=f"{saved.full_name} ({saved.email}) registered as {assigned_role.value} and requires admin approval.",
+                event_type="USER_REGISTRATION",
+                reference_id=saved.id,
+            )
+            logger.info(f"Admin notification dispatched for new registration: {saved.email}")
+        except Exception as e:
+            logger.warning(f"Failed to dispatch admin notification: {e}")
 
         access_token = create_access_token(subject=str(saved.id))
         refresh_token = create_refresh_token(subject=str(saved.id))
@@ -196,23 +210,36 @@ class AuthService:
             user = await UserRepository.get_by_google_id(db, google_id)
 
         if not user:
-            # Register new Google user in PostgreSQL database
+            # Register new Google user in PostgreSQL database (Requires admin approval)
             dummy_pw = get_password_hash(uuid.uuid4().hex)
             new_user = User(
                 email=email_clean,
                 full_name=full_name or "Google Workspace User",
                 hashed_password=dummy_pw,
                 role=UserRole.SALES,
-                account_status=AccountStatus.APPROVED,
+                account_status=AccountStatus.PENDING,
                 auth_provider="GOOGLE",
                 google_id=google_id,
                 is_active=True,
                 is_superuser=False,
                 permissions=ROLE_DEFAULT_PERMISSIONS.get(UserRole.SALES, []),
-                approved_at=datetime.now(timezone.utc),
+                approved_at=None,
             )
             user = await UserRepository.create(db, new_user)
-            logger.info(f"New Google user registered and saved in database: {user.email}")
+            logger.info(f"New Google user registered in database (PENDING approval): {user.email}")
+
+            # Notify all system administrators
+            try:
+                await NotificationService.notify_admins(
+                    db=db,
+                    title=f"New Google Sign-in: {user.full_name}",
+                    message=f"{user.full_name} ({user.email}) requested access via Google OAuth and requires admin approval.",
+                    event_type="USER_REGISTRATION",
+                    reference_id=user.id,
+                )
+                logger.info(f"Admin notification dispatched for Google sign-in: {user.email}")
+            except Exception as e:
+                logger.warning(f"Failed to dispatch admin notification: {e}")
         else:
             # Link google_id if not present
             updated = False
@@ -224,6 +251,19 @@ class AuthService:
                 updated = True
             if updated:
                 await UserRepository.update(db, user)
+
+            # If user is still pending, notify admin if no unread notification exists
+            if user.account_status == AccountStatus.PENDING:
+                try:
+                    await NotificationService.notify_admins(
+                        db=db,
+                        title=f"Pending Access Request: {user.full_name}",
+                        message=f"{user.full_name} ({user.email}) logged in via Google and is still awaiting approval.",
+                        event_type="USER_REGISTRATION",
+                        reference_id=user.id,
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to dispatch admin notification: {e}")
 
         if not user.is_active:
             raise UnauthorizedException(

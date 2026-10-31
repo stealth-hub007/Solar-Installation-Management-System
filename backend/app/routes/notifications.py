@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.dependencies.auth import get_current_user
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.common import APIResponse
 from app.schemas.dashboard import NotificationResponse
 from app.services.notification_service import NotificationService
@@ -22,11 +22,29 @@ async def list_notifications(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    notifications = await NotificationService.list_user_notifications(db, current_user.id)
+    is_admin = current_user.role == UserRole.ADMIN or current_user.is_superuser
+    notifications = await NotificationService.list_user_notifications(db, current_user.id, is_admin=is_admin)
     return APIResponse(
         success=True,
         message="Notifications retrieved successfully",
         data=[NotificationResponse.model_validate(n) for n in notifications],
+    )
+
+
+@router.patch(
+    "/mark-all-read",
+    response_model=APIResponse[None],
+    summary="Mark All Notifications as Read",
+)
+async def mark_all_read(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await NotificationService.mark_all_read(db, current_user.id)
+    return APIResponse(
+        success=True,
+        message="All notifications marked as read",
+        data=None,
     )
 
 

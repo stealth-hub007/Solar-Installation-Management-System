@@ -4,6 +4,7 @@ import Button from '../../../components/common/Button';
 import formatDate from '../../../utils/formatDate';
 
 export const DashboardWelcome = ({
+  adminName = 'Administrator',
   timeRange = '30d',
   onTimeRangeChange,
   onRefresh,
@@ -35,7 +36,7 @@ export const DashboardWelcome = ({
           </div>
 
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-            Welcome back, Administrator
+            Welcome back, <span className="text-[#0284C7]">{adminName}</span>
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">

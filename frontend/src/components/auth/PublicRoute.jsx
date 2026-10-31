@@ -49,7 +49,7 @@ export const PublicRoute = ({ children }) => {
   })();
 
   const isAuthenticated = reduxIsAuth || Boolean(token);
-  const accountStatus = (reduxStatus || storedUser?.account_status || (token ? 'APPROVED' : null))?.toUpperCase();
+  const accountStatus = (reduxStatus || storedUser?.account_status || (token ? 'PENDING' : null))?.toUpperCase();
   const role = (reduxRole || storedUser?.role || '')?.toUpperCase();
 
   if (isAuthenticated) {
@@ -88,7 +88,7 @@ export const RootRedirect = () => {
   })();
 
   const isAuthenticated = reduxIsAuth || Boolean(token);
-  const accountStatus = (reduxStatus || storedUser?.account_status || (token ? 'APPROVED' : null))?.toUpperCase();
+  const accountStatus = (reduxStatus || storedUser?.account_status || (token ? 'PENDING' : null))?.toUpperCase();
   const role = (reduxRole || storedUser?.role || '')?.toUpperCase();
 
   if (!isAuthenticated) {

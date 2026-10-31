@@ -32,7 +32,7 @@ export const ProtectedRoute = ({ requiredRole, requiredPermission, children }) =
   })();
 
   const isAuthenticated = reduxIsAuth || Boolean(token);
-  const accountStatus = (reduxStatus || storedUser?.account_status || (token ? 'APPROVED' : null))?.toUpperCase();
+  const accountStatus = (reduxStatus || storedUser?.account_status || (token ? 'PENDING' : null))?.toUpperCase();
   const role = (reduxRole || storedUser?.role || '')?.toUpperCase();
   const permissions = reduxPermissions?.length > 0 ? reduxPermissions : (storedUser?.permissions || []);
 

@@ -38,7 +38,7 @@ export const LoginPage = () => {
   const [googleError, setGoogleError] = useState(null);
 
   const handleLoginSuccess = (user, accountStatus) => {
-    const status = (accountStatus || user?.account_status || 'APPROVED').toUpperCase();
+    const status = (accountStatus || user?.account_status || 'PENDING').toUpperCase();
     if (status === 'PENDING') {
       navigate('/pending-approval');
     } else if (status === 'REJECTED') {
@@ -98,19 +98,11 @@ export const LoginPage = () => {
     triggerGoogleLogin();
   };
 
-  // Quick-fill credentials helper for evaluation
-  const setDemoAccount = (demEmail, demPass) => {
-    setEmail(demEmail);
-    setPassword(demPass);
-    setFieldErrors({});
-    dispatch(clearAuthError());
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F0F7FF] to-[#E0F2FE] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-elevated border border-slate-200/90 overflow-hidden">
         {/* Brand Banner */}
-        <div className="p-7 bg-gradient-to-r from-[#123C32] to-[#0D2D25] text-white text-center relative overflow-hidden">
+        <div className="p-7 bg-gradient-to-r from-[#0284C7] to-[#0EA5E9] text-white text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
           <div className="w-13 h-13 rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center mx-auto mb-3 shadow-inner">
             <Sun className="w-8 h-8 text-amber-400 fill-amber-400" />
@@ -256,47 +248,6 @@ export const LoginPage = () => {
             </svg>
             <span>Continue with Google</span>
           </button>
-
-          {/* Quick Demo Fill Buttons */}
-          <div className="mt-6 pt-4 border-t border-slate-100">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Instant Demo Logins:
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setDemoAccount('admin@sunpower.com', 'admin123')}
-                className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-left font-medium transition"
-              >
-                <div className="font-bold">Super Admin</div>
-                <div className="text-[10px] text-emerald-600 truncate">All 4 Dashboards</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoAccount('sales@sunpower.com', 'sales123')}
-                className="px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 text-left font-medium transition"
-              >
-                <div className="font-bold">Sales Lead</div>
-                <div className="text-[10px] text-amber-600 truncate">Quotes & Enquiries</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoAccount('warehouse@sunpower.com', 'warehouse123')}
-                className="px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 text-left font-medium transition"
-              >
-                <div className="font-bold">Warehouse</div>
-                <div className="text-[10px] text-purple-600 truncate">Stock & Dispatch</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoAccount('vikram.tech@sunpower.com', 'tech123')}
-                className="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100 text-left font-medium transition"
-              >
-                <div className="font-bold">Technician</div>
-                <div className="text-[10px] text-sky-600 truncate">Field App & Tasks</div>
-              </button>
-            </div>
-          </div>
 
           {/* Footer Register Link */}
           <div className="mt-6 text-center text-xs text-slate-500">

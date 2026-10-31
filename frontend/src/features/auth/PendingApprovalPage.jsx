@@ -55,6 +55,25 @@ export const PendingApprovalPage = () => {
     }
   }, [accountStatus, currentUser, navigate]);
 
+  // Background auto-polling for admin approval (every 5 seconds)
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const result = await dispatch(refreshAccountStatus());
+        if (refreshAccountStatus.fulfilled.match(result)) {
+          const { account_status, role } = result.payload;
+          if ((account_status || '').toUpperCase() === 'APPROVED') {
+            navigate(getDashboardForRole(role));
+          }
+        }
+      } catch {
+        // silent background check
+      }
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [dispatch, navigate]);
+
   const handleRefreshStatus = async () => {
     setRefreshing(true);
     setFeedbackMessage('');
@@ -101,17 +120,17 @@ export const PendingApprovalPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F0FDF4] to-[#EFF6FF] flex items-center justify-center p-4">
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl border border-slate-200/90 overflow-hidden text-center">
         {/* Top Decorative Header */}
-        <div className="p-8 bg-gradient-to-r from-[#123C32] to-[#0A2620] text-white relative">
-          <div className="w-16 h-16 rounded-2xl bg-amber-400/20 border border-amber-400/30 backdrop-blur flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Clock className="w-9 h-9 text-amber-400 animate-pulse" />
+        <div className="p-8 bg-gradient-to-r from-[#0284C7] to-[#0EA5E9] text-white relative">
+          <div className="w-16 h-16 rounded-2xl bg-white/20 border border-white/30 backdrop-blur flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Clock className="w-9 h-9 text-amber-300 animate-pulse" />
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 mb-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/20 text-white border border-white/30 mb-2">
             Pending Approval
           </span>
           <h1 className="text-2xl font-black tracking-tight text-white">
             Acceptance Pending from Admin
           </h1>
-          <p className="text-xs text-emerald-100/80 mt-1 max-w-sm mx-auto">
+          <p className="text-xs text-sky-100/90 mt-1 max-w-sm mx-auto">
             Your SIMS account has been successfully created and submitted for verification.
           </p>
         </div>

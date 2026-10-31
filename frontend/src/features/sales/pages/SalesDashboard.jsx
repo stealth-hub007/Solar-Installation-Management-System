@@ -28,6 +28,7 @@ import { createCustomer } from '../slices/customerSlice';
 import { createEnquiry } from '../slices/enquirySlice';
 import { createFollowUp, completeFollowUp, rescheduleFollowUp } from '../slices/followUpSlice';
 import { createQuotation } from '../slices/quotationSlice';
+import { selectCurrentUser, selectUserRole } from '../../auth/authSlice';
 
 import { CUSTOMER_TYPES, FOLLOWUP_TYPES, FOLLOWUP_PRIORITIES } from '../utils/salesConstants';
 import { validateCustomerForm, validateEnquiryForm, validateFollowUpForm } from '../utils/salesValidators';
@@ -40,23 +41,22 @@ export const SalesDashboard = () => {
     (state) => state.salesDashboard
   );
 
-  // Determine current active user (defaults to Admin User when switched from admin panel)
-  const authUser = (() => {
+  const reduxUser = useSelector(selectCurrentUser);
+  const reduxRole = useSelector(selectUserRole);
+
+  // Determine current active user with role-based detection
+  const authUser = reduxUser || (() => {
     try {
       const saved = localStorage.getItem('sims_auth_user');
-      return saved ? JSON.parse(saved) : { name: 'Admin User', email: 'admin@solar-sims.com', role: 'Super Administrator' };
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return { name: 'Admin User', email: 'admin@solar-sims.com', role: 'Super Administrator' };
+      return null;
     }
-  })();
+  })() || { full_name: 'Sales Executive', email: 'sales@sunpower.com', role: 'SALES' };
 
-  const isDedicatedSales =
-    authUser.email?.toLowerCase().includes('sales') &&
-    !authUser.email?.toLowerCase().includes('admin');
-  const activeUserName = isDedicatedSales
-    ? (authUser.name || 'Sales Representative')
-    : (authUser.name || 'Admin User');
-  const isAdmin = !isDedicatedSales;
+  const currentRole = (reduxRole || authUser.role || '').toUpperCase();
+  const isAdmin = currentRole === 'ADMIN' || currentRole === 'SUPER ADMINISTRATOR';
+  const activeUserName = authUser.full_name || authUser.name || (isAdmin ? 'Administrator' : 'Sales Executive');
 
   // Quick Action Modal states
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);

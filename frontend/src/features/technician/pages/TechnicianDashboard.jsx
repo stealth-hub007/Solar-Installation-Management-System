@@ -24,7 +24,16 @@ export const TechnicianDashboard = () => {
     dispatch(fetchAssignedInstallations());
   }, [dispatch]);
 
-  const displayName = user?.name || user?.full_name || user?.email?.split('@')[0] || 'Technician';
+  const authUser = user || (() => {
+    try {
+      const saved = localStorage.getItem('sims_auth_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })() || { full_name: 'Field Technician', role: 'TECHNICIAN' };
+
+  const displayName = authUser.full_name || authUser.name || 'Field Technician';
 
   return (
     <PageContainer>

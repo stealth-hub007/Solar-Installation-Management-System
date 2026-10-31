@@ -136,7 +136,7 @@ export const RegisterPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F0F7FF] to-[#E0F2FE] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-elevated border border-slate-200/90 overflow-hidden">
         {/* Brand Banner */}
-        <div className="p-6 bg-gradient-to-r from-[#123C32] to-[#0D2D25] text-white text-center relative overflow-hidden">
+        <div className="p-6 bg-gradient-to-r from-[#0284C7] to-[#0EA5E9] text-white text-center relative overflow-hidden">
           <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center mx-auto mb-2.5 shadow-inner">
             <Sun className="w-7 h-7 text-amber-400 fill-amber-400" />
           </div>

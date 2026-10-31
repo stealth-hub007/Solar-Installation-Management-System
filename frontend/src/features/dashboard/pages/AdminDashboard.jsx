@@ -511,8 +511,6 @@ export const AdminDashboard = () => {
             onFiltersChange={(filters) => dispatch(setProjectsFilters(filters))}
             onResetFilters={() => dispatch(resetProjectsFilters())}
             onRetry={() => dispatch(fetchRecentProjects())}
-            onCreateProject={handleCreateProject}
-            onUpdateProject={handleUpdateProject}
             onDeleteProject={handleDeleteProject}
           />
         )}
@@ -566,7 +564,6 @@ export const AdminDashboard = () => {
             onFiltersChange={(filters) => dispatch(setServiceTicketsFilters(filters))}
             onResetFilters={() => dispatch(resetServiceTicketsFilters())}
             onRetry={() => dispatch(fetchRecentServiceTickets())}
-            onCreateTicket={handleCreateTicket}
             onDeleteTicket={handleDeleteTicket}
           />
         )}

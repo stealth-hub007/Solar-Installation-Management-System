@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Search, RotateCcw, Eye, Headphones, Plus, Trash2 } from 'lucide-react';
+import { Search, RotateCcw, Eye, Headphones, Trash2 } from 'lucide-react';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Table, { TablePagination } from '../../../components/ui/Table';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/common/Button';
-import ServiceTicketModal from './modals/ServiceTicketModal';
 import ConfirmDeleteModal from './modals/ConfirmDeleteModal';
 import formatDate from '../../../utils/formatDate';
 import useDebounce from '../../../hooks/useDebounce';
@@ -21,13 +20,11 @@ export const RecentServiceTickets = ({
   onFiltersChange,
   onResetFilters,
   onRetry,
-  onCreateTicket,
   onDeleteTicket,
 }) => {
   const [searchInput, setSearchInput] = useState(filters.search || '');
   const [viewTicket, setViewTicket] = useState(null);
   const [deletingTicket, setDeletingTicket] = useState(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const debouncedSearch = useDebounce(searchInput, 400);
 
@@ -45,13 +42,6 @@ export const RecentServiceTickets = ({
     const isSame = filters.sortBy === field;
     const nextDirection = isSame && filters.sortDirection === 'asc' ? 'desc' : 'asc';
     onFiltersChange({ sortBy: field, sortDirection: nextDirection });
-  };
-
-  const handleCreateSubmit = async (formData) => {
-    if (onCreateTicket) {
-      await onCreateTicket(formData);
-      setIsCreateOpen(false);
-    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -168,16 +158,6 @@ export const RecentServiceTickets = ({
             subtitle="O&M warranty support, inverter diagnostics, and customer breakdown calls"
             className="mb-0"
           />
-
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={() => setIsCreateOpen(true)}
-            className="self-start sm:self-auto shrink-0"
-          >
-            Log New Ticket
-          </Button>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
@@ -291,15 +271,6 @@ export const RecentServiceTickets = ({
             </div>
           </div>
         </Modal>
-      )}
-
-      {/* Log Ticket Modal */}
-      {isCreateOpen && (
-        <ServiceTicketModal
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSubmit={handleCreateSubmit}
-        />
       )}
 
       {/* Delete Confirmation Modal */}

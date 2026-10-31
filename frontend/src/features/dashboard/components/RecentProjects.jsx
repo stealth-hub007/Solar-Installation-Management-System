@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Search, RotateCcw, Eye, Zap, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Search, RotateCcw, Eye, Zap, Trash2 } from 'lucide-react';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Table, { TablePagination } from '../../../components/ui/Table';
 import { StatusBadge } from '../../../components/ui/Badge';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/common/Button';
-import ProjectModal from './modals/ProjectModal';
 import ConfirmDeleteModal from './modals/ConfirmDeleteModal';
 import formatDate from '../../../utils/formatDate';
 import formatNumber from '../../../utils/formatNumber';
@@ -22,15 +21,11 @@ export const RecentProjects = ({
   onFiltersChange,
   onResetFilters,
   onRetry,
-  onCreateProject,
-  onUpdateProject,
   onDeleteProject,
 }) => {
   const [searchInput, setSearchInput] = useState(filters.search || '');
   const [viewProject, setViewProject] = useState(null);
-  const [editingProject, setEditingProject] = useState(null);
   const [deletingProject, setDeletingProject] = useState(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const debouncedSearch = useDebounce(searchInput, 400);
 
@@ -48,20 +43,6 @@ export const RecentProjects = ({
     const isSame = filters.sortBy === field;
     const nextDirection = isSame && filters.sortDirection === 'asc' ? 'desc' : 'asc';
     onFiltersChange({ sortBy: field, sortDirection: nextDirection });
-  };
-
-  const handleCreateSubmit = async (formData) => {
-    if (onCreateProject) {
-      await onCreateProject(formData);
-      setIsCreateOpen(false);
-    }
-  };
-
-  const handleEditSubmit = async (formData) => {
-    if (onUpdateProject && editingProject) {
-      await onUpdateProject({ id: editingProject.id, data: formData });
-      setEditingProject(null);
-    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -136,20 +117,13 @@ export const RecentProjects = ({
       align: 'center',
       headerClassName: 'w-24 text-center',
       cell: ({ row }) => (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-center gap-1.5">
           <button
             onClick={() => setViewProject(row)}
             className="p-1 rounded-md text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 transition"
             title="View Specifications"
           >
             <Eye className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setEditingProject(row)}
-            className="p-1 rounded-md text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
-            title="Edit Project"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setDeletingProject(row)}
@@ -173,16 +147,6 @@ export const RecentProjects = ({
             subtitle="Real-time execution pipeline and rooftop installation stages"
             className="mb-0"
           />
-
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={() => setIsCreateOpen(true)}
-            className="self-start sm:self-auto shrink-0"
-          >
-            Add New Project
-          </Button>
         </div>
 
         {/* Filter & Search Toolbar */}
@@ -310,25 +274,6 @@ export const RecentProjects = ({
             </div>
           </div>
         </Modal>
-      )}
-
-      {/* Create Modal */}
-      {isCreateOpen && (
-        <ProjectModal
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSubmit={handleCreateSubmit}
-        />
-      )}
-
-      {/* Edit Modal */}
-      {editingProject && (
-        <ProjectModal
-          isOpen={!!editingProject}
-          initialData={editingProject}
-          onClose={() => setEditingProject(null)}
-          onSubmit={handleEditSubmit}
-        />
       )}
 
       {/* Confirm Delete Modal */}

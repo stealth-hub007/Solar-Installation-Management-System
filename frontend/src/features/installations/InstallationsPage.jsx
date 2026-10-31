@@ -5,8 +5,6 @@ import PageHeader from '../../components/common/PageHeader';
 import RecentProjects from '../dashboard/components/RecentProjects';
 import {
   fetchRecentProjects,
-  createProject,
-  updateProject,
   deleteProject,
   setProjectsFilters,
   setProjectsPagination,
@@ -57,14 +55,6 @@ export const InstallationsPage = () => {
         onFiltersChange={(filters) => dispatch(setProjectsFilters(filters))}
         onResetFilters={() => dispatch(resetProjectsFilters())}
         onRetry={() => dispatch(fetchRecentProjects())}
-        onCreateProject={async (data) => {
-          await dispatch(createProject(data));
-          dispatch(fetchRecentProjects(projectsState.pagination));
-        }}
-        onUpdateProject={async ({ id, data }) => {
-          await dispatch(updateProject({ id, data }));
-          dispatch(fetchRecentProjects(projectsState.pagination));
-        }}
         onDeleteProject={async (id) => {
           await dispatch(deleteProject(id));
           dispatch(fetchRecentProjects(projectsState.pagination));

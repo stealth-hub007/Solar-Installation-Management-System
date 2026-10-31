@@ -5,7 +5,6 @@ import PageHeader from '../../components/common/PageHeader';
 import RecentServiceTickets from '../dashboard/components/RecentServiceTickets';
 import {
   fetchRecentServiceTickets,
-  createServiceTicket,
   updateServiceTicket,
   deleteServiceTicket,
   setServiceTicketsFilters,
@@ -57,10 +56,6 @@ export const ServiceTicketsPage = () => {
         onFiltersChange={(filters) => dispatch(setServiceTicketsFilters(filters))}
         onResetFilters={() => dispatch(resetServiceTicketsFilters())}
         onRetry={() => dispatch(fetchRecentServiceTickets())}
-        onCreateTicket={async (data) => {
-          await dispatch(createServiceTicket(data));
-          dispatch(fetchRecentServiceTickets(serviceTicketsState.pagination));
-        }}
         onDeleteTicket={async (id) => {
           await dispatch(deleteServiceTicket(id));
           dispatch(fetchRecentServiceTickets(serviceTicketsState.pagination));

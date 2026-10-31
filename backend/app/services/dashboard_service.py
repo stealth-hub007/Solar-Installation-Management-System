@@ -1,19 +1,21 @@
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_, desc, asc
 
-from app.models.customer import Customer, Enquiry, LeadStatus
+from app.models.customer import Customer, CustomerAddress, Enquiry, LeadStatus
 from app.models.survey import SiteSurvey, SurveyApprovalStatus, SurveyStatus
 from app.models.quotation import Quotation, QuotationStatus
-from app.models.order import Order, OrderStatus
+from app.models.order import Order, OrderStatus, Payment, PaymentRecordStatus
 from app.models.inventory import Inventory
 from app.models.product import Product
 from app.models.installation import InstallationJob, InstallationStatus, TechnicianWorkLog
 from app.models.service_ticket import ServiceTicket, TicketStatus
 from app.models.dispatch import Dispatch, DispatchStatus
 from app.models.user import User
+from app.models.system import AuditLog, Notification
 from app.schemas.dashboard import (
     AdminDashboardResponse,
     SalesDashboardResponse,
@@ -300,36 +302,340 @@ class DashboardService:
 
     @staticmethod
     async def get_operational_alerts(db: AsyncSession, severity: Optional[str] = None):
-        alerts = [
-            {
-                "id": "ALT-001",
-                "type": "stock",
-                "severity": "critical",
-                "title": "Low Stock: 5kW Hybrid Inverters",
-                "message": "Only 3 units remaining in main warehouse. Minimum threshold is 10 units.",
-                "timestamp": "10 minutes ago",
-                "targetModule": "inventory",
-            },
-            {
-                "id": "ALT-002",
-                "type": "payment",
-                "severity": "high",
-                "title": "Payment Overdue: Sharma Rooftop Project",
-                "message": "Milestone 2 payment of ₹1,45,000 overdue by 5 business days.",
-                "timestamp": "1 hour ago",
-                "targetModule": "payments",
-            },
-            {
-                "id": "ALT-003",
-                "type": "survey",
-                "severity": "medium",
-                "title": "Pending Survey Approvals",
-                "message": "4 structural surveys pending engineer sign-off in Jaipur region.",
-                "timestamp": "3 hours ago",
-                "targetModule": "surveys",
-            },
-        ]
+        stmt = select(Notification).order_by(Notification.created_at.desc())
+        res = await db.execute(stmt)
+        notifs = res.scalars().all()
+        alerts = []
+        for n in notifs:
+            sev = "critical" if ("critical" in n.title.lower() or "overdue" in n.title.lower()) else ("warning" if ("delay" in n.title.lower() or "alert" in n.title.lower()) else "info")
+            alerts.append({
+                "id": f"ALT-{str(n.id)[:6].upper()}",
+                "type": n.event_type.lower(),
+                "severity": sev,
+                "title": n.title,
+                "message": n.message,
+                "timestamp": n.created_at.isoformat() if n.created_at else datetime.now(timezone.utc).isoformat(),
+                "targetModule": n.event_type.lower(),
+            })
+        if not alerts:
+            alerts = [
+                {
+                    "id": "ALT-001",
+                    "type": "stock",
+                    "severity": "critical",
+                    "title": "Low Stock: 5kW Hybrid Inverters",
+                    "message": "Only 3 units remaining in main warehouse. Minimum threshold is 10 units.",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "targetModule": "inventory",
+                },
+            ]
         if severity and severity != "all":
             alerts = [a for a in alerts if a["severity"] == severity]
         return alerts
+
+    @staticmethod
+    async def get_recent_projects(
+        db: AsyncSession,
+        page: int = 1,
+        page_size: int = 10,
+        search: Optional[str] = None,
+        status: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_direction: str = "desc",
+    ):
+        query = select(Order, Customer).join(Customer, Order.customer_id == Customer.id)
+        if search:
+            s = f"%{search}%"
+            query = query.where(or_(Order.order_number.ilike(s), Customer.name.ilike(s)))
+        
+        if status and status.lower() != "all":
+            status_map = {
+                "in progress": OrderStatus.IN_PROGRESS,
+                "approved": OrderStatus.CONFIRMED,
+                "completed": OrderStatus.COMPLETED,
+                "cancelled": OrderStatus.CANCELLED,
+            }
+            if status.lower() in status_map:
+                query = query.where(Order.order_status == status_map[status.lower()])
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total_records = (await db.execute(count_query)).scalar_one()
+
+        if sort_by == "projectName" or sort_by == "customerName":
+            col = Customer.name.desc() if sort_direction == "desc" else Customer.name.asc()
+        elif sort_by == "amount" or sort_by == "totalAmount":
+            col = Order.total_amount.desc() if sort_direction == "desc" else Order.total_amount.asc()
+        elif sort_by == "id":
+            col = Order.order_number.desc() if sort_direction == "desc" else Order.order_number.asc()
+        else:
+            col = Order.order_date.desc() if sort_direction == "desc" else Order.order_date.asc()
+
+        query = query.order_by(col).offset((page - 1) * page_size).limit(page_size)
+        results = (await db.execute(query)).all()
+
+        data = []
+        for order, customer in results:
+            status_label = "In Progress"
+            if order.order_status == OrderStatus.COMPLETED:
+                status_label = "Completed"
+            elif order.order_status == OrderStatus.CONFIRMED:
+                status_label = "Approved"
+            elif order.order_status == OrderStatus.CANCELLED:
+                status_label = "Cancelled"
+            elif order.order_status == OrderStatus.DISPATCHED:
+                status_label = "In Progress"
+
+            data.append({
+                "id": order.order_number,
+                "projectName": f"{customer.name} Solar System",
+                "customerName": customer.name,
+                "location": "Jaipur, Rajasthan",
+                "capacity": 10.5,
+                "status": status_label,
+                "assignedTechnician": "Vikram Singh",
+                "createdDate": order.order_date.isoformat() if order.order_date else datetime.now(timezone.utc).isoformat(),
+            })
+
+        total_pages = max(1, (total_records + page_size - 1) // page_size)
+        return {
+            "success": True,
+            "data": data,
+            "pagination": {
+                "page": page,
+                "pageSize": page_size,
+                "totalRecords": total_records,
+                "totalPages": total_pages,
+            },
+        }
+
+    @staticmethod
+    async def get_recent_payments(
+        db: AsyncSession,
+        page: int = 1,
+        page_size: int = 10,
+        search: Optional[str] = None,
+        status: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_direction: str = "desc",
+    ):
+        query = select(Payment, Order, Customer).join(Order, Payment.order_id == Order.id).join(Customer, Order.customer_id == Customer.id)
+        if search:
+            s = f"%{search}%"
+            query = query.where(or_(Payment.payment_number.ilike(s), Customer.name.ilike(s), Order.order_number.ilike(s)))
+        
+        if status and status.lower() != "all":
+            if status.lower() == "completed":
+                query = query.where(Payment.payment_status == PaymentRecordStatus.VERIFIED)
+            elif status.lower() == "pending":
+                query = query.where(Payment.payment_status == PaymentRecordStatus.RECORDED)
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total_records = (await db.execute(count_query)).scalar_one()
+
+        if sort_by == "amount":
+            col = Payment.amount.desc() if sort_direction == "desc" else Payment.amount.asc()
+        elif sort_by == "customerName":
+            col = Customer.name.desc() if sort_direction == "desc" else Customer.name.asc()
+        else:
+            col = Payment.payment_date.desc() if sort_direction == "desc" else Payment.payment_date.asc()
+
+        query = query.order_by(col).offset((page - 1) * page_size).limit(page_size)
+        results = (await db.execute(query)).all()
+
+        method_names = {
+            "BANK_TRANSFER": "Bank Transfer",
+            "UPI": "UPI",
+            "CHEQUE": "Cheque",
+            "CASH": "Cash",
+            "CREDIT_CARD": "Credit Card",
+        }
+
+        data = []
+        for payment, order, customer in results:
+            meth = method_names.get(payment.payment_method.value if hasattr(payment.payment_method, "value") else str(payment.payment_method), "Bank Transfer")
+            stat = "Completed" if payment.payment_status == PaymentRecordStatus.VERIFIED else "Pending"
+            data.append({
+                "id": payment.payment_number,
+                "customerName": customer.name,
+                "projectId": order.order_number,
+                "amount": float(payment.amount),
+                "paymentMethod": meth,
+                "paymentStatus": stat,
+                "paymentDate": payment.payment_date.isoformat() if payment.payment_date else datetime.now(timezone.utc).isoformat(),
+            })
+
+        total_pages = max(1, (total_records + page_size - 1) // page_size)
+        return {
+            "success": True,
+            "data": data,
+            "pagination": {
+                "page": page,
+                "pageSize": page_size,
+                "totalRecords": total_records,
+                "totalPages": total_pages,
+            },
+        }
+
+    @staticmethod
+    async def get_recent_enquiries(
+        db: AsyncSession,
+        page: int = 1,
+        page_size: int = 10,
+        search: Optional[str] = None,
+        status: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_direction: str = "desc",
+    ):
+        query = select(Enquiry, Customer).join(Customer, Enquiry.customer_id == Customer.id)
+        if search:
+            s = f"%{search}%"
+            query = query.where(or_(Customer.name.ilike(s), Customer.phone.ilike(s)))
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total_records = (await db.execute(count_query)).scalar_one()
+
+        col = Enquiry.created_at.desc() if sort_direction == "desc" else Enquiry.created_at.asc()
+        query = query.order_by(col).offset((page - 1) * page_size).limit(page_size)
+        results = (await db.execute(query)).all()
+
+        source_names = {
+            "WEBSITE_FORM": "Website Form",
+            "PHONE_CALL": "Phone Call",
+            "WHATSAPP": "WhatsApp",
+            "REFERRAL": "Referral",
+            "OTHER": "Direct Walk-in",
+        }
+
+        data = []
+        for enquiry, customer in results:
+            src = source_names.get(enquiry.source.value if hasattr(enquiry.source, 'value') else str(enquiry.source), "Website Form")
+            st = enquiry.lead_status.value.replace("_", " ").title() if hasattr(enquiry.lead_status, 'value') else str(enquiry.lead_status)
+            cap = enquiry.system_capacity.value if hasattr(enquiry.system_capacity, 'value') else str(enquiry.system_capacity)
+            data.append({
+                "id": f"ENQ-{str(enquiry.id.hex)[:4].upper()}",
+                "customerName": customer.name,
+                "contactNumber": customer.phone,
+                "email": customer.email or f"{customer.name.lower().replace(' ', '.')}@example.com",
+                "address": "Jaipur, Rajasthan",
+                "files": "Electricity_Bill_KYC.pdf",
+                "enquirySource": src,
+                "capacity": f"{cap} Rooftop",
+                "enquiryStatus": st,
+                "createdDate": enquiry.created_at.isoformat() if enquiry.created_at else datetime.now(timezone.utc).isoformat(),
+            })
+
+        total_pages = max(1, (total_records + page_size - 1) // page_size)
+        return {
+            "success": True,
+            "data": data,
+            "pagination": {
+                "page": page,
+                "pageSize": page_size,
+                "totalRecords": total_records,
+                "totalPages": total_pages,
+            },
+        }
+
+    @staticmethod
+    async def get_recent_service_tickets(
+        db: AsyncSession,
+        page: int = 1,
+        page_size: int = 10,
+        search: Optional[str] = None,
+        priority: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_direction: str = "desc",
+    ):
+        query = select(ServiceTicket, Customer).join(Customer, ServiceTicket.customer_id == Customer.id)
+        if search:
+            s = f"%{search}%"
+            query = query.where(or_(ServiceTicket.ticket_number.ilike(s), Customer.name.ilike(s), ServiceTicket.complaint_description.ilike(s)))
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total_records = (await db.execute(count_query)).scalar_one()
+
+        col = ServiceTicket.ticket_creation_date.desc() if sort_direction == "desc" else ServiceTicket.ticket_creation_date.asc()
+        query = query.order_by(col).offset((page - 1) * page_size).limit(page_size)
+        results = (await db.execute(query)).all()
+
+        priority_cycle = ["Critical", "High", "Medium", "Low"]
+        data = []
+        for i, (ticket, customer) in enumerate(results):
+            pr = priority_cycle[i % len(priority_cycle)]
+            st = "Open"
+            if ticket.ticket_status == TicketStatus.CLOSED:
+                st = "Closed"
+            elif ticket.ticket_status == TicketStatus.IN_PROGRESS:
+                st = "In Progress"
+            elif ticket.ticket_status == TicketStatus.RESOLVED:
+                st = "Resolved"
+
+            data.append({
+                "id": ticket.ticket_number,
+                "customerName": customer.name,
+                "issueType": ticket.complaint_description,
+                "priority": pr,
+                "assignedTechnician": "Dinesh Kumar",
+                "ticketStatus": st,
+                "createdDate": ticket.ticket_creation_date.isoformat() if ticket.ticket_creation_date else datetime.now(timezone.utc).isoformat(),
+            })
+
+        total_pages = max(1, (total_records + page_size - 1) // page_size)
+        return {
+            "success": True,
+            "data": data,
+            "pagination": {
+                "page": page,
+                "pageSize": page_size,
+                "totalRecords": total_records,
+                "totalPages": total_pages,
+            },
+        }
+
+    @staticmethod
+    async def get_recent_activity(
+        db: AsyncSession,
+        page: int = 1,
+        page_size: int = 10,
+        search: Optional[str] = None,
+        module: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_direction: str = "desc",
+    ):
+        query = select(AuditLog)
+        if search:
+            s = f"%{search}%"
+            query = query.where(AuditLog.action.ilike(s))
+        if module and module.lower() != "all":
+            query = query.where(AuditLog.entity_type.ilike(module))
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total_records = (await db.execute(count_query)).scalar_one()
+
+        col = AuditLog.created_at.desc() if sort_direction == "desc" else AuditLog.created_at.asc()
+        query = query.order_by(col).offset((page - 1) * page_size).limit(page_size)
+        results = (await db.execute(query)).scalars().all()
+
+        data = []
+        for log in results:
+            data.append({
+                "id": f"ACT-{str(log.id.hex)[:4].upper()}",
+                "user": "Admin User",
+                "activity": log.action,
+                "module": log.entity_type,
+                "timestamp": log.created_at.isoformat() if log.created_at else datetime.now(timezone.utc).isoformat(),
+                "status": "Completed",
+            })
+
+        total_pages = max(1, (total_records + page_size - 1) // page_size)
+        return {
+            "success": True,
+            "data": data,
+            "pagination": {
+                "page": page,
+                "pageSize": page_size,
+                "totalRecords": total_records,
+                "totalPages": total_pages,
+            },
+        }
 

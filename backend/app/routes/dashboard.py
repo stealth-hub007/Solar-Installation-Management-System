@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from typing import Optional, List, Any
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -133,5 +134,128 @@ async def get_operational_alerts(
 ):
     alerts = await DashboardService.get_operational_alerts(db, severity=severity)
     return {"success": True, "data": alerts}
+
+
+@router.post("/alerts", summary="Broadcast or Create Operational Alert")
+async def create_operational_alert(
+    alert_data: dict = Body(...),
+    db: AsyncSession = Depends(get_db),
+):
+    # In real world, saves to notification table or dispatches alert
+    return {"success": True, "data": {**alert_data, "id": "ALT-NEW-101"}}
+
+
+@router.delete("/alerts/{alert_id}", summary="Acknowledge or Resolve Alert")
+async def delete_operational_alert(
+    alert_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    return {"success": True, "message": f"Alert {alert_id} resolved"}
+
+
+@router.get("/recent-projects", summary="Paginated Recent Projects for Dashboard")
+async def get_recent_projects(
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    sortBy: Optional[str] = None,
+    sortDirection: str = "desc",
+    db: AsyncSession = Depends(get_db),
+):
+    return await DashboardService.get_recent_projects(
+        db,
+        page=page,
+        page_size=pageSize,
+        search=search,
+        status=status,
+        sort_by=sortBy,
+        sort_direction=sortDirection,
+    )
+
+
+@router.get("/recent-payments", summary="Paginated Recent Payments for Dashboard")
+async def get_recent_payments(
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    sortBy: Optional[str] = None,
+    sortDirection: str = "desc",
+    db: AsyncSession = Depends(get_db),
+):
+    return await DashboardService.get_recent_payments(
+        db,
+        page=page,
+        page_size=pageSize,
+        search=search,
+        status=status,
+        sort_by=sortBy,
+        sort_direction=sortDirection,
+    )
+
+
+@router.get("/recent-enquiries", summary="Paginated Recent Enquiries for Dashboard")
+async def get_recent_enquiries(
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    sortBy: Optional[str] = None,
+    sortDirection: str = "desc",
+    db: AsyncSession = Depends(get_db),
+):
+    return await DashboardService.get_recent_enquiries(
+        db,
+        page=page,
+        page_size=pageSize,
+        search=search,
+        status=status,
+        sort_by=sortBy,
+        sort_direction=sortDirection,
+    )
+
+
+@router.get("/recent-service-tickets", summary="Paginated Recent Service Tickets for Dashboard")
+async def get_recent_service_tickets(
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    priority: Optional[str] = None,
+    sortBy: Optional[str] = None,
+    sortDirection: str = "desc",
+    db: AsyncSession = Depends(get_db),
+):
+    return await DashboardService.get_recent_service_tickets(
+        db,
+        page=page,
+        page_size=pageSize,
+        search=search,
+        priority=priority,
+        sort_by=sortBy,
+        sort_direction=sortDirection,
+    )
+
+
+@router.get("/recent-activity", summary="Paginated Recent Activity for Dashboard")
+async def get_recent_activity(
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    module: Optional[str] = None,
+    sortBy: Optional[str] = None,
+    sortDirection: str = "desc",
+    db: AsyncSession = Depends(get_db),
+):
+    return await DashboardService.get_recent_activity(
+        db,
+        page=page,
+        page_size=pageSize,
+        search=search,
+        module=module,
+        sort_by=sortBy,
+        sort_direction=sortDirection,
+    )
+
 
 

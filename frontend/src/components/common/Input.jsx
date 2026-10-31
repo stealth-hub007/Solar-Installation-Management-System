@@ -29,23 +29,23 @@ export const Input = ({
   const InputComponent = isTextarea ? 'textarea' : 'input';
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full flex flex-col justify-between ${className}`}>
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between"
+          className="text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between min-h-[1.25rem] leading-tight"
         >
           <span>
             {label}
             {required && <span className="text-rose-500 ml-1 font-bold">*</span>}
           </span>
           {helperText && !error && (
-            <span className="text-[11px] text-slate-400 font-normal">{helperText}</span>
+            <span className="text-[11px] text-slate-400 font-normal ml-2">{helperText}</span>
           )}
         </label>
       )}
 
-      <div className="relative rounded-lg shadow-sm">
+      <div className="relative rounded-lg shadow-sm mt-auto">
         {Icon && (
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
             <Icon className="w-4 h-4" />

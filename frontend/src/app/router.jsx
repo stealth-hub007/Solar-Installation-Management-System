@@ -26,6 +26,9 @@ const ProfileOverviewPage = lazy(() => import('../features/profile/ProfileOvervi
 const RolesPermissionsPage = lazy(() => import('../features/roles/RolesPermissionsPage'));
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
 
+// Lazy-loaded Future Role Portals
+const PortalPlaceholderPage = lazy(() => import('../features/placeholder/PortalPlaceholderPage'));
+
 // Lazy-loaded Sales Pages
 const SalesDashboard = lazy(() => import('../features/sales/pages/SalesDashboard'));
 const SalesCustomersPage = lazy(() => import('../features/sales/pages/CustomersPage'));
@@ -180,6 +183,32 @@ export const router = createBrowserRouter([
       {
         path: 'orders',
         element: <SalesOrdersPage />,
+      },
+    ],
+  },
+  {
+    path: '/warehouse',
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/warehouse/dashboard" replace />,
+      },
+      {
+        path: '*',
+        element: <PortalPlaceholderPage type="warehouse" />,
+      },
+    ],
+  },
+  {
+    path: '/technician',
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/technician/dashboard" replace />,
+      },
+      {
+        path: '*',
+        element: <PortalPlaceholderPage type="technician" />,
       },
     ],
   },

@@ -109,12 +109,25 @@ export const SalesDashboard = () => {
   const [rescheduleTime, setRescheduleTime] = useState('11:00 AM');
   const [rescheduleNotes, setRescheduleNotes] = useState('');
 
-  // Initial Data Fetch
+  // Initial Data Fetch & Real-time Live Sync
   useEffect(() => {
     dispatch(fetchSalesStats());
     dispatch(fetchSalesAnalytics());
     dispatch(fetchUpcomingFollowUps());
     dispatch(fetchSalesActivities());
+
+    const refreshDashboard = () => {
+      dispatch(fetchSalesStats());
+      dispatch(fetchUpcomingFollowUps());
+      dispatch(fetchSalesActivities());
+    };
+
+    window.addEventListener('storage', refreshDashboard);
+    window.addEventListener('focus', refreshDashboard);
+    return () => {
+      window.removeEventListener('storage', refreshDashboard);
+      window.removeEventListener('focus', refreshDashboard);
+    };
   }, [dispatch]);
 
   // Handle Quick Add Customer Submit
@@ -248,6 +261,7 @@ export const SalesDashboard = () => {
       <SalesWelcome
         salesRepName={activeUserName}
         isAdmin={isAdmin}
+        stats={stats}
         onAddCustomer={() => setIsAddCustomerOpen(true)}
         onCreateEnquiry={() => setIsCreateEnquiryOpen(true)}
         onScheduleFollowUp={() => setIsScheduleFollowUpOpen(true)}

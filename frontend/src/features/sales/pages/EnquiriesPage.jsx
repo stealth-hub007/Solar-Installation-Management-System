@@ -149,8 +149,14 @@ export const EnquiriesPage = () => {
       header: 'Enquiry Ref',
       accessor: 'id',
       sortable: true,
-      cell: ({ value }) => (
-        <span className="font-mono text-xs font-bold text-[#0284C7]">{value}</span>
+      cell: ({ value, row }) => (
+        <span
+          onClick={() => navigate(`/sales/enquiries/${row.id}`)}
+          className="font-mono text-xs font-bold text-[#0284C7] hover:underline cursor-pointer"
+          title={`Click to open lead timeline for ${row.id}`}
+        >
+          {value}
+        </span>
       ),
     },
     {
@@ -159,7 +165,13 @@ export const EnquiriesPage = () => {
       sortable: true,
       cell: ({ row }) => (
         <div className="space-y-0.5 max-w-[200px]">
-          <span className="font-semibold text-slate-900 block truncate">{row.customerName}</span>
+          <span
+            onClick={() => navigate(`/sales/enquiries/${row.id}`)}
+            className="font-bold text-slate-900 hover:text-[#0284C7] hover:underline cursor-pointer block truncate transition-colors"
+            title={`Click to open lead enquiry panel for ${row.customerName}`}
+          >
+            {row.customerName}
+          </span>
           <div className="flex items-center gap-2 text-[11px] text-slate-500">
             <span className="flex items-center gap-1">
               <Phone className="w-3 h-3 text-[#0284C7]" />
@@ -184,7 +196,7 @@ export const EnquiriesPage = () => {
       accessor: 'capacity',
       sortable: true,
       cell: ({ value }) => (
-        <span className="font-bold text-slate-800 text-xs bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
+        <span className="font-bold text-slate-800 text-xs bg-sky-50 px-3 py-1 rounded-full border border-sky-100 whitespace-nowrap inline-flex items-center justify-center min-w-[120px]">
           {value}
         </span>
       ),
@@ -232,7 +244,7 @@ export const EnquiriesPage = () => {
         <div className="flex items-center gap-1">
           <button
             onClick={() => navigate(`/sales/enquiries/${row.id}`)}
-            className="p-1.5 text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
             title="View enquiry details & timeline"
           >
             <Eye className="w-4 h-4" />
@@ -245,7 +257,7 @@ export const EnquiriesPage = () => {
                 )}`
               )
             }
-            className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
             title="Schedule Site Survey"
           >
             <ClipboardCheck className="w-4 h-4" />
@@ -258,14 +270,14 @@ export const EnquiriesPage = () => {
                 )}`
               )
             }
-            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
             title="Create Solar Quotation"
           >
             <FileText className="w-4 h-4" />
           </button>
           <button
             onClick={() => setDeletingEnquiry(row)}
-            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
             title="Remove lead"
           >
             <Trash2 className="w-4 h-4" />

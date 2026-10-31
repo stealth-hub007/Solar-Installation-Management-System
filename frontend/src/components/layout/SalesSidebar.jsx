@@ -249,46 +249,6 @@ export const SalesSidebar = () => {
               </NavLink>
             );
           })}
-
-          {/* Quick Target Micro Widget */}
-          {!isCollapsed && (
-            <div className="mt-6 mx-1 p-3 rounded-xl bg-gradient-to-b from-[#F0F7FF] to-white border border-[#BAE6FD]/60 shadow-subtle">
-              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 mb-1">
-                <span className="flex items-center gap-1 text-[#0284C7]">
-                  <TrendingUp className="w-3.5 h-3.5" /> Monthly Target
-                </span>
-                <span className="text-emerald-600 font-bold">80.8%</span>
-              </div>
-              <div className="w-full bg-slate-200/80 rounded-full h-2 mb-2 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-[#0284C7] to-emerald-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: '80.8%' }}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-                <span>Achieved: ₹48.5L</span>
-                <span>Target: ₹60L</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer: Collapse Toggle */}
-        <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2 shrink-0">
-          <button
-            onClick={toggleSidebar}
-            className="hidden lg:flex items-center justify-center w-full py-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition text-xs font-medium"
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <ChevronLeft className="w-4 h-4" />
-                <span className="text-[11px]">Collapse Menu</span>
-              </div>
-            )}
-          </button>
         </div>
       </aside>
     </>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '../../../components/layout/PageContainer';
 import PageHeader from '../../../components/common/PageHeader';
 import DataTable from '../../../components/ui/DataTable';
@@ -32,15 +32,18 @@ import {
 import useSalesFilters from '../hooks/useSalesFilters';
 import { FOLLOWUP_TYPES, FOLLOWUP_PRIORITIES } from '../utils/salesConstants';
 import { validateFollowUpForm } from '../utils/salesValidators';
+import openLeadEnquiry from '../utils/salesNavigation';
 
 export const FollowUpsPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const { items: followUps, loading, error } = useSelector((state) => state.salesFollowUps);
 
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'today' | 'upcoming' | 'overdue' | 'completed'
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [viewingFollowUp, setViewingFollowUp] = useState(null);
   const [completingItem, setCompletingItem] = useState(null);
   const [reschedulingItem, setReschedulingItem] = useState(null);
   const [deletingItem, setDeletingItem] = useState(null);
@@ -183,7 +186,13 @@ export const FollowUpsPage = () => {
       sortable: true,
       cell: ({ row }) => (
         <div>
-          <span className="font-semibold text-slate-900 block truncate">{row.customerName}</span>
+          <span
+            onClick={() => setViewingFollowUp(row)}
+            className="font-bold text-slate-900 hover:text-[#0284C7] hover:underline cursor-pointer block truncate transition-colors"
+            title={`Click to view follow-up task details for ${row.customerName}`}
+          >
+            {row.customerName}
+          </span>
           <span className="text-[11px] text-slate-400 font-mono">
             {row.enquiryId ? `Enq: ${row.enquiryId}` : 'Direct Client'}
           </span>
@@ -212,7 +221,7 @@ export const FollowUpsPage = () => {
       accessor: 'type',
       sortable: true,
       cell: ({ value }) => (
-        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-[#0284C7] border border-sky-100">
+        <span className="h-6 px-3 rounded-full text-xs font-semibold bg-sky-50 text-[#0284C7] border border-sky-100 min-w-[90px] inline-flex items-center justify-center whitespace-nowrap">
           {value}
         </span>
       ),
@@ -233,10 +242,12 @@ export const FollowUpsPage = () => {
       sortable: true,
       cell: ({ value }) => (
         <span
-          className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+          className={`min-w-[70px] h-6 inline-flex items-center justify-center px-2.5 rounded-full text-[11px] font-bold border whitespace-nowrap ${
             value === 'High'
-              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-              : 'bg-slate-100 text-slate-600'
+              ? 'bg-rose-50 text-rose-700 border-rose-200'
+              : value === 'Low'
+              ? 'bg-slate-50 text-slate-600 border-slate-200'
+              : 'bg-amber-50 text-amber-700 border-amber-200'
           }`}
         >
           {value}
@@ -258,7 +269,7 @@ export const FollowUpsPage = () => {
                 setCompletingItem(row);
                 setOutcomeNotes('');
               }}
-              className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+              className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
               title="Mark as completed"
             >
               <CheckCircle2 className="w-4 h-4" />
@@ -272,7 +283,7 @@ export const FollowUpsPage = () => {
                 setRescheduleDate(row.followUpDate);
                 setRescheduleTime(row.followUpTime);
               }}
-              className="p-1.5 text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
+              className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
               title="Reschedule follow-up"
             >
               <CalendarClock className="w-4 h-4" />
@@ -281,7 +292,7 @@ export const FollowUpsPage = () => {
 
           <button
             onClick={() => setDeletingItem(row)}
-            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
             title="Cancel / delete follow-up"
           >
             <Trash2 className="w-4 h-4" />
@@ -433,6 +444,111 @@ export const FollowUpsPage = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* MODAL: View Follow-up Details (Stay on same tab) */}
+      <Modal
+        isOpen={!!viewingFollowUp}
+        onClose={() => setViewingFollowUp(null)}
+        title={`Follow-up Task Details: ${viewingFollowUp?.id}`}
+        size="md"
+      >
+        {viewingFollowUp && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#F0F7FF] to-white border border-[#BAE6FD] flex items-center justify-between">
+              <div>
+                <p className="font-bold text-slate-900 text-sm">{viewingFollowUp.customerName}</p>
+                <p className="text-slate-500 font-mono text-[11px]">
+                  Enquiry Ref: {viewingFollowUp.enquiryId || 'Direct Client'} • Contact: {viewingFollowUp.contact}
+                </p>
+              </div>
+              <StatusBadge status={viewingFollowUp.status} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div>
+                <span className="text-slate-400 font-medium block">Scheduled Date</span>
+                <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-0.5">
+                  <Calendar className="w-3.5 h-3.5 text-[#0284C7]" />
+                  {viewingFollowUp.followUpDate}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Scheduled Time</span>
+                <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-0.5">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  {viewingFollowUp.followUpTime}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Channel Type</span>
+                <span className="font-semibold text-slate-800 mt-0.5 block">{viewingFollowUp.type}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Task Priority</span>
+                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold mt-0.5 ${
+                  viewingFollowUp.priority === 'High'
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {viewingFollowUp.priority}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                Discussion Agenda / Objective
+              </span>
+              <p className="text-slate-800 bg-white p-3 rounded-xl border border-slate-200 font-medium">
+                {viewingFollowUp.purpose}
+              </p>
+            </div>
+
+            {viewingFollowUp.notes && (
+              <div>
+                <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                  Historical Outcome / Notes
+                </span>
+                <p className="text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  {viewingFollowUp.notes}
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              {viewingFollowUp.status !== 'Completed' && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setReschedulingItem(viewingFollowUp);
+                      setRescheduleDate(viewingFollowUp.followUpDate);
+                      setRescheduleTime(viewingFollowUp.followUpTime);
+                      setViewingFollowUp(null);
+                    }}
+                  >
+                    Reschedule
+                  </Button>
+                  <Button
+                    variant="success"
+                    size="sm"
+                    onClick={() => {
+                      setCompletingItem(viewingFollowUp);
+                      setViewingFollowUp(null);
+                    }}
+                  >
+                    Mark Done
+                  </Button>
+                </>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setViewingFollowUp(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* MODAL: Mark Completed */}

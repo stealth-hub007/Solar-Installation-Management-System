@@ -5,6 +5,7 @@ import Button from '../../../../components/common/Button';
 export const SalesWelcome = ({
   salesRepName = 'Admin User',
   isAdmin = true,
+  stats,
   onAddCustomer,
   onCreateEnquiry,
   onScheduleFollowUp,
@@ -16,6 +17,10 @@ export const SalesWelcome = ({
     month: 'short',
     year: 'numeric',
   }).format(new Date());
+
+  const pendingFollowUpsCount = stats?.pendingFollowUps ?? stats?.totalFollowUps ?? 8;
+  const upcomingSurveysCount = stats?.upcomingSurveys ?? stats?.totalSurveys ?? 5;
+  const targetPercent = stats?.targetAchievementPercent ?? 80.8;
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0284C7] via-[#0369A1] to-[#075985] text-white p-6 sm:p-8 shadow-elevated mb-6">
@@ -41,12 +46,12 @@ export const SalesWelcome = ({
           <p className="mt-1.5 text-xs sm:text-sm text-sky-100 max-w-2xl leading-relaxed">
             {isAdmin ? (
               <>
-                You are currently managing the <span className="font-bold text-white">Solar Commercial Sales Pipeline</span> with Super Administrator privileges. The team has achieved <span className="font-bold text-white">80.8%</span> of this month's revenue target with <span className="font-bold text-amber-200">14 pending follow-ups</span> and <span className="font-bold text-emerald-200">9 site surveys</span> scheduled across active leads.
+                You are currently managing the <span className="font-bold text-white">Solar Commercial Sales Pipeline</span> with Super Administrator privileges. The team has achieved <span className="font-bold text-white">{targetPercent}%</span> of this month's revenue target with <span className="font-bold text-amber-200">{pendingFollowUpsCount} follow-ups</span> and <span className="font-bold text-emerald-200">{upcomingSurveysCount} site surveys</span> scheduled across active leads.
               </>
             ) : (
               <>
-                You are on track to achieve <span className="font-bold text-white">80.8%</span> of your monthly solar sales quota. 
-                There are <span className="font-bold text-amber-200">14 pending follow-ups</span> and <span className="font-bold text-emerald-200">9 site surveys</span> scheduled this week.
+                You are on track to achieve <span className="font-bold text-white">{targetPercent}%</span> of your monthly solar sales quota. 
+                There are <span className="font-bold text-amber-200">{pendingFollowUpsCount} follow-ups</span> and <span className="font-bold text-emerald-200">{upcomingSurveysCount} site surveys</span> scheduled this week.
               </>
             )}
           </p>
@@ -56,7 +61,7 @@ export const SalesWelcome = ({
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
             onClick={onAddCustomer}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-[#0284C7] text-xs font-bold hover:bg-sky-50 shadow-sm transition active:scale-95"
+            className="h-9 inline-flex flex-row flex-nowrap items-center gap-1.5 px-3.5 rounded-xl bg-white text-[#0284C7] text-xs font-bold hover:bg-sky-50 shadow-sm transition active:scale-95 whitespace-nowrap cursor-pointer"
           >
             <Users className="w-3.5 h-3.5" />
             <span>Add Customer</span>
@@ -64,7 +69,7 @@ export const SalesWelcome = ({
 
           <button
             onClick={onCreateEnquiry}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/30 text-xs font-bold backdrop-blur shadow-sm transition active:scale-95"
+            className="h-9 inline-flex flex-row flex-nowrap items-center gap-1.5 px-3.5 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/30 text-xs font-bold backdrop-blur shadow-sm transition active:scale-95 whitespace-nowrap cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Enquiry</span>
@@ -72,7 +77,7 @@ export const SalesWelcome = ({
 
           <button
             onClick={onScheduleFollowUp}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/30 text-xs font-bold backdrop-blur shadow-sm transition active:scale-95"
+            className="h-9 inline-flex flex-row flex-nowrap items-center gap-1.5 px-3.5 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/30 text-xs font-bold backdrop-blur shadow-sm transition active:scale-95 whitespace-nowrap cursor-pointer"
           >
             <PhoneCall className="w-3.5 h-3.5" />
             <span>Schedule Follow-up</span>
@@ -80,7 +85,7 @@ export const SalesWelcome = ({
 
           <button
             onClick={onCreateQuotation}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold hover:bg-amber-300 shadow-sm transition active:scale-95"
+            className="h-9 inline-flex flex-row flex-nowrap items-center gap-1.5 px-3.5 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold hover:bg-amber-300 shadow-sm transition active:scale-95 whitespace-nowrap cursor-pointer"
           >
             <FileText className="w-3.5 h-3.5" />
             <span>Create Quotation</span>

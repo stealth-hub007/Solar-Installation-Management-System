@@ -34,6 +34,7 @@ import {
 import useSalesFilters from '../hooks/useSalesFilters';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
+import openLeadEnquiry from '../utils/salesNavigation';
 import {
   SOLAR_PANEL_PRESETS,
   INVERTER_PRESETS,
@@ -51,6 +52,7 @@ export const QuotationsPage = () => {
 
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'Accepted' | 'Sent' | 'Approved' | 'Draft'
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [viewingQuotation, setViewingQuotation] = useState(null);
   const [deletingQuotation, setDeletingQuotation] = useState(null);
   const [acceptingQuotation, setAcceptingQuotation] = useState(null);
 
@@ -241,8 +243,14 @@ export const QuotationsPage = () => {
       header: 'Quotation ID',
       accessor: 'id',
       sortable: true,
-      cell: ({ value }) => (
-        <span className="font-mono text-xs font-bold text-[#0284C7]">{value}</span>
+      cell: ({ value, row }) => (
+        <span
+          onClick={() => navigate(`/sales/quotations/${row.id}`)}
+          className="font-mono text-xs font-bold text-[#0284C7] hover:underline cursor-pointer"
+          title={`View quotation ${value}`}
+        >
+          {value}
+        </span>
       ),
     },
     {
@@ -251,7 +259,13 @@ export const QuotationsPage = () => {
       sortable: true,
       cell: ({ row }) => (
         <div>
-          <span className="font-semibold text-slate-900 block truncate">{row.customerName}</span>
+          <span
+            onClick={() => setViewingQuotation(row)}
+            className="font-bold text-slate-900 hover:text-[#0284C7] hover:underline cursor-pointer block truncate transition-colors"
+            title={`Click to view proposal summary for ${row.customerName}`}
+          >
+            {row.customerName}
+          </span>
           <span className="text-[11px] text-slate-400 font-mono">
             {row.enquiryId ? `Enq: ${row.enquiryId}` : 'Direct Lead'}
           </span>
@@ -263,7 +277,7 @@ export const QuotationsPage = () => {
       accessor: 'systemCapacity',
       sortable: true,
       cell: ({ value, row }) => (
-        <span className="font-bold text-slate-800 text-xs bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
+        <span className="font-bold text-slate-800 text-xs bg-sky-50 px-3 py-1 rounded-full border border-sky-100 min-w-[115px] inline-flex items-center justify-center whitespace-nowrap">
           {value || row.capacity} kW
         </span>
       ),
@@ -314,7 +328,7 @@ export const QuotationsPage = () => {
         <div className="flex items-center gap-1">
           <button
             onClick={() => navigate(`/sales/quotations/${row.id}`)}
-            className="p-1.5 text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
             title="View itemized BOQ proposal"
           >
             <Eye className="w-4 h-4" />
@@ -323,7 +337,7 @@ export const QuotationsPage = () => {
           {row.status !== 'Accepted' && (
             <button
               onClick={() => setAcceptingQuotation(row)}
-              className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+              className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
               title="Mark Accepted & Convert into Order"
             >
               <CheckCircle2 className="w-4 h-4" />
@@ -332,7 +346,7 @@ export const QuotationsPage = () => {
 
           <button
             onClick={() => setDeletingQuotation(row)}
-            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
             title="Delete quotation"
           >
             <Trash2 className="w-4 h-4" />
@@ -463,28 +477,32 @@ export const QuotationsPage = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 text-xs">
             <Input
               label="Panels Count"
               type="number"
+              min="1"
               value={formData.panelCount}
               onChange={(e) => setFormData({ ...formData, panelCount: Number(e.target.value) })}
             />
             <Input
-              label="Structure Cost (₹)"
+              label="Structure Cost"
               type="number"
+              prefix="₹"
               value={formData.structureCost}
               onChange={(e) => setFormData({ ...formData, structureCost: Number(e.target.value) })}
             />
             <Input
-              label="BOS & Wiring (₹)"
+              label="BOS & Wiring"
               type="number"
+              prefix="₹"
               value={formData.bosCost}
               onChange={(e) => setFormData({ ...formData, bosCost: Number(e.target.value) })}
             />
             <Input
-              label="Installation (₹)"
+              label="Installation"
               type="number"
+              prefix="₹"
               value={formData.installationCost}
               onChange={(e) => setFormData({ ...formData, installationCost: Number(e.target.value) })}
             />
@@ -492,7 +510,7 @@ export const QuotationsPage = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Govt PM Surya Ghar Subsidy (₹)"
+              label="Govt PM Surya Ghar Subsidy"
               type="number"
               prefix="₹"
               value={formData.subsidy}
@@ -500,7 +518,7 @@ export const QuotationsPage = () => {
               helperText="Residential: ₹78k for 3kW+"
             />
             <Input
-              label="Special Discount (₹)"
+              label="Special Discount"
               type="number"
               prefix="₹"
               value={formData.discount}
@@ -539,6 +557,110 @@ export const QuotationsPage = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* MODAL: View Quotation Summary (Stay on same tab) */}
+      <Modal
+        isOpen={!!viewingQuotation}
+        onClose={() => setViewingQuotation(null)}
+        title={`Solar Proposal & BOQ Summary: ${viewingQuotation?.id}`}
+        size="md"
+      >
+        {viewingQuotation && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#F0F7FF] to-white border border-[#BAE6FD] flex items-center justify-between">
+              <div>
+                <p className="font-bold text-slate-900 text-sm">{viewingQuotation.customerName}</p>
+                <p className="text-slate-500 font-mono text-[11px]">
+                  Enquiry: {viewingQuotation.enquiryId || 'Direct Lead'} • Date: {formatDate(viewingQuotation.createdAt || viewingQuotation.date || new Date().toISOString())}
+                </p>
+              </div>
+              <StatusBadge status={viewingQuotation.status} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div>
+                <span className="text-slate-400 font-medium block">System Capacity</span>
+                <span className="font-bold text-slate-800 text-sm mt-0.5 block">
+                  {viewingQuotation.systemCapacity} kW System
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Contract Status</span>
+                <span className="font-semibold text-slate-800 mt-0.5 block">{viewingQuotation.status}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Solar PV Module</span>
+                <span className="font-semibold text-slate-800 mt-0.5 block truncate">
+                  {viewingQuotation.panelModel || 'Adani 540W Mono PERC'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Solar Inverter</span>
+                <span className="font-semibold text-slate-800 mt-0.5 block truncate">
+                  {viewingQuotation.inverterModel || 'Growatt 10kW 3-Phase Inverter'}
+                </span>
+              </div>
+            </div>
+
+            {/* Financial Summary */}
+            <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-1.5">
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-600">Subtotal Components:</span>
+                <span className="font-semibold text-slate-800">
+                  {formatCurrency(viewingQuotation.subtotal || viewingQuotation.amount || 446000)}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-emerald-600 font-semibold">Government MNRE Subsidy:</span>
+                <span className="font-bold text-emerald-600">
+                  - {formatCurrency(viewingQuotation.subsidy || 78000)}
+                </span>
+              </div>
+              {Number(viewingQuotation.discount) > 0 && (
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-amber-600 font-semibold">Special Discount:</span>
+                  <span className="font-bold text-amber-600">
+                    - {formatCurrency(viewingQuotation.discount)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-sm font-bold text-slate-900">Final Net Payable:</span>
+                <span className="text-base font-extrabold text-[#0284C7]">
+                  {formatCurrency(viewingQuotation.finalAmount || viewingQuotation.netPayable || viewingQuotation.amount)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              {viewingQuotation.status !== 'Accepted' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setAcceptingQuotation(viewingQuotation);
+                    setViewingQuotation(null);
+                  }}
+                >
+                  Accept & Convert into Order
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigate(`/sales/quotations/${viewingQuotation.id}`);
+                }}
+              >
+                Full BOQ Page
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setViewingQuotation(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* DIALOG: Confirm Accept Quotation */}

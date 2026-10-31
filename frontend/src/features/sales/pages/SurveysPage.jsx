@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '../../../components/layout/PageContainer';
 import PageHeader from '../../../components/common/PageHeader';
 import DataTable from '../../../components/ui/DataTable';
@@ -32,9 +32,11 @@ import {
 import useSalesFilters from '../hooks/useSalesFilters';
 import { ROOF_TYPES, SURVEY_STATUSES } from '../utils/salesConstants';
 import { validateSurveyForm } from '../utils/salesValidators';
+import openLeadEnquiry from '../utils/salesNavigation';
 
 export const SurveysPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const { items: surveys, loading, error } = useSelector((state) => state.salesSurveys);
@@ -160,7 +162,13 @@ export const SurveysPage = () => {
       sortable: true,
       cell: ({ row }) => (
         <div>
-          <span className="font-semibold text-slate-900 block truncate">{row.customerName}</span>
+          <span
+            onClick={() => setViewingSurvey(row)}
+            className="font-bold text-slate-900 hover:text-[#0284C7] hover:underline cursor-pointer block truncate transition-colors"
+            title={`Click to view site survey brief for ${row.customerName}`}
+          >
+            {row.customerName}
+          </span>
           <span className="text-[11px] text-slate-400 font-mono">
             {row.enquiryId ? `Ref: ${row.enquiryId}` : '—'}
           </span>
@@ -223,7 +231,7 @@ export const SurveysPage = () => {
         <div className="flex items-center gap-1">
           <button
             onClick={() => setViewingSurvey(row)}
-            className="p-1.5 text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
             title="View survey details"
           >
             <Eye className="w-4 h-4" />
@@ -234,14 +242,14 @@ export const SurveysPage = () => {
               setRescheduleDate(row.scheduledDate);
               setRescheduleTime(row.scheduledTime);
             }}
-            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
             title="Reschedule survey"
           >
             <CalendarClock className="w-4 h-4" />
           </button>
           <button
             onClick={() => setDeletingSurvey(row)}
-            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
             title="Cancel survey"
           >
             <Trash2 className="w-4 h-4" />
@@ -306,7 +314,7 @@ export const SurveysPage = () => {
         isOpen={isScheduleOpen}
         onClose={() => setIsScheduleOpen(false)}
         title="Schedule Site Feasibility Survey"
-        size="md"
+        size="lg"
       >
         <form onSubmit={handleSaveSurvey} className="space-y-4">
           <Input

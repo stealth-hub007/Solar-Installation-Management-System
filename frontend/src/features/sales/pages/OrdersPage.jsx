@@ -7,7 +7,6 @@ import DataTable from '../../../components/ui/DataTable';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import Button from '../../../components/common/Button';
 import Modal from '../../../components/ui/Modal';
-import Card from '../../../components/ui/Card';
 import {
   ShoppingCart,
   Eye,
@@ -27,6 +26,15 @@ import { fetchOrders, updateOrderStatus } from '../slices/orderSlice';
 import useSalesFilters from '../hooks/useSalesFilters';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
+import openLeadEnquiry from '../utils/salesNavigation';
+
+export const isOrderFullyExecuted = (order) => {
+  if (!order) return false;
+  if (String(order.orderStatus).toLowerCase() === 'done') return true;
+  const milestones = order.milestones || [];
+  if (milestones.length === 0) return false;
+  return milestones.every((m) => m.status === 'Completed');
+};
 
 export const OrdersPage = () => {
   const dispatch = useDispatch();
@@ -34,7 +42,7 @@ export const OrdersPage = () => {
 
   const { items: orders, loading, error } = useSelector((state) => state.salesOrders);
 
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'Confirmed' | 'Processing' | 'Dispatched' | 'Installed'
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'Confirmed' | 'Processing' | 'Dispatched' | 'Installed' | 'Done'
   const [tracingOrder, setTracingOrder] = useState(null);
 
   useEffect(() => {
@@ -44,6 +52,13 @@ export const OrdersPage = () => {
   // Tab filtering
   const tabFilteredData = orders.filter((o) => {
     if (activeTab === 'all') return true;
+    const fullyDone = isOrderFullyExecuted(o);
+    if (activeTab.toLowerCase() === 'done') {
+      return fullyDone || String(o.orderStatus).toLowerCase() === 'done';
+    }
+    if (fullyDone) {
+      return activeTab === 'Installed' || String(o.orderStatus).toLowerCase() === activeTab.toLowerCase();
+    }
     return String(o.orderStatus).toLowerCase() === String(activeTab).toLowerCase();
   });
 
@@ -69,20 +84,35 @@ export const OrdersPage = () => {
 
   const handleUpdateMilestone = async (milestoneIdx) => {
     if (!tracingOrder) return;
-    await dispatch(
+    
+    // Dispatch Redux async action
+    const action = await dispatch(
       updateOrderStatus({
         id: tracingOrder.id,
         status: tracingOrder.orderStatus,
         milestoneIndex: milestoneIdx,
       })
     );
-    // Refresh modal order
-    const updated = { ...tracingOrder };
-    if (updated.milestones && updated.milestones[milestoneIdx]) {
-      updated.milestones[milestoneIdx].status = 'Completed';
-      updated.milestones[milestoneIdx].date = new Date().toISOString().split('T')[0];
+
+    // Trigger immediate refresh of orders table
+    dispatch(fetchOrders());
+
+    // Update modal tracking order state in real time
+    if (action.payload && action.payload.milestones) {
+      setTracingOrder(action.payload);
+    } else {
+      const updated = JSON.parse(JSON.stringify(tracingOrder));
+      if (updated.milestones && updated.milestones[milestoneIdx]) {
+        updated.milestones[milestoneIdx].status = 'Completed';
+        updated.milestones[milestoneIdx].date = new Date().toISOString().split('T')[0];
+      }
+      const completedCount = (updated.milestones || []).filter((m) => m.status === 'Completed').length;
+      if (completedCount === (updated.milestones || []).length) {
+        updated.orderStatus = 'Done';
+        updated.paymentStatus = 'Full payment received';
+      }
+      setTracingOrder(updated);
     }
-    setTracingOrder(updated);
   };
 
   const columns = [
@@ -100,7 +130,13 @@ export const OrdersPage = () => {
       sortable: true,
       cell: ({ row }) => (
         <div>
-          <span className="font-semibold text-slate-900 block truncate">{row.customerName}</span>
+          <span
+            onClick={() => setTracingOrder(row)}
+            className="font-bold text-slate-900 hover:text-[#0284C7] hover:underline cursor-pointer block truncate transition-colors"
+            title={`Click to view lifecycle tracking for ${row.customerName}`}
+          >
+            {row.customerName}
+          </span>
           <span className="text-[11px] text-slate-400 font-mono">
             {row.quotationId ? `Quo: ${row.quotationId}` : 'Direct Contract'}
           </span>
@@ -112,7 +148,7 @@ export const OrdersPage = () => {
       accessor: 'capacity',
       sortable: true,
       cell: ({ value }) => (
-        <span className="font-bold text-slate-800 text-xs bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
+        <span className="font-bold text-slate-800 text-xs bg-sky-50 px-3 py-1 rounded-full border border-sky-100 min-w-[115px] inline-flex items-center justify-center whitespace-nowrap">
           {value}
         </span>
       ),
@@ -128,22 +164,30 @@ export const OrdersPage = () => {
     {
       header: 'Payment Status',
       accessor: 'paymentStatus',
-      cell: ({ value }) => (
-        <span
-          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-            value?.includes('Full')
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-amber-50 text-amber-700 border border-amber-200'
-          }`}
-        >
-          {value}
-        </span>
-      ),
+      cell: ({ value, row }) => {
+        const isDone = isOrderFullyExecuted(row);
+        const text = isDone ? 'Full payment received' : value;
+        const isFull = isDone || text?.toLowerCase().includes('full');
+        return (
+          <span
+            className={`min-w-[155px] h-6.5 inline-flex items-center justify-center px-3 rounded-full text-[11px] font-bold border whitespace-nowrap ${
+              isFull
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}
+          >
+            {text}
+          </span>
+        );
+      },
     },
     {
       header: 'Order Status',
       accessor: 'orderStatus',
-      cell: ({ value }) => <StatusBadge status={value} />,
+      cell: ({ value, row }) => {
+        const isDone = isOrderFullyExecuted(row);
+        return <StatusBadge status={isDone ? 'Done' : value} />;
+      },
     },
     {
       header: 'Trace Execution',
@@ -151,17 +195,20 @@ export const OrdersPage = () => {
         const milestones = row.milestones || [];
         const completedCount = milestones.filter((m) => m.status === 'Completed').length;
         const total = milestones.length || 5;
-        const percent = Math.round((completedCount / total) * 100);
+        const percent = Math.min(100, Math.round((completedCount / total) * 100));
+        const is100 = percent === 100;
 
         return (
           <div className="w-28 space-y-1">
             <div className="flex justify-between text-[10px] text-slate-500 font-medium">
               <span>Progress</span>
-              <span className="font-bold text-[#0284C7]">{percent}%</span>
+              <span className={`font-bold ${is100 ? 'text-emerald-600' : 'text-[#0284C7]'}`}>{percent}%</span>
             </div>
             <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-[#0284C7] to-emerald-500 h-full rounded-full transition-all duration-300"
+                className={`h-full rounded-full transition-all duration-300 ${
+                  is100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#0284C7] to-emerald-500'
+                }`}
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -174,7 +221,7 @@ export const OrdersPage = () => {
       cell: ({ row }) => (
         <button
           onClick={() => setTracingOrder(row)}
-          className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-[#0284C7] text-xs font-semibold rounded-lg transition"
+          className="h-7.5 px-3 min-w-[105px] inline-flex items-center justify-center gap-1.5 bg-sky-50 hover:bg-sky-100 text-[#0284C7] text-xs font-semibold rounded-lg transition shadow-2xs whitespace-nowrap cursor-pointer"
           title="Trace order workflow milestones"
         >
           <Eye className="w-3.5 h-3.5" />
@@ -199,6 +246,7 @@ export const OrdersPage = () => {
           { key: 'Processing', label: 'Processing' },
           { key: 'Dispatched', label: 'Dispatched' },
           { key: 'Installed', label: 'Installed' },
+          { key: 'Done', label: 'Done' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -206,7 +254,7 @@ export const OrdersPage = () => {
               setActiveTab(tab.key);
               setPage(1);
             }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ${
               activeTab === tab.key
                 ? 'bg-[#0284C7] text-white shadow-card'
                 : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
@@ -250,12 +298,17 @@ export const OrdersPage = () => {
             {/* Header info */}
             <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#F0F7FF] to-white border border-[#BAE6FD] flex items-center justify-between">
               <div>
-                <p className="font-bold text-slate-900 text-sm">{tracingOrder.customerName}</p>
+                <p className="font-bold text-slate-900 text-sm">
+                  {tracingOrder.customerName}
+                </p>
                 <p className="text-slate-500 font-mono text-[11px]">
                   System: {tracingOrder.capacity} • Value: {formatCurrency(tracingOrder.amount)}
                 </p>
+                <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
+                  Payment: {isOrderFullyExecuted(tracingOrder) ? 'Full payment received' : tracingOrder.paymentStatus}
+                </p>
               </div>
-              <StatusBadge status={tracingOrder.orderStatus} />
+              <StatusBadge status={isOrderFullyExecuted(tracingOrder) ? 'Done' : tracingOrder.orderStatus} />
             </div>
 
             {/* Stepper Milestones */}
@@ -272,7 +325,7 @@ export const OrdersPage = () => {
                   return (
                     <div key={idx} className="relative flex items-start gap-3">
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 transition-colors ${
+                        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 transition-all duration-300 ${
                           isDone
                             ? 'bg-emerald-500 text-white ring-4 ring-emerald-50'
                             : isInProgress
@@ -297,12 +350,17 @@ export const OrdersPage = () => {
                           </span>
                         </div>
 
-                        {!isDone && (
+                        {isDone ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold shadow-xs animate-fade-in">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                            <span>Done</span>
+                          </span>
+                        ) : (
                           <button
                             onClick={() => handleUpdateMilestone(idx)}
-                            className="px-2 py-1 bg-white hover:bg-[#E0F2FE] hover:text-[#0284C7] text-slate-600 border border-slate-200 rounded text-[11px] font-medium transition"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
                           >
-                            Mark Done
+                            <span>Mark Done</span>
                           </button>
                         )}
                       </div>
@@ -325,4 +383,3 @@ export const OrdersPage = () => {
 };
 
 export default OrdersPage;
-

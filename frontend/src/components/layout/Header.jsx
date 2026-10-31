@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
-  Search,
   Bell,
   ChevronDown,
   User,
@@ -21,15 +20,6 @@ import PortalSwitcher from './PortalSwitcher';
 export const Header = () => {
   const { toggleMobileSidebar } = useSidebar();
   const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-
-  // Generate breadcrumb from current path
-  const pathParts = location.pathname.split('/').filter(Boolean);
-  const breadcrumb = pathParts.map((part) =>
-    part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ')
-  );
-
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
 
@@ -44,7 +34,7 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4">
-      {/* Left: Mobile Toggle & Breadcrumb */}
+      {/* Left: Mobile Toggle & 1-Tap Panel Switcher */}
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         <button
           onClick={toggleMobileSidebar}
@@ -54,41 +44,9 @@ export const Header = () => {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 truncate">
-          <span className="text-[#0284C7] font-bold">SIMS</span>
-          {breadcrumb.map((crumb, idx) => (
-            <React.Fragment key={crumb}>
-              <span className="text-slate-300">/</span>
-              <span className={idx === breadcrumb.length - 1 ? 'text-slate-900 font-semibold truncate' : 'hover:text-slate-700'}>
-                {crumb}
-              </span>
-            </React.Fragment>
-          ))}
-        </nav>
-
-        {/* 1-Tap Panel Switcher (Admin <-> Sales) */}
-        <div className="pl-2 border-l border-slate-200 hidden sm:block">
+        {/* 1-Tap Panel Switcher (Admin <-> Sales <-> Warehouse <-> Technician) */}
+        <div className="hidden sm:block">
           <PortalSwitcher />
-        </div>
-      </div>
-
-      {/* Center: Global Search Bar */}
-      <div className="hidden md:flex flex-1 max-w-md mx-4">
-        <div className={`relative w-full transition-all duration-200 ${isSearchFocused ? 'ring-2 ring-[#0284C7] rounded-lg' : ''}`}>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            placeholder="Search projects, customers, serial numbers..."
-            className="w-full pl-9 pr-12 py-1.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 rounded-lg border border-slate-200 focus:outline-none transition-colors"
-          />
-          <kbd className="hidden lg:inline-flex absolute right-2.5 top-1/2 -translate-y-1/2 items-center px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded">
-            ⌘K
-          </kbd>
         </div>
       </div>
 

@@ -1222,7 +1222,29 @@ export const storageService = {
   // SALES MODULE: ORDERS CRUD
   // --------------------------------------------------------------------------
   getOrders() {
-    return getStored(KEYS.ORDERS, mockSalesOrders);
+    const raw = getStored(KEYS.ORDERS, mockSalesOrders);
+    let changed = false;
+    const normalized = raw.map((ord) => {
+      const milestones = ord.milestones || [];
+      const completed = milestones.filter((m) => m.status === 'Completed').length;
+      const is100 = (milestones.length > 0 && completed === milestones.length) || String(ord.orderStatus).toLowerCase() === 'done';
+      if (is100) {
+        if (ord.orderStatus !== 'Done' || !ord.paymentStatus?.toLowerCase().includes('full')) {
+          changed = true;
+          return {
+            ...ord,
+            orderStatus: 'Done',
+            paymentStatus: 'Full payment received',
+            stage: 'Completed',
+          };
+        }
+      }
+      return ord;
+    });
+    if (changed) {
+      setStored(KEYS.ORDERS, normalized);
+    }
+    return normalized;
   },
 
   getOrderById(id) {
@@ -1274,14 +1296,22 @@ export const storageService = {
     const order = { ...list[index] };
     if (status) order.orderStatus = status;
 
-    if (milestoneIndex !== null && order.milestones[milestoneIndex]) {
+    if (milestoneIndex !== null && order.milestones && order.milestones[milestoneIndex]) {
       order.milestones[milestoneIndex].status = 'Completed';
       order.milestones[milestoneIndex].date = new Date().toISOString().split('T')[0];
     }
 
+    const completedCount = (order.milestones || []).filter((m) => m.status === 'Completed').length;
+    const totalCount = (order.milestones || []).length;
+    if ((totalCount > 0 && completedCount === totalCount) || order.orderStatus === 'Done') {
+      order.orderStatus = 'Done';
+      order.paymentStatus = 'Full payment received';
+      order.stage = 'Completed';
+    }
+
     list[index] = order;
     setStored(KEYS.ORDERS, list);
-    this.logActivity(`Updated order ${id} status to "${status}"`, 'Sales Orders', 'Updated');
+    this.logActivity(`Updated order ${id} status to "${order.orderStatus}"`, 'Sales Orders', 'Updated');
     return order;
   },
 
@@ -1303,14 +1333,22 @@ export const storageService = {
       (e) => (e.enquiryStatus || e.status) === 'Converted' || (e.enquiryStatus || e.status) === 'Quotation Accepted'
     ).length;
 
+    const totalFollowUps = followUps.length;
     const pendingFollowUps = followUps.filter((f) => f.status === 'Pending' || f.status === 'Overdue').length;
+    const completedFollowUps = followUps.filter((f) => f.status === 'Completed').length;
+
+    const totalSurveys = surveys.length;
     const upcomingSurveys = surveys.filter((s) => s.status === 'Scheduled' || s.status === 'In Progress').length;
-    const pendingQuotations = quotations.filter((q) => q.status === 'Draft' || q.status === 'Sent' || q.status === 'Submitted').length;
+    const completedSurveys = surveys.filter((s) => s.status === 'Completed').length;
+
+    const totalQuotations = quotations.length;
+    const pendingQuotations = quotations.filter((q) => q.status === 'Draft' || q.status === 'Sent' || q.status === 'Submitted' || q.status === 'Approved').length;
     const acceptedQuotations = quotations.filter((q) => q.status === 'Accepted').length;
+
     const totalOrders = orders.length;
 
     // Monthly revenue from orders
-    const monthlySalesRevenue = orders.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    const monthlySalesRevenue = orders.reduce((acc, curr) => acc + (Number(curr.amount || curr.contractValue || curr.finalAmount) || 0), 0);
     const monthlyTarget = 6000000;
     const targetAchievementPercent = Math.min(100, Number(((monthlySalesRevenue / monthlyTarget) * 100).toFixed(1)));
     const conversionRate = totalEnquiries > 0 ? Number(((convertedEnquiries / totalEnquiries) * 100).toFixed(1)) : 0;
@@ -1321,8 +1359,13 @@ export const storageService = {
       newLeads,
       convertedEnquiries,
       conversionRate,
+      totalFollowUps,
       pendingFollowUps,
+      completedFollowUps,
+      totalSurveys,
       upcomingSurveys,
+      completedSurveys,
+      totalQuotations,
       pendingQuotations,
       acceptedQuotations,
       totalOrders,

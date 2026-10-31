@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
-  Search,
   Bell,
   ChevronDown,
   User,
@@ -24,8 +23,6 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
   const { toggleMobileSidebar } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
   // Auth User check
@@ -47,12 +44,6 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
   const displayRole = isAdminUser ? 'Super Administrator' : 'Sr. Sales Officer';
   const displayInitials = isAdminUser ? 'AD' : 'SO';
 
-  // Generate breadcrumb from current path
-  const pathParts = location.pathname.split('/').filter(Boolean);
-  const breadcrumb = pathParts.map((part) =>
-    part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ')
-  );
-
   useEffect(() => {
     // Sales notifications from activities
     const alerts = storageService.getAlerts();
@@ -70,7 +61,7 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
 
   return (
     <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4">
-      {/* Left: Mobile Toggle, Breadcrumb & Top 1-Tap Portal Switcher */}
+      {/* Left: Mobile Toggle & Top 1-Tap Portal Switcher */}
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         <button
           onClick={toggleMobileSidebar}
@@ -80,27 +71,8 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 truncate">
-          <span className="text-[#0284C7] font-bold">SIMS Sales</span>
-          {breadcrumb.map((crumb, idx) => (
-            <React.Fragment key={crumb}>
-              <span className="text-slate-300">/</span>
-              <span
-                className={
-                  idx === breadcrumb.length - 1
-                    ? 'text-slate-800 font-semibold truncate'
-                    : 'text-slate-500 hover:text-slate-700 cursor-pointer hidden md:inline truncate'
-                }
-              >
-                {crumb}
-              </span>
-            </React.Fragment>
-          ))}
-        </nav>
-
         {/* TOP 1-TAP PORTAL SWITCHER */}
-        <div className="pl-2 border-l border-slate-200 hidden sm:block">
+        <div className="hidden sm:block">
           <PortalSwitcher />
         </div>
       </div>
@@ -126,26 +98,6 @@ export const SalesHeader = ({ onQuickEnquiry }) => {
           <Plus className="w-3.5 h-3.5" />
           <span>New Lead</span>
         </button>
-
-        {/* Global Search Bar */}
-        <div className="relative hidden md:block w-48 lg:w-64">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search leads, customers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            className={`w-full h-9 pl-9 pr-4 text-xs font-medium rounded-lg border bg-slate-50 transition-all outline-none
-              ${
-                isSearchFocused
-                  ? 'bg-white border-[#0284C7] ring-2 ring-[#E0F2FE]'
-                  : 'border-slate-200 hover:border-slate-300'
-              }
-            `}
-          />
-        </div>
 
         {/* Notifications Dropdown */}
         <Dropdown

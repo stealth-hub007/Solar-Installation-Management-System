@@ -21,6 +21,7 @@ import {
 import useSalesFilters from '../hooks/useSalesFilters';
 import { CUSTOMER_TYPES, CUSTOMER_STATUSES } from '../utils/salesConstants';
 import { validateCustomerForm } from '../utils/salesValidators';
+import openLeadEnquiry from '../utils/salesNavigation';
 
 export const CustomersPage = () => {
   const dispatch = useDispatch();
@@ -128,8 +129,14 @@ export const CustomersPage = () => {
       header: 'Customer ID',
       accessor: 'id',
       sortable: true,
-      cell: ({ value }) => (
-        <span className="font-mono text-xs font-bold text-[#0284C7]">{value}</span>
+      cell: ({ value, row }) => (
+        <span
+          onClick={() => navigate(`/sales/customers/${row.id}`)}
+          className="font-mono text-xs font-bold text-[#0284C7] hover:underline cursor-pointer"
+          title={`View customer profile for ${row.name}`}
+        >
+          {value}
+        </span>
       ),
     },
     {
@@ -138,8 +145,14 @@ export const CustomersPage = () => {
       sortable: true,
       cell: ({ row }) => (
         <div>
-          <span className="font-semibold text-slate-900 block truncate">{row.name}</span>
-          <span className="text-[11px] text-slate-400 font-mono">Assigned: Vikram Singh</span>
+          <span
+            onClick={() => openLeadEnquiry(navigate, { ...row, customerId: row.id, customerName: row.name })}
+            className="font-bold text-slate-900 hover:text-[#0284C7] hover:underline cursor-pointer block truncate transition-colors"
+            title={`Click to open enquiry/timeline for ${row.name}`}
+          >
+            {row.name}
+          </span>
+          <span className="text-[11px] text-slate-400 font-mono">Managed Client</span>
         </div>
       ),
     },
@@ -177,7 +190,7 @@ export const CustomersPage = () => {
       accessor: 'type',
       sortable: true,
       cell: ({ value }) => (
-        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-[#0284C7] border border-sky-100">
+        <span className="h-6 px-3 rounded-full text-xs font-semibold bg-sky-50 text-[#0284C7] border border-sky-100 min-w-[100px] inline-flex items-center justify-center whitespace-nowrap">
           {value || 'Residential'}
         </span>
       ),
@@ -203,21 +216,21 @@ export const CustomersPage = () => {
         <div className="flex items-center gap-1">
           <button
             onClick={() => navigate(`/sales/customers/${row.id}`)}
-            className="p-1.5 text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
             title="View 360 customer profile"
           >
             <Eye className="w-4 h-4" />
           </button>
           <button
             onClick={() => handleOpenEdit(row)}
-            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
             title="Edit customer details"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={() => setDeletingCustomer(row)}
-            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
             title="Delete customer record"
           >
             <Trash2 className="w-4 h-4" />

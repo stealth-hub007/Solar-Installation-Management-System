@@ -54,28 +54,28 @@ export const SalesStats = ({ stats, loading = false }) => {
 
       {/* 4. Follow-ups */}
       <SalesStatCard
-        title="Follow-ups Due"
-        value={stats.pendingFollowUps || 0}
+        title="Follow-ups"
+        value={stats.totalFollowUps ?? stats.pendingFollowUps ?? 0}
         icon={PhoneCall}
-        subtitle="Scheduled calls & meetings"
+        subtitle={stats.pendingFollowUps !== undefined ? `${stats.pendingFollowUps} pending • ${stats.completedFollowUps || 0} done` : 'Scheduled calls & tasks'}
         onClick={() => navigate('/sales/follow-ups')}
       />
 
       {/* 5. Survey Scheduling */}
       <SalesStatCard
-        title="Surveys Scheduled"
-        value={stats.upcomingSurveys || 0}
+        title="Site Surveys"
+        value={stats.totalSurveys ?? stats.upcomingSurveys ?? 0}
         icon={ClipboardCheck}
-        subtitle="Site visits in progress"
+        subtitle={stats.upcomingSurveys !== undefined ? `${stats.upcomingSurveys} scheduled visits` : 'Feasibility assessments'}
         onClick={() => navigate('/sales/surveys')}
       />
 
       {/* 6. Quotations */}
       <SalesStatCard
-        title="Pending Quotations"
-        value={stats.pendingQuotations || 0}
+        title="Quotations"
+        value={stats.totalQuotations ?? stats.pendingQuotations ?? 0}
         icon={FileText}
-        subtitle="Awaiting client decision"
+        subtitle={stats.pendingQuotations !== undefined ? `${stats.pendingQuotations} pending review` : 'Awaiting client decision'}
         onClick={() => navigate('/sales/quotations')}
       />
 

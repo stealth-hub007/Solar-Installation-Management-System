@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Card from '../../../../components/ui/Card';
 import StatusBadge from '../../../../components/ui/StatusBadge';
+import openLeadEnquiry from '../../utils/salesNavigation';
 
 export const UpcomingFollowUps = ({
   followUps = [],
@@ -77,7 +78,11 @@ export const UpcomingFollowUps = ({
               <div key={item.id} className="py-3 flex items-start justify-between gap-3 group">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-xs text-slate-900 truncate">
+                    <span
+                      onClick={() => openLeadEnquiry(navigate, item)}
+                      className="font-bold text-xs text-slate-900 hover:text-[#0284C7] hover:underline cursor-pointer truncate transition-colors"
+                      title={`Open lead timeline for ${item.customerName}`}
+                    >
                       {item.customerName}
                     </span>
                     <span className="text-[10px] font-mono text-slate-400">({item.enquiryId})</span>

@@ -1,0 +1,941 @@
+import {
+  mockDashboardStats,
+  mockRevenueAnalytics,
+  mockProjectStatusData,
+  mockInstallationData,
+  mockInventoryData,
+  mockAlerts,
+  mockProjects,
+  mockPayments,
+  mockEnquiries,
+  mockServiceTickets,
+  mockActivities,
+  mockCustomers,
+  mockProducts,
+  mockAccessRequests,
+} from './mockData';
+
+const KEYS = {
+  PROJECTS: 'sims_projects_data',
+  PAYMENTS: 'sims_payments_data',
+  ENQUIRIES: 'sims_enquiries_data',
+  SERVICE_TICKETS: 'sims_tickets_data',
+  ALERTS: 'sims_alerts_data',
+  INVENTORY: 'sims_inventory_data',
+  ACTIVITIES: 'sims_activities_data',
+  CUSTOMERS: 'sims_customers_data',
+  PRODUCTS: 'sims_products_catalog',
+  ACCESS_REQUESTS: 'sims_access_requests',
+};
+
+// Safe JSON parse from localStorage with fallback
+const getStored = (key, fallback) => {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item) {
+      localStorage.setItem(key, JSON.stringify(fallback));
+      return fallback;
+    }
+    const parsed = JSON.parse(item);
+    return parsed;
+  } catch (err) {
+    console.error(`Error reading ${key} from localStorage:`, err);
+    return fallback;
+  }
+};
+
+// Safe JSON write to localStorage
+const setStored = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (err) {
+    console.error(`Error writing ${key} to localStorage:`, err);
+  }
+};
+
+/**
+ * Storage Service: LocalStorage persistence engine with full CRUD and dynamic metric recalculation
+ */
+export const storageService = {
+  // Initialize all collections if not present
+  init() {
+    getStored(KEYS.PROJECTS, mockProjects);
+    getStored(KEYS.PAYMENTS, mockPayments);
+    getStored(KEYS.ENQUIRIES, mockEnquiries);
+    getStored(KEYS.SERVICE_TICKETS, mockServiceTickets);
+    getStored(KEYS.ALERTS, mockAlerts);
+    getStored(KEYS.INVENTORY, mockInventoryData);
+    getStored(KEYS.ACTIVITIES, mockActivities);
+    getStored(KEYS.CUSTOMERS, mockCustomers);
+    getStored(KEYS.PRODUCTS, mockProducts);
+    getStored(KEYS.ACCESS_REQUESTS, mockAccessRequests);
+  },
+
+  // --------------------------------------------------------------------------
+  // ACTIVITIES (Audit Trail)
+  // --------------------------------------------------------------------------
+  getActivities() {
+    return getStored(KEYS.ACTIVITIES, mockActivities);
+  },
+
+  logActivity(activity, module = 'System', status = 'Completed', user = 'Admin User') {
+    const activities = this.getActivities();
+    const newEntry = {
+      id: `ACT-${Date.now().toString().slice(-4)}`,
+      user,
+      activity,
+      module,
+      timestamp: new Date().toISOString(),
+      status,
+    };
+    const updated = [newEntry, ...activities].slice(0, 50); // retain latest 50
+    setStored(KEYS.ACTIVITIES, updated);
+    return newEntry;
+  },
+
+  // --------------------------------------------------------------------------
+  // PROJECTS CRUD
+  // --------------------------------------------------------------------------
+  getProjects() {
+    return getStored(KEYS.PROJECTS, mockProjects);
+  },
+
+  createProject(projectData) {
+    const projects = this.getProjects();
+    const newId = `SIMS-PRJ-${1080 + projects.length + 1}`;
+    const newProject = {
+      id: newId,
+      projectName: projectData.projectName || 'New Solar Installation',
+      customerName: projectData.customerName || 'Valued Customer',
+      location: projectData.location || 'Rajasthan, India',
+      capacity: Number(projectData.capacity) || 5.0,
+      status: projectData.status || 'In Progress',
+      assignedTechnician: projectData.assignedTechnician || 'Unassigned',
+      createdDate: new Date().toISOString(),
+    };
+
+    const updated = [newProject, ...projects];
+    setStored(KEYS.PROJECTS, updated);
+
+    this.logActivity(
+      `Created project ${newProject.id} (${newProject.capacity}kW) for ${newProject.customerName}`,
+      'Projects',
+      'Created'
+    );
+
+    return newProject;
+  },
+
+  updateProject(id, patch) {
+    const projects = this.getProjects();
+    const index = projects.findIndex((p) => p.id === id);
+    if (index === -1) throw new Error(`Project with ID ${id} not found`);
+
+    const updatedProject = {
+      ...projects[index],
+      ...patch,
+      capacity: patch.capacity !== undefined ? Number(patch.capacity) : projects[index].capacity,
+    };
+
+    projects[index] = updatedProject;
+    setStored(KEYS.PROJECTS, projects);
+
+    this.logActivity(
+      `Updated project ${id} stage to "${updatedProject.status}"`,
+      'Projects',
+      'Updated'
+    );
+
+    return updatedProject;
+  },
+
+  deleteProject(id) {
+    const projects = this.getProjects();
+    const target = projects.find((p) => p.id === id);
+    const updated = projects.filter((p) => p.id !== id);
+    setStored(KEYS.PROJECTS, updated);
+
+    this.logActivity(
+      `Deleted project record ${id} (${target?.projectName || 'Project'})`,
+      'Projects',
+      'Deleted'
+    );
+
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // PAYMENTS CRUD
+  // --------------------------------------------------------------------------
+  getPayments() {
+    return getStored(KEYS.PAYMENTS, mockPayments);
+  },
+
+  createPayment(paymentData) {
+    const payments = this.getPayments();
+    const newId = `PAY-${8920 + payments.length + 1}`;
+    const newPayment = {
+      id: newId,
+      customerName: paymentData.customerName || 'Customer',
+      projectId: paymentData.projectId || 'SIMS-PRJ-GENERAL',
+      amount: Number(paymentData.amount) || 0,
+      paymentMethod: paymentData.paymentMethod || 'NEFT / RTGS',
+      paymentStatus: paymentData.paymentStatus || 'Completed',
+      paymentDate: paymentData.paymentDate || new Date().toISOString(),
+    };
+
+    const updated = [newPayment, ...payments];
+    setStored(KEYS.PAYMENTS, updated);
+
+    this.logActivity(
+      `Recorded payment ${newPayment.id} of ₹${newPayment.amount.toLocaleString('en-IN')} from ${newPayment.customerName}`,
+      'Payments',
+      'Completed'
+    );
+
+    return newPayment;
+  },
+
+  updatePayment(id, patch) {
+    const payments = this.getPayments();
+    const index = payments.findIndex((p) => p.id === id);
+    if (index === -1) throw new Error(`Payment with ID ${id} not found`);
+
+    const updatedPayment = {
+      ...payments[index],
+      ...patch,
+      amount: patch.amount !== undefined ? Number(patch.amount) : payments[index].amount,
+    };
+
+    payments[index] = updatedPayment;
+    setStored(KEYS.PAYMENTS, payments);
+
+    this.logActivity(
+      `Updated payment voucher ${id} status to "${updatedPayment.paymentStatus}"`,
+      'Payments',
+      'Updated'
+    );
+
+    return updatedPayment;
+  },
+
+  deletePayment(id) {
+    const payments = this.getPayments();
+    const updated = payments.filter((p) => p.id !== id);
+    setStored(KEYS.PAYMENTS, updated);
+
+    this.logActivity(`Deleted payment transaction voucher ${id}`, 'Payments', 'Deleted');
+
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // ENQUIRIES CRUD
+  // --------------------------------------------------------------------------
+  getEnquiries() {
+    return getStored(KEYS.ENQUIRIES, mockEnquiries);
+  },
+
+  createEnquiry(enquiryData) {
+    const enquiries = this.getEnquiries();
+    const newId = `ENQ-${4400 + enquiries.length + 1}`;
+    const newEnquiry = {
+      id: newId,
+      customerName: enquiryData.customerName || 'Inbound Prospect',
+      contactNumber: enquiryData.contactNumber || '+91 98000 00000',
+      email: enquiryData.email || 'prospect@gmail.com',
+      address: enquiryData.address || 'Jaipur, Rajasthan',
+      files: enquiryData.files || 'Electricity_Bill.pdf',
+      enquirySource: enquiryData.enquirySource || 'Website Form',
+      capacity: enquiryData.capacity || '5 kW Rooftop',
+      enquiryStatus: enquiryData.enquiryStatus || 'New',
+      createdDate: new Date().toISOString(),
+    };
+
+    const updated = [newEnquiry, ...enquiries];
+    setStored(KEYS.ENQUIRIES, updated);
+
+    this.logActivity(
+      `Added new solar enquiry ${newEnquiry.id} for ${newEnquiry.customerName}`,
+      'Enquiries',
+      'Created'
+    );
+
+    return newEnquiry;
+  },
+
+  updateEnquiry(id, patch) {
+    const enquiries = this.getEnquiries();
+    const index = enquiries.findIndex((e) => e.id === id);
+    if (index === -1) throw new Error(`Enquiry ${id} not found`);
+
+    const updatedEnquiry = { ...enquiries[index], ...patch };
+    enquiries[index] = updatedEnquiry;
+    setStored(KEYS.ENQUIRIES, enquiries);
+
+    this.logActivity(
+      `Updated enquiry ${id} lead status to "${updatedEnquiry.enquiryStatus}"`,
+      'Enquiries',
+      'Updated'
+    );
+
+    return updatedEnquiry;
+  },
+
+  deleteEnquiry(id) {
+    const enquiries = this.getEnquiries();
+    const updated = enquiries.filter((e) => e.id !== id);
+    setStored(KEYS.ENQUIRIES, updated);
+
+    this.logActivity(`Removed enquiry lead ${id}`, 'Enquiries', 'Deleted');
+
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // SERVICE TICKETS CRUD
+  // --------------------------------------------------------------------------
+  getServiceTickets() {
+    return getStored(KEYS.SERVICE_TICKETS, mockServiceTickets);
+  },
+
+  createServiceTicket(ticketData) {
+    const tickets = this.getServiceTickets();
+    const newId = `TCK-${200 + tickets.length + 1}`;
+    const newTicket = {
+      id: newId,
+      customerName: ticketData.customerName || 'Customer',
+      issueType: ticketData.issueType || 'General Inverter Inspection',
+      priority: ticketData.priority || 'Medium',
+      assignedTechnician: ticketData.assignedTechnician || 'Unassigned',
+      ticketStatus: ticketData.ticketStatus || 'Open',
+      createdDate: new Date().toISOString(),
+    };
+
+    const updated = [newTicket, ...tickets];
+    setStored(KEYS.SERVICE_TICKETS, updated);
+
+    // If critical ticket, automatically register an alert!
+    if (newTicket.priority === 'Critical') {
+      this.createAlert({
+        title: `Critical Ticket Logged: ${newTicket.id}`,
+        description: `${newTicket.issueType} reported by ${newTicket.customerName}`,
+        severity: 'critical',
+        module: 'Service Tickets',
+        actionRoute: '/admin/service-tickets',
+      });
+    }
+
+    this.logActivity(
+      `Logged support ticket ${newTicket.id} (${newTicket.priority}) for ${newTicket.customerName}`,
+      'Service Tickets',
+      'Created'
+    );
+
+    return newTicket;
+  },
+
+  updateServiceTicket(id, patch) {
+    const tickets = this.getServiceTickets();
+    const index = tickets.findIndex((t) => t.id === id);
+    if (index === -1) throw new Error(`Ticket ${id} not found`);
+
+    const updatedTicket = { ...tickets[index], ...patch };
+    tickets[index] = updatedTicket;
+    setStored(KEYS.SERVICE_TICKETS, tickets);
+
+    this.logActivity(
+      `Updated ticket ${id} resolution status to "${updatedTicket.ticketStatus}"`,
+      'Service Tickets',
+      'Updated'
+    );
+
+    return updatedTicket;
+  },
+
+  deleteServiceTicket(id) {
+    const tickets = this.getServiceTickets();
+    const updated = tickets.filter((t) => t.id !== id);
+    setStored(KEYS.SERVICE_TICKETS, updated);
+
+    this.logActivity(`Deleted ticket record ${id}`, 'Service Tickets', 'Deleted');
+
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // OPERATIONAL ALERTS CRUD
+  // --------------------------------------------------------------------------
+  getAlerts() {
+    return getStored(KEYS.ALERTS, mockAlerts);
+  },
+
+  createAlert(alertData) {
+    const alerts = this.getAlerts();
+    const newId = `ALT-${100 + alerts.length + 1}`;
+    const newAlert = {
+      id: newId,
+      title: alertData.title || 'System Notification',
+      description: alertData.description || 'Action required',
+      severity: alertData.severity || 'warning',
+      module: alertData.module || 'System',
+      timestamp: new Date().toISOString(),
+      actionRoute: alertData.actionRoute || '/admin/dashboard',
+    };
+
+    const updated = [newAlert, ...alerts];
+    setStored(KEYS.ALERTS, updated);
+
+    return newAlert;
+  },
+
+  deleteAlert(id) {
+    const alerts = this.getAlerts();
+    const updated = alerts.filter((a) => a.id !== id);
+    setStored(KEYS.ALERTS, updated);
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // INVENTORY
+  // --------------------------------------------------------------------------
+  getInventory() {
+    return getStored(KEYS.INVENTORY, mockInventoryData);
+  },
+
+  updateInventory(category, patch) {
+    const inventory = this.getInventory();
+    const index = inventory.findIndex((item) => item.category === category);
+    if (index !== -1) {
+      inventory[index] = { ...inventory[index], ...patch };
+      setStored(KEYS.INVENTORY, inventory);
+      this.logActivity(`Updated inventory category "${category}"`, 'Inventory', 'Updated');
+    }
+    return inventory;
+  },
+
+  setInventoryStock(category, newAvailable) {
+    const inventory = this.getInventory();
+    const index = inventory.findIndex((item) => item.category === category);
+    if (index !== -1) {
+      const stock = Math.max(0, Number(newAvailable));
+      inventory[index].available = stock;
+      inventory[index].outOfStock = stock === 0 ? 1 : 0;
+      setStored(KEYS.INVENTORY, inventory);
+      this.logActivity(`Updated stock for "${category}" to ${stock} units`, 'Inventory', 'Updated');
+    }
+    return inventory;
+  },
+
+  deleteInventory(category) {
+    const inventory = this.getInventory();
+    const updated = inventory.filter((item) => item.category !== category);
+    setStored(KEYS.INVENTORY, updated);
+    this.logActivity(`Removed inventory category "${category}"`, 'Inventory', 'Deleted');
+    return { category, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // CUSTOMERS CRUD
+  // --------------------------------------------------------------------------
+  getCustomers() {
+    return getStored(KEYS.CUSTOMERS, mockCustomers);
+  },
+
+  createCustomer(customerData) {
+    const customers = this.getCustomers();
+    const newId = `CUST-${100 + customers.length + 1}`;
+    const newCustomer = {
+      id: newId,
+      name: customerData.name || 'New Customer',
+      phone: customerData.phone || '+91 98290 00000',
+      email: customerData.email || 'customer@solar-sims.com',
+      city: customerData.city || 'Jaipur, Rajasthan',
+      address: customerData.address || customerData.city || 'Jaipur, Rajasthan',
+      projectCount: Number(customerData.projectCount) || 0,
+      totalCapacity: Number(customerData.totalCapacity) || 5.0,
+      status: customerData.status || 'Active',
+      type: customerData.type || (Number(customerData.totalCapacity) >= 20 ? 'Commercial' : 'Residential'),
+      createdDate: new Date().toISOString(),
+    };
+    const updated = [newCustomer, ...customers];
+    setStored(KEYS.CUSTOMERS, updated);
+    this.logActivity(`Registered new customer ${newCustomer.name} (${newCustomer.id})`, 'Customers', 'Created');
+    return newCustomer;
+  },
+
+  updateCustomer(id, patch) {
+    const customers = this.getCustomers();
+    const index = customers.findIndex((c) => c.id === id);
+    if (index === -1) throw new Error(`Customer with ID ${id} not found`);
+    const updatedCustomer = {
+      ...customers[index],
+      ...patch,
+      totalCapacity: patch.totalCapacity !== undefined ? Number(patch.totalCapacity) : customers[index].totalCapacity,
+    };
+    customers[index] = updatedCustomer;
+    setStored(KEYS.CUSTOMERS, customers);
+    this.logActivity(`Updated customer record ${id} (${updatedCustomer.name})`, 'Customers', 'Updated');
+    return updatedCustomer;
+  },
+
+  deleteCustomer(id) {
+    const customers = this.getCustomers();
+    const target = customers.find((c) => c.id === id);
+    const updated = customers.filter((c) => c.id !== id);
+    setStored(KEYS.CUSTOMERS, updated);
+    this.logActivity(`Deleted customer record ${id} (${target?.name || 'Customer'})`, 'Customers', 'Deleted');
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // PRODUCTS CRUD
+  // --------------------------------------------------------------------------
+  getProducts() {
+    return getStored(KEYS.PRODUCTS, mockProducts);
+  },
+
+  createProduct(productData) {
+    const products = this.getProducts();
+    const newId = `PRD-${100 + products.length + 1}`;
+    const newProduct = {
+      id: newId,
+      name: productData.name || 'New Solar Equipment',
+      type: productData.type || 'PV Module',
+      brand: productData.brand || 'Tier-1 Brand',
+      wattage: productData.wattage || '550 W',
+      efficiency: productData.efficiency || '21.0%',
+      price: Number(productData.price) || 15000,
+      warranty: productData.warranty || '25 Years',
+      createdDate: new Date().toISOString(),
+    };
+    const updated = [newProduct, ...products];
+    setStored(KEYS.PRODUCTS, updated);
+    this.logActivity(`Added catalog product ${newProduct.id} (${newProduct.name})`, 'Products', 'Created');
+    return newProduct;
+  },
+
+  updateProduct(id, patch) {
+    const products = this.getProducts();
+    const index = products.findIndex((p) => p.id === id);
+    if (index === -1) throw new Error(`Product with ID ${id} not found`);
+    const updatedProduct = {
+      ...products[index],
+      ...patch,
+      price: patch.price !== undefined ? Number(patch.price) : products[index].price,
+    };
+    products[index] = updatedProduct;
+    setStored(KEYS.PRODUCTS, products);
+    this.logActivity(`Updated product ${id} (${updatedProduct.name})`, 'Products', 'Updated');
+    return updatedProduct;
+  },
+
+  deleteProduct(id) {
+    const products = this.getProducts();
+    const target = products.find((p) => p.id === id);
+    const updated = products.filter((p) => p.id !== id);
+    setStored(KEYS.PRODUCTS, updated);
+    this.logActivity(`Removed product ${id} (${target?.name || 'Product'}) from catalog`, 'Products', 'Deleted');
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // ACCESS REQUESTS (Roles & Permissions)
+  // --------------------------------------------------------------------------
+  getAccessRequests() {
+    return getStored(KEYS.ACCESS_REQUESTS, mockAccessRequests);
+  },
+
+  createAccessRequest(reqData) {
+    const requests = this.getAccessRequests();
+    const newId = `REQ-${100 + requests.length + 1}`;
+    const newReq = {
+      id: newId,
+      name: reqData.name || 'New User',
+      email: reqData.email || 'user@solar-sims.com',
+      role: reqData.role || 'Field Service Staff',
+      department: reqData.department || 'Operations',
+      reason: reqData.reason || 'Requested panel access from login portal',
+      status: 'Pending',
+      requestedAt: new Date().toISOString(),
+    };
+    const updated = [newReq, ...requests];
+    setStored(KEYS.ACCESS_REQUESTS, updated);
+
+    // Instant Notification to Admin
+    this.createAlert({
+      title: `New Access Request: ${newReq.name}`,
+      description: `${newReq.name} (${newReq.email}) requested "${newReq.role}" panel access`,
+      severity: 'info',
+      module: 'Roles & Permissions',
+      actionRoute: '/admin/roles-permissions',
+    });
+
+    this.logActivity(`New access request submitted by ${newReq.name} for role "${newReq.role}"`, 'Security', 'Pending');
+    return newReq;
+  },
+
+  updateAccessRequestStatus(id, newStatus) {
+    const requests = this.getAccessRequests();
+    const index = requests.findIndex((r) => r.id === id);
+    if (index === -1) throw new Error(`Request with ID ${id} not found`);
+    requests[index].status = newStatus;
+    requests[index].reviewedAt = new Date().toISOString();
+    setStored(KEYS.ACCESS_REQUESTS, requests);
+
+    this.logActivity(
+      `Admin ${newStatus.toLowerCase()} access request ${id} (${requests[index].name} as ${requests[index].role})`,
+      'Roles & Permissions',
+      newStatus === 'Approved' ? 'Success' : 'Rejected'
+    );
+    return requests[index];
+  },
+
+  deleteAccessRequest(id) {
+    const requests = this.getAccessRequests();
+    const updated = requests.filter((r) => r.id !== id);
+    setStored(KEYS.ACCESS_REQUESTS, updated);
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // DYNAMIC RECALCULATIONS (KPIS & ANALYTICS BASED ON TIME-RANGE FILTER)
+  // --------------------------------------------------------------------------
+  getStats(timeRange = '30d') {
+    const projects = this.getProjects();
+    const payments = this.getPayments();
+    const enquiries = this.getEnquiries();
+    const tickets = this.getServiceTickets();
+    const inventory = this.getInventory();
+
+    const lowStockCount = inventory.filter(
+      (i) => i.available <= i.lowStock || i.outOfStock > 0
+    ).length;
+
+    // Scale dynamically according to selected time range:
+    if (timeRange === '7d') {
+      return {
+        totalRevenue: {
+          value: 1240000,
+          changePercentage: 18.2,
+          trend: 'up',
+          comparisonPeriod: 'vs last 7 days',
+        },
+        paymentsReceived: {
+          value: 980000,
+          changePercentage: 12.0,
+          trend: 'up',
+          comparisonPeriod: 'vs last 7 days',
+        },
+        outstandingPayments: {
+          value: 260000,
+          changePercentage: -5.4,
+          trend: 'down',
+          comparisonPeriod: 'vs last 7 days',
+        },
+        totalCustomers: {
+          value: 28,
+          changePercentage: 8.5,
+          trend: 'up',
+          comparisonPeriod: 'vs last 7 days',
+        },
+        totalEnquiries: {
+          value: 42,
+          changePercentage: 25.0,
+          trend: 'up',
+          comparisonPeriod: 'vs last 7 days',
+        },
+        activeProjects: {
+          value: Math.min(projects.length, 9),
+          changePercentage: 4.1,
+          trend: 'up',
+          comparisonPeriod: 'vs last 7 days',
+        },
+        pendingSurveys: {
+          value: 3,
+          changePercentage: -25.0,
+          trend: 'down',
+          comparisonPeriod: 'vs last 7 days',
+        },
+        openServiceTickets: {
+          value: 2,
+          changePercentage: 0.0,
+          trend: 'neutral',
+          comparisonPeriod: 'vs last 7 days',
+        },
+        lowStockAlerts: {
+          value: Math.min(lowStockCount, 2),
+          changePercentage: 0.0,
+          trend: 'neutral',
+          comparisonPeriod: 'critical stock items',
+        },
+      };
+    }
+
+    if (timeRange === '90d') {
+      return {
+        totalRevenue: {
+          value: 148000000,
+          changePercentage: 24.5,
+          trend: 'up',
+          comparisonPeriod: 'vs last quarter',
+        },
+        paymentsReceived: {
+          value: 118000000,
+          changePercentage: 19.2,
+          trend: 'up',
+          comparisonPeriod: 'vs last quarter',
+        },
+        outstandingPayments: {
+          value: 30000000,
+          changePercentage: -2.8,
+          trend: 'down',
+          comparisonPeriod: 'vs last quarter',
+        },
+        totalCustomers: {
+          value: 3840,
+          changePercentage: 22.0,
+          trend: 'up',
+          comparisonPeriod: 'vs last quarter',
+        },
+        totalEnquiries: {
+          value: 1420,
+          changePercentage: 31.4,
+          trend: 'up',
+          comparisonPeriod: 'vs last quarter',
+        },
+        activeProjects: {
+          value: 195,
+          changePercentage: 14.8,
+          trend: 'up',
+          comparisonPeriod: 'vs last quarter',
+        },
+        pendingSurveys: {
+          value: 38,
+          changePercentage: -8.0,
+          trend: 'down',
+          comparisonPeriod: 'vs last quarter',
+        },
+        openServiceTickets: {
+          value: 24,
+          changePercentage: 4.5,
+          trend: 'up',
+          comparisonPeriod: 'vs last quarter',
+        },
+        lowStockAlerts: {
+          value: lowStockCount,
+          changePercentage: 20.0,
+          trend: 'up',
+          comparisonPeriod: 'critical stock items',
+        },
+      };
+    }
+
+    if (timeRange === '1y') {
+      return {
+        totalRevenue: {
+          value: 585000000,
+          changePercentage: 42.0,
+          trend: 'up',
+          comparisonPeriod: 'vs previous year',
+        },
+        paymentsReceived: {
+          value: 492000000,
+          changePercentage: 38.5,
+          trend: 'up',
+          comparisonPeriod: 'vs previous year',
+        },
+        outstandingPayments: {
+          value: 93000000,
+          changePercentage: -14.2,
+          trend: 'down',
+          comparisonPeriod: 'vs previous year',
+        },
+        totalCustomers: {
+          value: 11400,
+          changePercentage: 45.0,
+          trend: 'up',
+          comparisonPeriod: 'vs previous year',
+        },
+        totalEnquiries: {
+          value: 5200,
+          changePercentage: 54.0,
+          trend: 'up',
+          comparisonPeriod: 'vs previous year',
+        },
+        activeProjects: {
+          value: 620,
+          changePercentage: 28.5,
+          trend: 'up',
+          comparisonPeriod: 'vs previous year',
+        },
+        pendingSurveys: {
+          value: 85,
+          changePercentage: -15.0,
+          trend: 'down',
+          comparisonPeriod: 'vs previous year',
+        },
+        openServiceTickets: {
+          value: 58,
+          changePercentage: -6.2,
+          trend: 'down',
+          comparisonPeriod: 'vs previous year',
+        },
+        lowStockAlerts: {
+          value: lowStockCount,
+          changePercentage: 15.0,
+          trend: 'up',
+          comparisonPeriod: 'critical stock items',
+        },
+      };
+    }
+
+    // Default 30 Days (standard baseline)
+    return {
+      totalRevenue: {
+        value: 48500000,
+        changePercentage: 14.2,
+        trend: 'up',
+        comparisonPeriod: 'vs last month',
+      },
+      paymentsReceived: {
+        value: 36200000,
+        changePercentage: 8.5,
+        trend: 'up',
+        comparisonPeriod: 'vs last month',
+      },
+      outstandingPayments: {
+        value: 12300000,
+        changePercentage: -4.1,
+        trend: 'down',
+        comparisonPeriod: 'vs last month',
+      },
+      totalCustomers: {
+        value: 1284,
+        changePercentage: 18.0,
+        trend: 'up',
+        comparisonPeriod: 'vs last month',
+      },
+      totalEnquiries: {
+        value: 438,
+        changePercentage: 22.4,
+        trend: 'up',
+        comparisonPeriod: 'vs last month',
+      },
+      activeProjects: {
+        value: 76,
+        changePercentage: 5.2,
+        trend: 'up',
+        comparisonPeriod: 'vs last month',
+      },
+      pendingSurveys: {
+        value: 19,
+        changePercentage: -12.5,
+        trend: 'down',
+        comparisonPeriod: 'vs last week',
+      },
+      openServiceTickets: {
+        value: 11,
+        changePercentage: 0.0,
+        trend: 'neutral',
+        comparisonPeriod: 'vs last week',
+      },
+      lowStockAlerts: {
+        value: lowStockCount,
+        changePercentage: 33.3,
+        trend: 'up',
+        comparisonPeriod: 'critical stock items',
+      },
+    };
+  },
+
+  getProjectAnalytics() {
+    const projects = this.getProjects();
+    const statusColors = {
+      Enquiry: '#38BDF8',
+      'Survey Pending': '#F59E0B',
+      'Quotation Pending': '#FB923C',
+      Approved: '#10B981',
+      'In Progress': '#0284C7',
+      Completed: '#0369A1',
+      Cancelled: '#EF4444',
+    };
+
+    const counts = {};
+    Object.keys(statusColors).forEach((st) => (counts[st] = 0));
+
+    projects.forEach((p) => {
+      if (counts[p.status] !== undefined) {
+        counts[p.status] += 1;
+      } else {
+        counts[p.status] = (counts[p.status] || 0) + 1;
+      }
+    });
+
+    return Object.keys(counts).map((status) => ({
+      status,
+      count: counts[status],
+      color: statusColors[status] || '#64748B',
+    }));
+  },
+
+  getRevenueAnalytics(period = '12m') {
+    // Dynamically adjust series if 7d, 30d, 90d, or 1y / 6m / 12m / ytd
+    if (period === '7d') {
+      return [
+        { month: 'Mon', revenue: 160000, received: 130000, outstanding: 30000 },
+        { month: 'Tue', revenue: 210000, received: 175000, outstanding: 35000 },
+        { month: 'Wed', revenue: 140000, received: 115000, outstanding: 25000 },
+        { month: 'Thu', revenue: 290000, received: 240000, outstanding: 50000 },
+        { month: 'Fri', revenue: 220000, received: 180000, outstanding: 40000 },
+        { month: 'Sat', revenue: 130000, received: 100000, outstanding: 30000 },
+        { month: 'Sun', revenue: 90000, received: 40000, outstanding: 50000 },
+      ];
+    }
+    if (period === '30d') {
+      return [
+        { month: 'Week 1', revenue: 9800000, received: 7500000, outstanding: 2300000 },
+        { month: 'Week 2', revenue: 12400000, received: 9800000, outstanding: 2600000 },
+        { month: 'Week 3', revenue: 11200000, received: 8400000, outstanding: 2800000 },
+        { month: 'Week 4', revenue: 15100000, received: 10500000, outstanding: 4600000 },
+      ];
+    }
+    if (period === '90d') {
+      return [
+        { month: 'Month 1', revenue: 42000000, received: 34000000, outstanding: 8000000 },
+        { month: 'Month 2', revenue: 51000000, received: 41000000, outstanding: 10000000 },
+        { month: 'Month 3', revenue: 55000000, received: 43000000, outstanding: 12000000 },
+      ];
+    }
+    const base = mockRevenueAnalytics[period] || mockRevenueAnalytics['12m'];
+    return base;
+  },
+
+  getInstallationAnalytics() {
+    return mockInstallationData;
+  },
+
+  // --------------------------------------------------------------------------
+  // RESET ALL DATA TO PRISTINE SAMPLE STATE
+  // --------------------------------------------------------------------------
+  resetToDefaults() {
+    setStored(KEYS.PROJECTS, mockProjects);
+    setStored(KEYS.PAYMENTS, mockPayments);
+    setStored(KEYS.ENQUIRIES, mockEnquiries);
+    setStored(KEYS.SERVICE_TICKETS, mockServiceTickets);
+    setStored(KEYS.ALERTS, mockAlerts);
+    setStored(KEYS.INVENTORY, mockInventoryData);
+    setStored(KEYS.ACTIVITIES, mockActivities);
+    setStored(KEYS.CUSTOMERS, mockCustomers);
+    setStored(KEYS.PRODUCTS, mockProducts);
+    setStored(KEYS.ACCESS_REQUESTS, mockAccessRequests);
+
+    this.logActivity('Reset all administrative sample data to default baseline', 'System', 'Success');
+    return true;
+  },
+};
+
+// Auto-run init on load
+storageService.init();
+
+export default storageService;

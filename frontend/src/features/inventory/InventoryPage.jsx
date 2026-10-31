@@ -107,16 +107,16 @@ export const InventoryPage = () => {
 
   const columns = [
     {
-      header: 'Equipment Category',
+      header: 'Category',
       accessor: 'category',
       cell: ({ value }) => (
-        <span className="font-semibold text-xs text-slate-800 max-w-[240px] truncate block" title={value}>
+        <span className="font-semibold text-xs text-slate-800 max-w-[200px] truncate block" title={value}>
           {value}
         </span>
       ),
     },
     {
-      header: 'Available Stock',
+      header: 'Available',
       accessor: 'available',
       align: 'right',
       cell: ({ value }) => (
@@ -124,7 +124,7 @@ export const InventoryPage = () => {
       ),
     },
     {
-      header: 'Reserved for Projects',
+      header: 'Reserved',
       accessor: 'reserved',
       align: 'right',
       cell: ({ value }) => (
@@ -134,13 +134,14 @@ export const InventoryPage = () => {
       ),
     },
     {
-      header: 'Safety Buffer',
+      header: 'Safety Min',
       accessor: 'lowStock',
       align: 'right',
       cell: ({ value }) => <span className="text-slate-500 whitespace-nowrap">{value} threshold</span>,
     },
     {
-      header: 'Stock Status',
+      header: 'Status',
+      align: 'center',
       cell: ({ row }) => {
         if (row.outOfStock > 0 || row.available === 0) {
           return <Badge variant="danger" dot>Out of Stock</Badge>;

@@ -81,7 +81,7 @@ export const RecentEnquiries = ({
       ),
     },
     {
-      header: 'Contact, Address & Files',
+      header: 'Contact & Details',
       accessor: 'contactNumber',
       cell: ({ row }) => (
         <div className="min-w-0 max-w-[340px]">
@@ -165,6 +165,8 @@ export const RecentEnquiries = ({
     {
       header: 'Actions',
       align: 'center',
+      stickyRight: true,
+      headerClassName: 'w-24 text-center',
       cell: ({ row }) => (
         <div className="flex items-center justify-center gap-1">
           {/* Admin can ONLY see details and delete (NO edit button) */}

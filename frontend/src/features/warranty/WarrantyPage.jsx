@@ -80,7 +80,7 @@ export const WarrantyPage = () => {
         <Table
           columns={[
             {
-              header: 'Warranty Certificate',
+              header: 'Certificate ID',
               accessor: 'id',
               cell: ({ value }) => (
                 <span className="font-mono text-xs font-semibold text-[#0284C7] whitespace-nowrap">{value}</span>
@@ -97,25 +97,25 @@ export const WarrantyPage = () => {
               ),
             },
             {
-              header: 'PV Module Policy',
+              header: 'PV Modules',
               accessor: 'moduleWarranty',
               cell: ({ value }) => (
-                <span className="text-xs text-slate-700 max-w-[220px] truncate block" title={value}>
+                <span className="text-xs text-slate-700 max-w-[200px] truncate block" title={value}>
                   {value}
                 </span>
               ),
             },
             {
-              header: 'Inverter Policy',
+              header: 'Inverters',
               accessor: 'inverterWarranty',
               cell: ({ value }) => (
-                <span className="text-xs text-slate-700 max-w-[180px] truncate block" title={value}>
+                <span className="text-xs text-slate-700 max-w-[170px] truncate block" title={value}>
                   {value}
                 </span>
               ),
             },
             {
-              header: 'Policy Status',
+              header: 'Status',
               accessor: 'status',
               cell: ({ value }) => <StatusBadge status={value} />,
             },

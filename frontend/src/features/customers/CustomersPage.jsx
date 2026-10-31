@@ -127,58 +127,61 @@ export const CustomersPage = () => {
 
   const columns = [
     {
-      header: 'Customer ID',
+      header: 'ID',
       accessor: 'id',
+      nowrap: true,
+      headerClassName: 'w-20',
       cell: ({ value }) => (
         <span className="font-mono text-xs font-semibold text-[#0284C7]">{value}</span>
       ),
     },
     {
-      header: 'Customer Name',
+      header: 'Customer',
       accessor: 'name',
+      headerClassName: 'min-w-[130px]',
       cell: ({ row }) => (
-        <div className="max-w-[160px] truncate" title={row.name}>
-          <span className="font-semibold text-slate-800 block truncate">{row.name}</span>
-          <span className="text-[11px] text-slate-400 font-normal">({row.type})</span>
+        <div className="max-w-[160px]">
+          <span className="font-semibold text-slate-800 block truncate" title={row.name}>{row.name}</span>
+          <span className="text-[11px] text-slate-400 font-normal block truncate">{row.type}</span>
         </div>
       ),
     },
     {
-      header: 'Contact Info',
+      header: 'Contact',
       accessor: 'phone',
+      headerClassName: 'min-w-[130px]',
       cell: ({ row }) => (
-        <div className="space-y-0.5">
+        <div className="space-y-0.5 max-w-[140px]">
           <a
             href={`tel:${row.phone}`}
-            className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-[#0284C7] whitespace-nowrap font-mono"
+            className="flex items-center gap-1 text-xs text-slate-700 hover:text-[#0284C7] font-mono whitespace-nowrap"
           >
-            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <Phone className="w-3 h-3 text-slate-400 shrink-0" />
             <span>{row.phone}</span>
           </a>
           {row.email && (
-            <a
-              href={`mailto:${row.email}`}
-              className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-[#0284C7] truncate max-w-[170px]"
+            <span
+              className="text-[11px] text-slate-400 block truncate"
               title={row.email}
             >
-              <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-              <span className="truncate">{row.email}</span>
-            </a>
+              {row.email}
+            </span>
           )}
         </div>
       ),
     },
     {
-      header: 'Location / Address',
+      header: 'Location',
       accessor: 'city',
+      headerClassName: 'min-w-[120px]',
       cell: ({ row }) => (
-        <div className="max-w-[150px] truncate" title={row.address || row.city}>
-          <span className="flex items-center gap-1.5 text-xs text-slate-700 font-medium truncate">
-            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        <div className="max-w-[140px]">
+          <span className="flex items-center gap-1 text-xs text-slate-700 font-medium truncate" title={row.city}>
+            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
             <span className="truncate">{row.city}</span>
           </span>
           {row.address && row.address !== row.city && (
-            <span className="text-[11px] text-slate-400 block truncate pl-5">
+            <span className="text-[11px] text-slate-400 block truncate pl-4" title={row.address}>
               {row.address}
             </span>
           )}
@@ -186,42 +189,50 @@ export const CustomersPage = () => {
       ),
     },
     {
-      header: 'Installations',
+      header: 'Sites',
       accessor: 'projectCount',
       align: 'center',
+      headerClassName: 'w-24 text-center',
       cell: ({ value, row }) => (
-        <span className="text-xs font-semibold text-slate-800 whitespace-nowrap">
-          {value || 0} site ({row.totalCapacity} kW)
-        </span>
+        <div className="text-center">
+          <span className="text-xs font-semibold text-slate-800 block whitespace-nowrap">
+            {value || 0} site
+          </span>
+          <span className="text-[10px] text-slate-400 font-medium block whitespace-nowrap">({row.totalCapacity} kW)</span>
+        </div>
       ),
     },
     {
       header: 'Status',
       accessor: 'status',
+      align: 'center',
+      headerClassName: 'w-24 text-center',
       cell: ({ value }) => <StatusBadge status={value} />,
     },
     {
       header: 'Actions',
       align: 'center',
+      stickyRight: true,
+      headerClassName: 'w-24 text-center',
       cell: ({ row }) => (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-center gap-0.5 sm:gap-1">
           <button
             onClick={() => setViewCustomer(row)}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 transition"
+            className="p-1 rounded-md text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 transition"
             title="View Customer Profile"
           >
             <Eye className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setEditingCustomer(row)}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
+            className="p-1 rounded-md text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
             title="Edit Customer Details"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setDeletingCustomer(row)}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
+            className="p-1 rounded-md text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
             title="Delete Customer"
           >
             <Trash2 className="w-3.5 h-3.5" />

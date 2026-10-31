@@ -119,17 +119,17 @@ export const ProductsPage = () => {
 
   const columns = [
     {
-      header: 'SKU / Model ID',
+      header: 'SKU',
       accessor: 'id',
       cell: ({ value }) => (
         <span className="font-mono text-xs font-semibold text-[#0284C7] whitespace-nowrap">{value}</span>
       ),
     },
     {
-      header: 'Product Description',
+      header: 'Product',
       accessor: 'name',
       cell: ({ row }) => (
-        <div className="max-w-[210px] truncate" title={`${row.name} (${row.brand})`}>
+        <div className="max-w-[190px] truncate" title={`${row.name} (${row.brand})`}>
           <span className="font-semibold text-slate-800 block truncate">{row.name}</span>
           <span className="text-[11px] text-slate-400 block truncate">Brand: {row.brand}</span>
         </div>
@@ -145,7 +145,7 @@ export const ProductsPage = () => {
       ),
     },
     {
-      header: 'Rating / Capacity',
+      header: 'Capacity',
       accessor: 'wattage',
       cell: ({ value }) => <span className="font-semibold text-slate-800 text-xs whitespace-nowrap">{value}</span>,
     },
@@ -155,7 +155,7 @@ export const ProductsPage = () => {
       cell: ({ value }) => <span className="text-xs text-sky-700 font-semibold whitespace-nowrap">{value}</span>,
     },
     {
-      header: 'Unit Price (₹)',
+      header: 'Unit Price',
       accessor: 'price',
       align: 'right',
       cell: ({ value }) => (
@@ -175,6 +175,8 @@ export const ProductsPage = () => {
     {
       header: 'Actions',
       align: 'center',
+      stickyRight: true,
+      headerClassName: 'w-24 text-center',
       cell: ({ row }) => (
         <div className="flex items-center justify-center gap-1">
           <button

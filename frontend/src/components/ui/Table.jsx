@@ -29,14 +29,15 @@ export const Table = ({
       <div className="w-full overflow-x-auto scrollbar-thin">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
-              {columns.map((col) => {
+            <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+              {columns.map((col, colIdx) => {
                 const isSortable = col.sortable && onSort;
                 const isSorted = sortField === col.accessor;
+                const isActionCol = col.header === 'Actions' || col.isAction || col.stickyRight;
 
                 return (
                   <th
-                    key={col.header || col.accessor}
+                    key={col.header || col.accessor || colIdx}
                     scope="col"
                     className={`px-3 py-2.5 whitespace-nowrap ${
                       col.align === 'right'
@@ -44,6 +45,10 @@ export const Table = ({
                         : col.align === 'center'
                         ? 'text-center'
                         : 'text-left'
+                    } ${
+                      isActionCol
+                        ? 'sticky right-0 z-10 bg-slate-50 border-l border-slate-200/80 shadow-[-6px_0_8px_-3px_rgba(0,0,0,0.06)]'
+                        : ''
                     } ${col.headerClassName || ''} ${
                       isSortable ? 'cursor-pointer select-none hover:bg-slate-100/90' : ''
                     }`}
@@ -89,20 +94,26 @@ export const Table = ({
               data.map((row, rowIndex) => (
                 <tr
                   key={row.id || rowIndex}
-                  className="hover:bg-[#F0F7FF]/50 transition-colors duration-100"
+                  className="group hover:bg-[#F0F7FF]/50 transition-colors duration-100"
                 >
-                  {columns.map((col) => {
+                  {columns.map((col, colIdx) => {
                     const value = col.accessor ? row[col.accessor] : undefined;
+                    const isActionCol = col.header === 'Actions' || col.isAction || col.stickyRight;
+
                     return (
                       <td
-                        key={col.accessor || col.header}
-                        className={`px-3 py-2.5 whitespace-nowrap text-slate-700 leading-tight ${
+                        key={col.accessor || col.header || colIdx}
+                        className={`px-3 py-2 text-slate-700 leading-tight ${
                           col.align === 'right'
                             ? 'text-right'
                             : col.align === 'center'
                             ? 'text-center'
                             : 'text-left'
-                        } ${col.cellClassName || ''}`}
+                        } ${
+                          isActionCol
+                            ? 'sticky right-0 z-10 bg-white group-hover:bg-[#EBF5FE] border-l border-slate-100 shadow-[-6px_0_8px_-3px_rgba(0,0,0,0.06)]'
+                            : ''
+                        } ${col.nowrap ? 'whitespace-nowrap' : ''} ${col.cellClassName || ''}`}
                       >
                         {col.cell ? col.cell({ row, value, index: rowIndex }) : value ?? '—'}
                       </td>

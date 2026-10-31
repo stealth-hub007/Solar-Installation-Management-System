@@ -2,7 +2,7 @@ import React from 'react';
 
 export const PageContainer = ({ children, className = '' }) => {
   return (
-    <main className={`flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 ${className}`}>
+    <main className={`flex-1 p-3.5 sm:p-5 lg:p-6 w-full max-w-[1600px] mx-auto space-y-5 sm:space-y-6 ${className}`}>
       {children}
     </main>
   );

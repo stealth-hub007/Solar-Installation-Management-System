@@ -111,16 +111,16 @@ export const DispatchPage = () => {
               ),
             },
             {
-              header: 'Equipment Bill of Materials',
+              header: 'Equipment Items',
               accessor: 'items',
               cell: ({ value }) => (
-                <span className="text-xs text-slate-700 max-w-[200px] truncate block" title={value}>
+                <span className="text-xs text-slate-700 max-w-[180px] truncate block" title={value}>
                   {value}
                 </span>
               ),
             },
             {
-              header: 'Transport Vehicle',
+              header: 'Vehicle & Driver',
               accessor: 'vehicle',
               cell: ({ row }) => (
                 <div className="whitespace-nowrap">
@@ -140,8 +140,9 @@ export const DispatchPage = () => {
               ),
             },
             {
-              header: 'Action',
+              header: 'Actions',
               align: 'center',
+              stickyRight: true,
               cell: ({ row }) =>
                 row.status !== 'Delivered' ? (
                   <Button

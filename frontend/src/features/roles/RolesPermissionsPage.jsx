@@ -155,13 +155,16 @@ export const RolesPermissionsPage = () => {
       ),
     },
     {
-      header: 'Verification Status',
+      header: 'Status',
       accessor: 'status',
+      align: 'center',
       cell: ({ value }) => <StatusBadge status={value} />,
     },
     {
       header: 'Actions',
       align: 'center',
+      stickyRight: true,
+      headerClassName: 'w-28 text-center',
       cell: ({ row }) => (
         <div className="flex items-center justify-center gap-1.5">
           {row.status === 'Pending' ? (

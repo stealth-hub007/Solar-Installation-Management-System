@@ -62,6 +62,24 @@ async def login(
 
 
 @router.post(
+    "/signin",
+    response_model=APIResponse[TokenResponse],
+    summary="User Sign-in (Alias for Login)",
+    description="Authenticates credentials and returns JWT access and refresh tokens.",
+)
+async def signin(
+    login_in: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    tokens = await AuthService.authenticate_user(db, login_in)
+    return APIResponse(
+        success=True,
+        message="Sign-in successful",
+        data=tokens,
+    )
+
+
+@router.post(
     "/google",
     response_model=APIResponse[TokenResponse],
     summary="Google OAuth Authentication",

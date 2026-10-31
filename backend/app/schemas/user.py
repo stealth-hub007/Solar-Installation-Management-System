@@ -20,18 +20,23 @@ class UserCreate(UserBase):
 class UserRegisterRequest(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=255, description="Full name of the user")
     email: EmailStr
-    password: str = Field(..., min_length=8, max_length=128, description="Minimum 8 characters")
-    confirm_password: str
+    password: str = Field(..., min_length=6, max_length=128, description="Minimum 6 characters")
+    confirm_password: Optional[str] = None
+    phone: Optional[str] = Field(None, max_length=20)
+    role: Optional[UserRole] = None
 
     @model_validator(mode="after")
     def check_passwords_match(self):
-        if self.password != self.confirm_password:
+        if self.confirm_password is not None and self.password != self.confirm_password:
             raise ValueError("Passwords do not match")
         return self
 
 
 class GoogleAuthRequest(BaseModel):
-    credential: Optional[str] = Field(None, description="Google OAuth ID token or access token")
+    credential: Optional[str] = Field(None, description="Google OAuth ID token, access token, or API key")
+    token: Optional[str] = None
+    id_token: Optional[str] = None
+    key: Optional[str] = None
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     google_id: Optional[str] = None

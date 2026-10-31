@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
+    # Google OAuth / Auth Key (loaded from environment)
+    GOOGLE_AUTH_KEY: str = ""
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
     # PostgreSQL Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:5679@localhost:5432/sunpower_db"
     SYNC_DATABASE_URL: str = "postgresql+psycopg2://postgres:5679@localhost:5432/sunpower_db"

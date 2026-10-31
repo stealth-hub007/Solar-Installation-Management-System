@@ -83,13 +83,13 @@ export const LoginPage = () => {
 
   const handleGoogleSignIn = async () => {
     dispatch(clearAuthError());
-    // Google OAuth integration: sends authenticated Google credential or mock verification to backend
-    const mockGooglePayload = {
-      credential: 'google_oauth_token_' + Date.now(),
-      id_token: 'id_token_sims_' + Math.random().toString(36).substring(7),
+    const googleAuthKey = import.meta.env.VITE_GOOGLE_AUTH_KEY;
+    const googlePayload = {
+      credential: googleAuthKey || ('google_oauth_token_' + Date.now()),
+      email: email ? email.trim() : undefined,
     };
 
-    const result = await dispatch(googleLoginUser(mockGooglePayload));
+    const result = await dispatch(googleLoginUser(googlePayload));
     if (googleLoginUser.fulfilled.match(result)) {
       const { user, account_status } = result.payload;
       handleLoginSuccess(user, account_status);

@@ -7,23 +7,28 @@ export const authAPI = {
     return response.data?.data || response.data;
   },
 
-  // Public user registration (starts with status PENDING)
-  async register({ full_name, email, password, confirm_password }) {
+  // Sign in alias
+  async signin({ email, password }) {
+    const response = await axiosInstance.post('/auth/signin', { email, password });
+    return response.data?.data || response.data;
+  },
+
+  // Public user registration
+  async register({ full_name, email, password, confirm_password, phone, role }) {
     const response = await axiosInstance.post('/auth/register', {
       full_name,
       email,
       password,
       confirm_password,
+      phone,
+      role,
     });
     return response.data?.data || response.data;
   },
 
   // Google OAuth authentication / verification
-  async googleAuth({ credential, id_token }) {
-    const response = await axiosInstance.post('/auth/google', {
-      credential,
-      id_token,
-    });
+  async googleAuth(payload) {
+    const response = await axiosInstance.post('/auth/google', payload);
     return response.data?.data || response.data;
   },
 

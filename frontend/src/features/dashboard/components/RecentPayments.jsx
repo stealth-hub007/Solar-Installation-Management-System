@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Search, RotateCcw, CreditCard, Receipt, Plus, Trash2 } from 'lucide-react';
+import { Search, RotateCcw, CreditCard, Receipt, Trash2 } from 'lucide-react';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Table, { TablePagination } from '../../../components/ui/Table';
 import { StatusBadge } from '../../../components/ui/Badge';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/common/Button';
-import PaymentModal from './modals/PaymentModal';
 import ConfirmDeleteModal from './modals/ConfirmDeleteModal';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
@@ -22,13 +21,11 @@ export const RecentPayments = ({
   onFiltersChange,
   onResetFilters,
   onRetry,
-  onCreatePayment,
   onDeletePayment,
 }) => {
   const [searchInput, setSearchInput] = useState(filters.search || '');
   const [viewPayment, setViewPayment] = useState(null);
   const [deletingPayment, setDeletingPayment] = useState(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const debouncedSearch = useDebounce(searchInput, 400);
 
@@ -46,13 +43,6 @@ export const RecentPayments = ({
     const isSame = filters.sortBy === field;
     const nextDirection = isSame && filters.sortDirection === 'asc' ? 'desc' : 'asc';
     onFiltersChange({ sortBy: field, sortDirection: nextDirection });
-  };
-
-  const handleCreateSubmit = async (formData) => {
-    if (onCreatePayment) {
-      await onCreatePayment(formData);
-      setIsCreateOpen(false);
-    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -158,16 +148,6 @@ export const RecentPayments = ({
             subtitle="Customer milestone collections, subsidy transfers, and receipts"
             className="mb-0"
           />
-
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={() => setIsCreateOpen(true)}
-            className="self-start sm:self-auto shrink-0"
-          >
-            Record Payment
-          </Button>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
@@ -284,15 +264,6 @@ export const RecentPayments = ({
             </div>
           </div>
         </Modal>
-      )}
-
-      {/* Record Payment Modal */}
-      {isCreateOpen && (
-        <PaymentModal
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSubmit={handleCreateSubmit}
-        />
       )}
 
       {/* Delete Confirmation Modal */}

@@ -530,7 +530,6 @@ export const AdminDashboard = () => {
             onFiltersChange={(filters) => dispatch(setPaymentsFilters(filters))}
             onResetFilters={() => dispatch(resetPaymentsFilters())}
             onRetry={() => dispatch(fetchRecentPayments())}
-            onCreatePayment={handleCreatePayment}
             onDeletePayment={handleDeletePayment}
           />
         )}

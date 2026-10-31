@@ -5,7 +5,6 @@ import PageHeader from '../../components/common/PageHeader';
 import RecentPayments from '../dashboard/components/RecentPayments';
 import {
   fetchRecentPayments,
-  createPayment,
   updatePayment,
   deletePayment,
   setPaymentsFilters,
@@ -57,10 +56,6 @@ export const PaymentsPage = () => {
         onFiltersChange={(filters) => dispatch(setPaymentsFilters(filters))}
         onResetFilters={() => dispatch(resetPaymentsFilters())}
         onRetry={() => dispatch(fetchRecentPayments())}
-        onCreatePayment={async (data) => {
-          await dispatch(createPayment(data));
-          dispatch(fetchRecentPayments(paymentsState.pagination));
-        }}
         onDeletePayment={async (id) => {
           await dispatch(deletePayment(id));
           dispatch(fetchRecentPayments(paymentsState.pagination));

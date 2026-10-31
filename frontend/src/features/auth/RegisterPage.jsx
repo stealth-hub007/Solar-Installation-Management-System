@@ -15,7 +15,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import Button from '../../components/common/Button';
-import GoogleAuthModal from './GoogleAuthModal';
+import { useRealGoogleAuth } from './GoogleAuthModal';
 import { getDashboardForRole } from '../../components/auth/PublicRoute';
 import {
   registerUser,
@@ -42,30 +42,26 @@ export const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
-  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
+  const [googleError, setGoogleError] = useState(null);
 
-  const handleGoogleSignIn = () => {
-    dispatch(clearAuthError());
-    setIsGoogleModalOpen(true);
-  };
-
-  const handleGoogleModalAuthenticate = async (googleEmail) => {
-    const googleAuthKey = import.meta.env.VITE_GOOGLE_AUTH_KEY;
-    const googlePayload = {
-      credential: googleAuthKey || ('google_oauth_token_' + Date.now()),
-      email: googleEmail,
-    };
-
-    const result = await dispatch(googleLoginUser(googlePayload));
-    if (googleLoginUser.fulfilled.match(result)) {
-      setIsGoogleModalOpen(false);
-      const { user, account_status } = result.payload;
-      if ((account_status || user?.account_status || 'PENDING').toUpperCase() === 'PENDING') {
+  // Real Google OAuth popup
+  const { triggerLogin: triggerGoogleLogin } = useRealGoogleAuth({
+    onSuccess: ({ user, account_status }) => {
+      setGoogleError(null);
+      const status = (account_status || user?.account_status || 'PENDING').toUpperCase();
+      if (status === 'PENDING') {
         navigate('/pending-approval');
       } else {
         navigate(getDashboardForRole(user?.role));
       }
-    }
+    },
+    onError: (msg) => setGoogleError(msg),
+  });
+
+  const handleGoogleSignIn = () => {
+    dispatch(clearAuthError());
+    setGoogleError(null);
+    triggerGoogleLogin();
   };
 
   // Password strength calculation
@@ -157,10 +153,10 @@ export const RegisterPage = () => {
           </div>
 
           {/* Backend Error Banner */}
-          {authError && (
+          {(authError || googleError) && (
             <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5 animate-fadeIn">
               <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-              <div className="flex-1 font-medium leading-relaxed">{authError}</div>
+              <div className="flex-1 font-medium leading-relaxed">{authError || googleError}</div>
             </div>
           )}
 
@@ -381,14 +377,6 @@ export const RegisterPage = () => {
           </div>
         </div>
       </div>
-      <GoogleAuthModal
-        isOpen={isGoogleModalOpen}
-        onClose={() => setIsGoogleModalOpen(false)}
-        onAuthenticate={handleGoogleModalAuthenticate}
-        initialEmail={formData.email}
-        loading={loading}
-        error={authError}
-      />
     </div>
   );
 };

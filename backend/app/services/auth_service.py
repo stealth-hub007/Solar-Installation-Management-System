@@ -134,43 +134,58 @@ class AuthService:
             logger.info("Direct Google Auth Key authenticated successfully.")
             if google_in.email:
                 email = str(google_in.email).lower().strip()
+                full_name = google_in.full_name or (email.split("@")[0].replace(".", " ").title())
             else:
-                email = "google.user@sunpower.com"
-            full_name = google_in.full_name or "Google Workspace User"
+                email = None
             google_id = google_in.google_id or f"google_{uuid.uuid5(uuid.NAMESPACE_DNS, credential_token).hex[:12]}"
 
-        # 2. If not matched with known key, try Google tokeninfo endpoint
+        # 2. If not matched with known key, try verifying as a real Google OAuth access token
         if not is_authorized_key and credential_token:
+            # First try as an access_token (from implicit/authorization code flow)
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     resp = await client.get(
-                        f"https://oauth2.googleapis.com/tokeninfo?id_token={credential_token}"
+                        "https://www.googleapis.com/oauth2/v3/userinfo",
+                        headers={"Authorization": f"Bearer {credential_token}"},
                     )
                     if resp.status_code == 200:
                         payload = resp.json()
                         email = payload.get("email")
                         full_name = payload.get("name") or payload.get("given_name")
                         google_id = payload.get("sub")
+                        logger.info(f"Google OAuth access token verified for: {email}")
                     else:
-                        logger.warning(f"Google tokeninfo response: {resp.status_code} {resp.text}")
+                        logger.warning(f"Google userinfo response: {resp.status_code}")
             except Exception as e:
-                logger.warning(f"Failed to verify Google token: {e}")
+                logger.warning(f"Failed to verify Google access token: {e}")
+
+            # Fallback: try as an id_token
+            if not email:
+                try:
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        resp = await client.get(
+                            f"https://oauth2.googleapis.com/tokeninfo?id_token={credential_token}"
+                        )
+                        if resp.status_code == 200:
+                            payload = resp.json()
+                            email = payload.get("email")
+                            full_name = payload.get("name") or payload.get("given_name")
+                            google_id = payload.get("sub")
+                        else:
+                            logger.warning(f"Google tokeninfo response: {resp.status_code} {resp.text}")
+                except Exception as e:
+                    logger.warning(f"Failed to verify Google id_token: {e}")
 
         # 3. Fallback to direct client details if provided
         if not email and google_in.email:
             email = str(google_in.email).lower().strip()
-            full_name = google_in.full_name or "Google User"
-            google_id = google_in.google_id or f"google_{uuid.uuid4().hex[:12]}"
-
-        if not email and credential_token:
-            email = "google.user@sunpower.com"
-            full_name = google_in.full_name or "Google Workspace User"
+            full_name = google_in.full_name or (email.split("@")[0].replace(".", " ").title())
             google_id = google_in.google_id or f"google_{uuid.uuid4().hex[:12]}"
 
         if not email:
-            raise UnauthorizedException(
-                message="Unable to verify Google credentials. Please provide valid Google authentication credentials.",
-                error_code="GOOGLE_AUTH_FAILED",
+            raise BadRequestException(
+                message="Please provide your Google account email address to complete Google authentication.",
+                error_code="GOOGLE_EMAIL_REQUIRED",
             )
 
         email_clean = email.lower().strip()

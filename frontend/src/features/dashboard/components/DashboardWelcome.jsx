@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Calendar, RotateCw, SunMedium, RotateCcw } from 'lucide-react';
+import { Sparkles, Calendar, RotateCw, SunMedium } from 'lucide-react';
 import Button from '../../../components/common/Button';
 import formatDate from '../../../utils/formatDate';
 
@@ -7,7 +7,6 @@ export const DashboardWelcome = ({
   timeRange = '30d',
   onTimeRangeChange,
   onRefresh,
-  onResetData,
   isRefreshing = false,
 }) => {
   const today = formatDate(new Date(), { format: 'long' });
@@ -80,18 +79,6 @@ export const DashboardWelcome = ({
             >
               Refresh
             </Button>
-
-            {onResetData && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onResetData}
-                icon={RotateCcw}
-                title="Reset sample data back to baseline defaults"
-              >
-                Reset Sample Data
-              </Button>
-            )}
           </div>
         </div>
       </div>

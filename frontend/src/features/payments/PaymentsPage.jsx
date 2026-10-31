@@ -61,10 +61,6 @@ export const PaymentsPage = () => {
           await dispatch(createPayment(data));
           dispatch(fetchRecentPayments(paymentsState.pagination));
         }}
-        onUpdatePayment={async ({ id, data }) => {
-          await dispatch(updatePayment({ id, data }));
-          dispatch(fetchRecentPayments(paymentsState.pagination));
-        }}
         onDeletePayment={async (id) => {
           await dispatch(deletePayment(id));
           dispatch(fetchRecentPayments(paymentsState.pagination));

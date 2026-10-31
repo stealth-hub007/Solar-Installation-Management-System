@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Key,
+  Edit2,
 } from 'lucide-react';
 import storageService from '../../services/storageService';
 import formatDate from '../../utils/formatDate';
@@ -34,6 +35,7 @@ export const RolesPermissionsPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [deletingReq, setDeletingReq] = useState(null);
   const [selectedReq, setSelectedReq] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
   const [isSimulateOpen, setIsSimulateOpen] = useState(false);
 
   const [simulateForm, setSimulateForm] = useState({
@@ -43,6 +45,26 @@ export const RolesPermissionsPage = () => {
     department: 'Supply Chain & Field Execution',
     reason: 'Requires access to manage warehouse stock and dispatching',
   });
+
+  const [editUserForm, setEditUserForm] = useState({
+    name: '',
+    email: '',
+    role: 'Operations Manager',
+    department: 'Supply Chain & Field Execution',
+    status: 'Approved',
+  });
+
+  useEffect(() => {
+    if (editingUser) {
+      setEditUserForm({
+        name: editingUser.name || '',
+        email: editingUser.email || '',
+        role: editingUser.role || 'Operations Manager',
+        department: editingUser.department || 'Operations',
+        status: editingUser.status || 'Approved',
+      });
+    }
+  }, [editingUser]);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -78,6 +100,14 @@ export const RolesPermissionsPage = () => {
     if (selectedReq && selectedReq.id === deletingReq.id) {
       setSelectedReq(null);
     }
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    storageService.updateAccessRequest(editingUser.id, editUserForm);
+    loadRequests();
+    setEditingUser(null);
   };
 
   const handleSimulateSubmit = (e) => {
@@ -165,32 +195,35 @@ export const RolesPermissionsPage = () => {
       align: 'center',
       headerClassName: 'w-28 text-center',
       cell: ({ row }) => (
-        <div className="flex items-center justify-center gap-1.5">
-          {row.status === 'Pending' ? (
+        <div className="flex items-center justify-center gap-1">
+          {row.status === 'Pending' && (
             <>
               <button
                 onClick={() => handleApprove(row.id)}
-                className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition"
+                className="p-1 rounded-md text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition"
                 title="Verify & Grant Panel Access"
               >
                 <Check className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleReject(row.id)}
-                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition"
+                className="p-1 rounded-md text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition"
                 title="Reject Access"
               >
                 <X className="w-4 h-4" />
               </button>
             </>
-          ) : (
-            <span className="text-[11px] font-semibold text-slate-400 px-2 py-0.5">
-              Verified
-            </span>
           )}
           <button
+            onClick={() => setEditingUser(row)}
+            className="p-1 rounded-md text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
+            title="Edit User Role & Permissions"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button
             onClick={() => setDeletingReq(row)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
             title="Delete Record"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -204,10 +237,10 @@ export const RolesPermissionsPage = () => {
     <PageContainer>
       <PageHeader
         title="Roles & Permissions Management"
-        subtitle="Verify panel access requests submitted by managers, technicians, and staff from login portal"
+        subtitle="Manage employee security privileges, provision team authorizations, and audit login access requests"
       >
         <Button variant="primary" size="sm" icon={Plus} onClick={() => setIsSimulateOpen(true)}>
-          New Access Request
+          Provision Team Member
         </Button>
       </PageHeader>
 
@@ -347,27 +380,27 @@ export const RolesPermissionsPage = () => {
         </div>
       </Card>
 
-      {/* New Request Modal */}
+      {/* Provision Team Member Modal */}
       {isSimulateOpen && (
         <Modal
           isOpen={isSimulateOpen}
           onClose={() => setIsSimulateOpen(false)}
-          title="Create New Panel Access Request"
-          subtitle="Submit user access for admin verification"
+          title="Provision New Team Member"
+          subtitle="Directly provision an employee account with role clearance"
           footer={
             <>
               <Button variant="outline" size="sm" onClick={() => setIsSimulateOpen(false)}>
                 Cancel
               </Button>
               <Button variant="primary" size="sm" onClick={handleSimulateSubmit}>
-                Submit Request
+                Provision & Activate
               </Button>
             </>
           }
         >
           <form onSubmit={handleSimulateSubmit} className="space-y-3 text-xs sm:text-sm">
             <div>
-              <label className="block text-slate-700 font-medium mb-1">Applicant Name *</label>
+              <label className="block text-slate-700 font-medium mb-1">Employee Name *</label>
               <input
                 type="text"
                 required
@@ -380,7 +413,7 @@ export const RolesPermissionsPage = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-slate-700 font-medium mb-1">Email Address *</label>
+                <label className="block text-slate-700 font-medium mb-1">Corporate Email *</label>
                 <input
                   type="email"
                   required
@@ -392,7 +425,7 @@ export const RolesPermissionsPage = () => {
               </div>
 
               <div>
-                <label className="block text-slate-700 font-medium mb-1">Requested Role</label>
+                <label className="block text-slate-700 font-medium mb-1">Assigned Role</label>
                 <select
                   value={simulateForm.role}
                   onChange={(e) => setSimulateForm({ ...simulateForm, role: e.target.value })}
@@ -418,7 +451,7 @@ export const RolesPermissionsPage = () => {
             </div>
 
             <div>
-              <label className="block text-slate-700 font-medium mb-1">Reason / Scope of Access</label>
+              <label className="block text-slate-700 font-medium mb-1">Scope of Operations / Remarks</label>
               <textarea
                 rows={2}
                 value={simulateForm.reason}
@@ -430,14 +463,99 @@ export const RolesPermissionsPage = () => {
         </Modal>
       )}
 
+      {/* Edit User Role & Permissions Modal */}
+      {editingUser && (
+        <Modal
+          isOpen={!!editingUser}
+          onClose={() => setEditingUser(null)}
+          title={`Edit User Clearance: ${editingUser.name}`}
+          subtitle={`Modify assigned role and permissions for account ${editingUser.id}`}
+          footer={
+            <>
+              <Button variant="outline" size="sm" onClick={() => setEditingUser(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleEditSubmit}>
+                Save Role Changes
+              </Button>
+            </>
+          }
+        >
+          <form onSubmit={handleEditSubmit} className="space-y-3 text-xs sm:text-sm">
+            <div>
+              <label className="block text-slate-700 font-medium mb-1">Full Name *</label>
+              <input
+                type="text"
+                required
+                value={editUserForm.name}
+                onChange={(e) => setEditUserForm({ ...editUserForm, name: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">Corporate Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={editUserForm.email}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">Assigned Operational Role *</label>
+                <select
+                  value={editUserForm.role}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
+                >
+                  <option value="Operations Manager">Operations Manager</option>
+                  <option value="Sales Executive">Sales Executive</option>
+                  <option value="Field Service Engineer">Field Service Engineer</option>
+                  <option value="Field Service Staff">Field Service Staff</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">Department</label>
+                <input
+                  type="text"
+                  value={editUserForm.department}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, department: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">Clearance Status</label>
+                <select
+                  value={editUserForm.status}
+                  onChange={(e) => setEditUserForm({ ...editUserForm, status: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0284C7]"
+                >
+                  <option value="Approved">Approved / Active</option>
+                  <option value="Pending">Pending Verification</option>
+                  <option value="Rejected">Revoked / Suspended</option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </Modal>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deletingReq && (
         <ConfirmDeleteModal
           isOpen={!!deletingReq}
           onClose={() => setDeletingReq(null)}
           onConfirm={handleDeleteConfirm}
-          title="Delete Access Request Record"
-          message={`Are you sure you want to remove the access request record for "${deletingReq.name}"?`}
+          title="Delete Access Record"
+          message={`Are you sure you want to remove the team member record for "${deletingReq.name}"?`}
           itemIdentifier={`${deletingReq.id} — ${deletingReq.name}`}
         />
       )}

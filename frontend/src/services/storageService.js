@@ -591,6 +591,21 @@ export const storageService = {
     return requests[index];
   },
 
+  updateAccessRequest(id, updateData) {
+    const requests = this.getAccessRequests();
+    const index = requests.findIndex((r) => r.id === id);
+    if (index === -1) throw new Error(`Request with ID ${id} not found`);
+    requests[index] = { ...requests[index], ...updateData, updatedAt: new Date().toISOString() };
+    setStored(KEYS.ACCESS_REQUESTS, requests);
+
+    this.logActivity(
+      `Admin updated role permissions for ${requests[index].name} (${requests[index].role})`,
+      'Roles & Permissions',
+      'Updated'
+    );
+    return requests[index];
+  },
+
   deleteAccessRequest(id) {
     const requests = this.getAccessRequests();
     const updated = requests.filter((r) => r.id !== id);

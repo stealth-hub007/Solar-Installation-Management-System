@@ -384,13 +384,6 @@ export const AdminDashboard = () => {
     await dispatch(deleteAlert(id));
   };
 
-  // Reset Demo Data
-  const handleResetData = async () => {
-    if (window.confirm('Reset all sample data in LocalStorage back to pristine defaults?')) {
-      await dispatch(resetAllData());
-    }
-  };
-
   const tableTabs = [
     { id: 'projects', label: 'Recent Projects', icon: FolderKanban, count: projectsState.pagination.totalRecords },
     { id: 'payments', label: 'Recent Payments', icon: CreditCard, count: paymentsState.pagination.totalRecords },
@@ -406,7 +399,6 @@ export const AdminDashboard = () => {
         timeRange={statsState.timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         onRefresh={loadAllDashboardData}
-        onResetData={handleResetData}
         isRefreshing={isRefreshing}
       />
 
@@ -539,7 +531,6 @@ export const AdminDashboard = () => {
             onResetFilters={() => dispatch(resetPaymentsFilters())}
             onRetry={() => dispatch(fetchRecentPayments())}
             onCreatePayment={handleCreatePayment}
-            onUpdatePayment={handleUpdatePayment}
             onDeletePayment={handleDeletePayment}
           />
         )}
@@ -577,7 +568,6 @@ export const AdminDashboard = () => {
             onResetFilters={() => dispatch(resetServiceTicketsFilters())}
             onRetry={() => dispatch(fetchRecentServiceTickets())}
             onCreateTicket={handleCreateTicket}
-            onUpdateTicket={handleUpdateTicket}
             onDeleteTicket={handleDeleteTicket}
           />
         )}

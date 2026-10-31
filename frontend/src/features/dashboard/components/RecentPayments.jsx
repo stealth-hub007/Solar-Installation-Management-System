@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, RotateCcw, CreditCard, Receipt, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Search, RotateCcw, CreditCard, Receipt, Plus, Trash2 } from 'lucide-react';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Table, { TablePagination } from '../../../components/ui/Table';
 import { StatusBadge } from '../../../components/ui/Badge';
@@ -23,12 +23,10 @@ export const RecentPayments = ({
   onResetFilters,
   onRetry,
   onCreatePayment,
-  onUpdatePayment,
   onDeletePayment,
 }) => {
   const [searchInput, setSearchInput] = useState(filters.search || '');
   const [viewPayment, setViewPayment] = useState(null);
-  const [editingPayment, setEditingPayment] = useState(null);
   const [deletingPayment, setDeletingPayment] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -54,13 +52,6 @@ export const RecentPayments = ({
     if (onCreatePayment) {
       await onCreatePayment(formData);
       setIsCreateOpen(false);
-    }
-  };
-
-  const handleEditSubmit = async (formData) => {
-    if (onUpdatePayment && editingPayment) {
-      await onUpdatePayment({ id: editingPayment.id, data: formData });
-      setEditingPayment(null);
     }
   };
 
@@ -137,20 +128,13 @@ export const RecentPayments = ({
       align: 'center',
       headerClassName: 'w-24 text-center',
       cell: ({ row }) => (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-center gap-1.5">
           <button
             onClick={() => setViewPayment(row)}
             className="p-1 rounded-md text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 transition"
             title="View Voucher"
           >
             <Receipt className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setEditingPayment(row)}
-            className="p-1 rounded-md text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
-            title="Edit Payment"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setDeletingPayment(row)}
@@ -308,16 +292,6 @@ export const RecentPayments = ({
           isOpen={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
           onSubmit={handleCreateSubmit}
-        />
-      )}
-
-      {/* Edit Payment Modal */}
-      {editingPayment && (
-        <PaymentModal
-          isOpen={!!editingPayment}
-          initialData={editingPayment}
-          onClose={() => setEditingPayment(null)}
-          onSubmit={handleEditSubmit}
         />
       )}
 

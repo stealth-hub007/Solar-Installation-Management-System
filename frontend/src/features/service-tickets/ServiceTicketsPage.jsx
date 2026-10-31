@@ -61,10 +61,6 @@ export const ServiceTicketsPage = () => {
           await dispatch(createServiceTicket(data));
           dispatch(fetchRecentServiceTickets(serviceTicketsState.pagination));
         }}
-        onUpdateTicket={async ({ id, data }) => {
-          await dispatch(updateServiceTicket({ id, data }));
-          dispatch(fetchRecentServiceTickets(serviceTicketsState.pagination));
-        }}
         onDeleteTicket={async (id) => {
           await dispatch(deleteServiceTicket(id));
           dispatch(fetchRecentServiceTickets(serviceTicketsState.pagination));

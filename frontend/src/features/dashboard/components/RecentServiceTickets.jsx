@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, RotateCcw, Eye, Headphones, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Search, RotateCcw, Eye, Headphones, Plus, Trash2 } from 'lucide-react';
 import Card, { CardHeader } from '../../../components/ui/Card';
 import Table, { TablePagination } from '../../../components/ui/Table';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
@@ -22,12 +22,10 @@ export const RecentServiceTickets = ({
   onResetFilters,
   onRetry,
   onCreateTicket,
-  onUpdateTicket,
   onDeleteTicket,
 }) => {
   const [searchInput, setSearchInput] = useState(filters.search || '');
   const [viewTicket, setViewTicket] = useState(null);
-  const [editingTicket, setEditingTicket] = useState(null);
   const [deletingTicket, setDeletingTicket] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -53,13 +51,6 @@ export const RecentServiceTickets = ({
     if (onCreateTicket) {
       await onCreateTicket(formData);
       setIsCreateOpen(false);
-    }
-  };
-
-  const handleEditSubmit = async (formData) => {
-    if (onUpdateTicket && editingTicket) {
-      await onUpdateTicket({ id: editingTicket.id, data: formData });
-      setEditingTicket(null);
     }
   };
 
@@ -147,20 +138,13 @@ export const RecentServiceTickets = ({
       align: 'center',
       headerClassName: 'w-24 text-center',
       cell: ({ row }) => (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-center gap-1.5">
           <button
             onClick={() => setViewTicket(row)}
             className="p-1 rounded-md text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 transition"
             title="Inspect Service Ticket"
           >
             <Eye className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setEditingTicket(row)}
-            className="p-1 rounded-md text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
-            title="Edit Ticket"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setDeletingTicket(row)}
@@ -315,16 +299,6 @@ export const RecentServiceTickets = ({
           isOpen={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
           onSubmit={handleCreateSubmit}
-        />
-      )}
-
-      {/* Edit Ticket Modal */}
-      {editingTicket && (
-        <ServiceTicketModal
-          isOpen={!!editingTicket}
-          initialData={editingTicket}
-          onClose={() => setEditingTicket(null)}
-          onSubmit={handleEditSubmit}
         />
       )}
 

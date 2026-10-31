@@ -263,7 +263,7 @@ export const LoginPage = () => {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => setDemoAccount('admin@sunpower.com', 'Admin@12345Password')}
+                onClick={() => setDemoAccount('admin@sunpower.com', 'admin123')}
                 className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-left font-medium transition"
               >
                 <div className="font-bold">Super Admin</div>
@@ -271,11 +271,27 @@ export const LoginPage = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setDemoAccount('vikram.tech@sunpower.com', 'Admin@12345Password')}
+                onClick={() => setDemoAccount('sales@sunpower.com', 'sales123')}
+                className="px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 text-left font-medium transition"
+              >
+                <div className="font-bold">Sales Lead</div>
+                <div className="text-[10px] text-amber-600 truncate">Quotes & Enquiries</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoAccount('warehouse@sunpower.com', 'warehouse123')}
+                className="px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 text-left font-medium transition"
+              >
+                <div className="font-bold">Warehouse</div>
+                <div className="text-[10px] text-purple-600 truncate">Stock & Dispatch</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoAccount('vikram.tech@sunpower.com', 'tech123')}
                 className="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100 text-left font-medium transition"
               >
                 <div className="font-bold">Technician</div>
-                <div className="text-[10px] text-sky-600 truncate">Field App Only</div>
+                <div className="text-[10px] text-sky-600 truncate">Field App & Tasks</div>
               </button>
             </div>
           </div>

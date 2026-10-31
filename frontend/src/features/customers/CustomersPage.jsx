@@ -212,7 +212,6 @@ export const CustomersPage = () => {
     {
       header: 'Actions',
       align: 'center',
-      stickyRight: true,
       headerClassName: 'w-24 text-center',
       cell: ({ row }) => (
         <div className="flex items-center justify-center gap-0.5 sm:gap-1">

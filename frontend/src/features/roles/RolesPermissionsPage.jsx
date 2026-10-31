@@ -163,7 +163,6 @@ export const RolesPermissionsPage = () => {
     {
       header: 'Actions',
       align: 'center',
-      stickyRight: true,
       headerClassName: 'w-28 text-center',
       cell: ({ row }) => (
         <div className="flex items-center justify-center gap-1.5">

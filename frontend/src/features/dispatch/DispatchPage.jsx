@@ -142,7 +142,6 @@ export const DispatchPage = () => {
             {
               header: 'Actions',
               align: 'center',
-              stickyRight: true,
               cell: ({ row }) =>
                 row.status !== 'Delivered' ? (
                   <Button

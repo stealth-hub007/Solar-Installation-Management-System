@@ -53,55 +53,56 @@ export const CustomersPage = () => {
 
   const columns = [
     {
-      header: 'ID',
+      header: 'Customer ID',
       accessor: 'id',
       nowrap: true,
-      headerClassName: 'w-20',
+      headerClassName: 'w-24',
       cell: ({ value }) => (
         <span className="font-mono text-xs font-semibold text-[#0284C7]">{value}</span>
       ),
     },
     {
-      header: 'Customer',
+      header: 'Customer Name',
       accessor: 'name',
-      headerClassName: 'min-w-[130px]',
+      headerClassName: 'min-w-[140px]',
       cell: ({ row }) => (
-        <div className="max-w-[160px]">
+        <div className="max-w-[170px]">
           <span className="font-semibold text-slate-800 block truncate" title={row.name}>{row.name}</span>
-          <span className="text-[11px] text-slate-400 font-normal block truncate">{row.type}</span>
+          <span className="text-[11px] text-slate-400 font-normal block truncate">({row.type})</span>
         </div>
       ),
     },
     {
-      header: 'Contact',
+      header: 'Contact Info',
       accessor: 'phone',
-      headerClassName: 'min-w-[130px]',
+      headerClassName: 'min-w-[140px]',
       cell: ({ row }) => (
-        <div className="space-y-0.5 max-w-[140px]">
+        <div className="space-y-0.5 max-w-[150px]">
           <a
             href={`tel:${row.phone}`}
-            className="flex items-center gap-1 text-xs text-slate-700 hover:text-[#0284C7] font-mono whitespace-nowrap"
+            className="flex items-center gap-1.5 text-xs text-slate-700 hover:text-[#0284C7] font-mono whitespace-nowrap"
           >
             <Phone className="w-3 h-3 text-slate-400 shrink-0" />
             <span>{row.phone}</span>
           </a>
           {row.email && (
             <span
-              className="text-[11px] text-slate-400 block truncate"
+              className="flex items-center gap-1 text-[11px] text-slate-400 truncate"
               title={row.email}
             >
-              {row.email}
+              <Mail className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+              <span className="truncate">{row.email}</span>
             </span>
           )}
         </div>
       ),
     },
     {
-      header: 'Location',
+      header: 'Location / Address',
       accessor: 'city',
-      headerClassName: 'min-w-[120px]',
+      headerClassName: 'min-w-[140px]',
       cell: ({ row }) => (
-        <div className="max-w-[140px]">
+        <div className="max-w-[160px]">
           <span className="flex items-center gap-1 text-xs text-slate-700 font-medium truncate" title={row.city}>
             <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
             <span className="truncate">{row.city}</span>
@@ -115,16 +116,15 @@ export const CustomersPage = () => {
       ),
     },
     {
-      header: 'Sites',
+      header: 'Installations',
       accessor: 'projectCount',
       align: 'center',
       headerClassName: 'w-24 text-center',
       cell: ({ value, row }) => (
         <div className="text-center">
           <span className="text-xs font-semibold text-slate-800 block whitespace-nowrap">
-            {value || 0} site
+            {value || 1} site ({row.totalCapacity || 10.5} kW)
           </span>
-          <span className="text-[10px] text-slate-400 font-medium block whitespace-nowrap">({row.totalCapacity} kW)</span>
         </div>
       ),
     },

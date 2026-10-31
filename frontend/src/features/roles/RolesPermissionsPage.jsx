@@ -243,7 +243,7 @@ export const RolesPermissionsPage = () => {
         subtitle="Manage employee security privileges, provision team authorizations, and audit login access requests"
       >
         <Button variant="primary" size="sm" icon={Plus} onClick={() => setIsSimulateOpen(true)}>
-          Provision Team Member
+          New Access Request
         </Button>
       </PageHeader>
 

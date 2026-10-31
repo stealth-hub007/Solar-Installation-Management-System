@@ -343,3 +343,4 @@ async def delete_survey(
     db: AsyncSession = Depends(get_db),
 ):
     return await SalesService.delete_survey(db, survey_id)
+

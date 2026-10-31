@@ -81,7 +81,7 @@ export const RecentEnquiries = ({
       ),
     },
     {
-      header: 'Contact & Details',
+      header: 'Contact, Address & Files',
       accessor: 'contactNumber',
       cell: ({ row }) => (
         <div className="min-w-0 max-w-[340px]">

@@ -122,14 +122,14 @@ export const ProductsPage = () => {
 
   const columns = [
     {
-      header: 'SKU',
+      header: 'SKU / Model ID',
       accessor: 'id',
       cell: ({ value }) => (
         <span className="font-mono text-xs font-semibold text-[#0284C7] whitespace-nowrap">{value}</span>
       ),
     },
     {
-      header: 'Product',
+      header: 'Product Description',
       accessor: 'name',
       cell: ({ row }) => (
         <div className="max-w-[190px] truncate" title={`${row.name} (${row.brand})`}>
@@ -148,7 +148,7 @@ export const ProductsPage = () => {
       ),
     },
     {
-      header: 'Capacity',
+      header: 'Rating / Capacity',
       accessor: 'wattage',
       cell: ({ value }) => <span className="font-semibold text-slate-800 text-xs whitespace-nowrap">{value}</span>,
     },
@@ -158,7 +158,7 @@ export const ProductsPage = () => {
       cell: ({ value }) => <span className="text-xs text-sky-700 font-semibold whitespace-nowrap">{value}</span>,
     },
     {
-      header: 'Unit Price',
+      header: 'Unit Price (₹)',
       accessor: 'price',
       align: 'right',
       cell: ({ value }) => (

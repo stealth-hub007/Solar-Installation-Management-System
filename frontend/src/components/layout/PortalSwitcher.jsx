@@ -47,7 +47,7 @@ export const PortalSwitcher = ({ className = '' }) => {
       path: '/technician/dashboard',
       isActive: isTechnician,
       icon: Wrench,
-      title: 'Technician Field Portal (Future Role)',
+      title: '1-tap switch to Technician Field Operations',
     },
   ];
 

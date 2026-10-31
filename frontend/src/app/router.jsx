@@ -2,6 +2,7 @@ import React, { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
 import SalesLayout from '../components/layout/SalesLayout';
+import TechnicianLayout from '../components/layout/TechnicianLayout';
 
 // Lazy-loaded Admin Pages
 const AdminDashboard = lazy(() => import('../features/dashboard/pages/AdminDashboard'));
@@ -40,6 +41,16 @@ const SalesSurveysPage = lazy(() => import('../features/sales/pages/SurveysPage'
 const SalesQuotationsPage = lazy(() => import('../features/sales/pages/QuotationsPage'));
 const SalesQuotationDetailsPage = lazy(() => import('../features/sales/pages/QuotationDetailsPage'));
 const SalesOrdersPage = lazy(() => import('../features/sales/pages/OrdersPage'));
+
+// Lazy-loaded Technician Pages
+const TechnicianDashboard = lazy(() => import('../features/technician/pages/TechnicianDashboard'));
+const AssignedSurveysPage = lazy(() => import('../features/technician/pages/AssignedSurveysPage'));
+const SurveyDetailsPage = lazy(() => import('../features/technician/pages/SurveyDetailsPage'));
+const SurveySubmissionPage = lazy(() => import('../features/technician/pages/SurveySubmissionPage'));
+const AssignedInstallationsPage = lazy(() => import('../features/technician/pages/AssignedInstallationsPage'));
+const InstallationDetailsPage = lazy(() => import('../features/technician/pages/InstallationDetailsPage'));
+const InstallationChecklistPage = lazy(() => import('../features/technician/pages/InstallationChecklistPage'));
+const TechnicianProfilePage = lazy(() => import('../features/technician/pages/TechnicianProfilePage'));
 
 export const router = createBrowserRouter([
   {
@@ -205,14 +216,43 @@ export const router = createBrowserRouter([
   },
   {
     path: '/technician',
+    element: <TechnicianLayout />,
     children: [
       {
         index: true,
         element: <Navigate to="/technician/dashboard" replace />,
       },
       {
-        path: '*',
-        element: <PortalPlaceholderPage type="technician" />,
+        path: 'dashboard',
+        element: <TechnicianDashboard />,
+      },
+      {
+        path: 'surveys',
+        element: <AssignedSurveysPage />,
+      },
+      {
+        path: 'surveys/:surveyId',
+        element: <SurveyDetailsPage />,
+      },
+      {
+        path: 'surveys/:surveyId/submit',
+        element: <SurveySubmissionPage />,
+      },
+      {
+        path: 'installations',
+        element: <AssignedInstallationsPage />,
+      },
+      {
+        path: 'installations/:installationId',
+        element: <InstallationDetailsPage />,
+      },
+      {
+        path: 'installations/:installationId/checklist',
+        element: <InstallationChecklistPage />,
+      },
+      {
+        path: 'profile',
+        element: <TechnicianProfilePage />,
       },
     ],
   },

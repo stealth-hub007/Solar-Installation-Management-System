@@ -7,6 +7,12 @@ import salesFollowUpReducer from '../features/sales/slices/followUpSlice';
 import salesSurveyReducer from '../features/sales/slices/surveySlice';
 import salesQuotationReducer from '../features/sales/slices/quotationSlice';
 import salesOrderReducer from '../features/sales/slices/orderSlice';
+import technicianDashboardReducer from '../features/technician/slices/technicianDashboardSlice';
+import assignedSurveyReducer from '../features/technician/slices/assignedSurveySlice';
+import assignedInstallationReducer from '../features/technician/slices/assignedInstallationSlice';
+import installationChecklistReducer from '../features/technician/slices/installationChecklistSlice';
+import equipmentVerificationReducer from '../features/technician/slices/equipmentVerificationSlice';
+import installationSignoffReducer from '../features/technician/slices/installationSignoffSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +24,12 @@ export const store = configureStore({
     salesSurveys: salesSurveyReducer,
     salesQuotations: salesQuotationReducer,
     salesOrders: salesOrderReducer,
+    technicianDashboard: technicianDashboardReducer,
+    assignedSurveys: assignedSurveyReducer,
+    assignedInstallations: assignedInstallationReducer,
+    installationChecklist: installationChecklistReducer,
+    equipmentVerification: equipmentVerificationReducer,
+    installationSignoff: installationSignoffReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

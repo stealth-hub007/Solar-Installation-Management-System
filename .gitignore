@@ -1,29 +1,52 @@
-# Python
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+dist-ssr/
+frontend/dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Python / Backend
 __pycache__/
+backend/**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-
-# Virtual Environment
 .venv/
+backend/.venv/
 venv/
 env/
 ENV/
-
-# Testing & Cache
 .pytest_cache/
+backend/.pytest_cache/
 .coverage
 htmlcov/
 .mypy_cache/
 
 # Environment Variables & Secrets
 .env
+.env*.local
 !.env.example
+backend/.env
+!backend/.env.example
+frontend/.env
+!frontend/.env.example
 
-# OS generated files
+# OS Generated Files
 .DS_Store
 Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # User Uploads (keep directory structure)
 backend/uploads/**
@@ -32,6 +55,5 @@ backend/uploads/**
 
 # IDEs
 .idea/
-.vscode/
-*.swp
-*.swo
+.vscode/*
+!.vscode/extensions.json

@@ -148,3 +148,4 @@ export const EquipmentVerificationTable = ({ equipments = [], jobId }) => {
 };
 
 export default EquipmentVerificationTable;
+

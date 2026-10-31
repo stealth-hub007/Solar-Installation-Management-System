@@ -176,40 +176,54 @@ export const Sidebar = () => {
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white text-slate-800 select-none border-r border-slate-200 shadow-sm">
       {/* Brand Header */}
-      <div className="flex items-center justify-between h-16 px-3 bg-white border-b border-slate-100 shrink-0">
-        <div className="flex items-center gap-2.5 overflow-hidden">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] flex items-center justify-center text-white font-bold shadow-sm shrink-0">
-            <Sun className="w-5 h-5 text-amber-300 fill-amber-300 animate-[spin_20s_linear_infinite]" />
-          </div>
-          {!isCollapsed && (
+      {!isCollapsed ? (
+        <div className="flex items-center justify-between h-16 px-3 bg-white border-b border-slate-100 shrink-0">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] flex items-center justify-center text-white font-bold shadow-sm shrink-0">
+              <Sun className="w-5 h-5 text-amber-300 fill-amber-300 animate-[spin_20s_linear_infinite]" />
+            </div>
             <div className="truncate">
               <span className="font-bold text-base tracking-tight text-slate-900 flex items-center gap-1.5">
                 SIMS <span className="text-[10px] px-1.5 py-0.5 font-semibold bg-[#E0F2FE] text-[#0284C7] rounded">Solar</span>
               </span>
               <p className="text-[11px] text-slate-400 truncate">Solar Management System</p>
             </div>
-          )}
+          </div>
+
+          {/* Desktop Collapse Toggle Button */}
+          <button
+            onClick={toggleSidebar}
+            aria-label="Collapse sidebar"
+            className="hidden lg:flex p-1.5 rounded-lg text-slate-500 bg-slate-100 hover:text-slate-800 hover:bg-slate-200 transition shrink-0 ml-1.5"
+            title="Collapse sidebar"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* Mobile close button */}
+          <button
+            onClick={closeMobileSidebar}
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-
-        {/* Desktop Collapse Toggle Button placed on the right side of SIMS logo */}
-        <button
-          onClick={toggleSidebar}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden lg:flex p-1.5 rounded-lg text-slate-500 bg-slate-100 hover:text-slate-800 hover:bg-slate-200 transition shrink-0 ml-1.5"
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
-
-        {/* Mobile close button */}
-        <button
-          onClick={closeMobileSidebar}
-          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-          aria-label="Close sidebar"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+      ) : (
+        <div className="h-16 flex items-center justify-center px-2 bg-white border-b border-slate-100 shrink-0">
+          <button
+            onClick={toggleSidebar}
+            aria-label="Expand sidebar"
+            className="relative group p-2 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] text-white shadow-sm hover:ring-2 hover:ring-[#0284C7]/30 transition flex items-center justify-center"
+            title="Click to expand sidebar"
+          >
+            <Sun className="w-5 h-5 text-amber-300 fill-amber-300 animate-[spin_20s_linear_infinite]" />
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] shadow">
+              <ChevronRight className="w-2.5 h-2.5" />
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Navigation Links Scroll Container */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-3 space-y-5 scrollbar-thin">
@@ -267,7 +281,7 @@ export const Sidebar = () => {
       {/* Desktop Persistent Sidebar */}
       <aside
         className={`hidden lg:block transition-all duration-300 ease-in-out shrink-0 h-screen sticky top-0 z-30 ${
-          isCollapsed ? 'w-18' : 'w-64'
+          isCollapsed ? 'w-20' : 'w-64'
         }`}
       >
         {sidebarContent}

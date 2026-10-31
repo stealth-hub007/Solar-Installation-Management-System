@@ -93,3 +93,4 @@ export const TechnicianProfilePage = () => {
 };
 
 export default TechnicianProfilePage;
+

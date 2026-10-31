@@ -99,3 +99,4 @@ const assignedInstallationSlice = createSlice({
 
 export const { clearSelectedJob } = assignedInstallationSlice.actions;
 export default assignedInstallationSlice.reducer;
+

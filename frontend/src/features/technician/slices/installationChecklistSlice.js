@@ -48,3 +48,4 @@ const installationChecklistSlice = createSlice({
 
 export const { setLocalChecklist, toggleChecklistItem } = installationChecklistSlice.actions;
 export default installationChecklistSlice.reducer;
+

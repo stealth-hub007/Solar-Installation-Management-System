@@ -128,3 +128,4 @@ export const TodayAssignments = ({ surveys = [], installations = [] }) => {
 };
 
 export default TodayAssignments;
+

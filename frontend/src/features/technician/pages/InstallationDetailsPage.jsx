@@ -275,3 +275,4 @@ export const InstallationDetailsPage = () => {
 };
 
 export default InstallationDetailsPage;
+

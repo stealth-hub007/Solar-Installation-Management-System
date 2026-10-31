@@ -195,3 +195,4 @@ export const AssignedSurveysPage = () => {
 };
 
 export default AssignedSurveysPage;
+

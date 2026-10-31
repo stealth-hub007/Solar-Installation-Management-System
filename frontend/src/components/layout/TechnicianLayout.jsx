@@ -31,3 +31,4 @@ export const TechnicianLayout = () => {
 };
 
 export default TechnicianLayout;
+

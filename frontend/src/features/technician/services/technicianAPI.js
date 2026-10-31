@@ -66,3 +66,4 @@ export const technicianAPI = {
 };
 
 export default technicianAPI;
+

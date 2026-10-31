@@ -4,14 +4,7 @@ const SidebarContext = createContext(undefined);
 
 export const SidebarProvider = ({ children }) => {
   // Desktop sidebar collapsed state (default expanded)
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    try {
-      const saved = localStorage.getItem('sims_sidebar_collapsed');
-      return saved ? JSON.parse(saved) : false;
-    } catch {
-      return false;
-    }
-  });
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Mobile sidebar drawer state (open/closed)
   const [isMobileOpen, setIsMobileOpen] = useState(false);

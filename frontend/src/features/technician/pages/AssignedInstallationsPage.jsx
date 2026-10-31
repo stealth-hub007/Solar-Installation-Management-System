@@ -205,3 +205,4 @@ export const AssignedInstallationsPage = () => {
 };
 
 export default AssignedInstallationsPage;
+

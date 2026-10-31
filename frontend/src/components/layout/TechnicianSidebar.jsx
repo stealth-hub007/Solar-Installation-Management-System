@@ -5,8 +5,7 @@ import {
   ClipboardCheck,
   Wrench,
   CheckSquare,
-  QrCode,
-  PenTool,
+  Boxes,
   Clock,
   User,
   Sun,
@@ -17,27 +16,37 @@ import {
 } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
 
-export const technicianNavigationItems = [
+export const technicianGroups = [
   {
-    name: 'Field Dashboard',
-    path: '/technician/dashboard',
-    icon: LayoutDashboard,
-    badge: 'Live',
+    category: 'FIELD OPERATIONS',
+    items: [
+      {
+        name: 'Field Dashboard',
+        path: '/technician/dashboard',
+        icon: LayoutDashboard,
+        badge: 'Live',
+      },
+      {
+        name: 'Assigned Surveys',
+        path: '/technician/surveys',
+        icon: ClipboardCheck,
+      },
+      {
+        name: 'Installation Jobs',
+        path: '/technician/installations',
+        icon: Wrench,
+      },
+    ],
   },
   {
-    name: 'Assigned Surveys',
-    path: '/technician/surveys',
-    icon: ClipboardCheck,
-  },
-  {
-    name: 'Installation Jobs',
-    path: '/technician/installations',
-    icon: Wrench,
-  },
-  {
-    name: 'My Profile & Work',
-    path: '/technician/profile',
-    icon: User,
+    category: 'COMPLIANCE & ACCOUNT',
+    items: [
+      {
+        name: 'Field Hours & Profile',
+        path: '/technician/profile',
+        icon: Clock,
+      },
+    ],
   },
 ];
 
@@ -64,7 +73,7 @@ export const TechnicianSidebar = () => {
         `}
       >
         {/* Brand Header Mobile */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100 bg-[#F0F7FF]/60">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100 bg-[#F0F7FF]/60 shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] flex items-center justify-center text-white shadow-card shrink-0">
               <Sun className="w-5 h-5 text-amber-300 fill-amber-300" />
@@ -89,39 +98,45 @@ export const TechnicianSidebar = () => {
         </div>
 
         {/* Mobile Navigation List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Field Operations
-          </div>
-          {technicianNavigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          {technicianGroups.map((group, gIdx) => (
+            <div key={gIdx} className="space-y-1">
+              <div className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                {group.category}
+              </div>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== '/technician/dashboard' && location.pathname.startsWith(item.path));
 
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={closeMobileSidebar}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-150
-                  ${
-                    isActive
-                      ? 'bg-[#E0F2FE] text-[#0284C7] shadow-sm font-bold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 font-medium'
-                  }
-                `}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#0284C7]' : 'text-slate-400'}`} />
-                  <span>{item.name}</span>
-                </div>
-                {item.badge && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                    {item.badge}
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={closeMobileSidebar}
+                    className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors duration-150
+                      ${
+                        isActive
+                          ? 'bg-[#E0F2FE] text-[#0284C7] shadow-sm font-bold'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 font-medium'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#0284C7]' : 'text-slate-400'}`} />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        {item.badge}
+                      </span>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {/* Mobile Footer Status */}
@@ -135,83 +150,114 @@ export const TechnicianSidebar = () => {
 
       {/* Desktop Persistent Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col bg-white border-r border-slate-200/90 h-screen sticky top-0 z-30 transition-all duration-300 ease-in-out select-none
+        className={`hidden lg:flex flex-col bg-white border-r border-slate-200/90 shadow-subtle shrink-0 h-screen sticky top-0 z-30 transition-all duration-300 ease-in-out select-none
           ${isCollapsed ? 'w-20' : 'w-64'}
         `}
       >
         {/* Brand Header Desktop */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100 bg-[#F0F7FF]/30">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] flex items-center justify-center text-white shadow-card shrink-0">
-              <Sun className="w-5 h-5 text-amber-300 fill-amber-300" />
-            </div>
+        {!isCollapsed ? (
+          <div className="h-16 flex items-center justify-between px-3.5 border-b border-slate-100 bg-[#F0F7FF]/50 shrink-0">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] flex items-center justify-center text-white shadow-card shrink-0">
+                <Sun className="w-5 h-5 text-amber-300 fill-amber-300" />
+              </div>
 
-            {!isCollapsed && (
               <div className="flex flex-col truncate">
                 <div className="flex items-center gap-1.5">
                   <span className="font-extrabold text-base text-slate-900 tracking-tight">SIMS</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]">
-                    Tech
+                    Tech Portal
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-500 truncate font-medium">Solar Field Portal</span>
+                <span className="text-[11px] text-slate-500 truncate font-medium">Solar Field Operations</span>
               </div>
-            )}
-          </div>
-
-          {/* Collapse/Expand Toggle */}
-          <button
-            onClick={toggleSidebar}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-        </div>
-
-        {/* Navigation Section */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {!isCollapsed && (
-            <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Field Execution
             </div>
-          )}
 
-          {technicianNavigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+            {/* Collapse Button */}
+            <button
+              onClick={toggleSidebar}
+              aria-label="Collapse sidebar"
+              className="p-1.5 rounded-lg text-slate-500 bg-slate-100 hover:text-slate-800 hover:bg-slate-200 transition shrink-0 ml-1.5"
+              title="Collapse sidebar"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="h-16 flex items-center justify-center px-2 border-b border-slate-100 bg-[#F0F7FF]/50 shrink-0">
+            <button
+              onClick={toggleSidebar}
+              aria-label="Expand sidebar"
+              className="relative group p-1.5 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] text-white shadow-card hover:ring-2 hover:ring-[#0284C7]/30 transition"
+              title="Click to expand sidebar"
+            >
+              <Sun className="w-5 h-5 text-amber-300 fill-amber-300" />
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] shadow">
+                <ChevronRight className="w-2.5 h-2.5" />
+              </span>
+            </button>
+          </div>
+        )}
 
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group
-                  ${
-                    isActive
-                      ? 'bg-[#E0F2FE] text-[#0284C7] font-bold shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
-                  }
-                  ${isCollapsed ? 'justify-center px-0' : ''}
-                `}
-                title={isCollapsed ? item.name : undefined}
-              >
-                <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-                  <Icon
-                    className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? 'text-[#0284C7]' : 'text-slate-400 group-hover:text-slate-600'
-                    }`}
-                  />
-                  {!isCollapsed && <span>{item.name}</span>}
-                </div>
-
-                {!isCollapsed && item.badge && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                    {item.badge}
+        {/* Navigation List */}
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
+          {technicianGroups.map((group, gIdx) => (
+            <div key={gIdx} className="space-y-1">
+              <div className="px-3 mb-1">
+                {!isCollapsed ? (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {group.category}
                   </span>
+                ) : (
+                  <div className="w-4 h-0.5 bg-slate-200 mx-auto rounded" />
                 )}
-              </NavLink>
-            );
-          })}
+              </div>
+
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== '/technician/dashboard' && location.pathname.startsWith(item.path));
+
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    title={isCollapsed ? item.name : undefined}
+                    className={`group flex items-center gap-3 rounded-xl text-xs font-semibold transition-all duration-150 relative
+                      ${
+                        isActive
+                          ? 'bg-[#E0F2FE] text-[#0284C7] shadow-sm font-bold'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                      }
+                      ${isCollapsed ? 'justify-center w-11 h-11 mx-auto px-0' : 'px-3 py-2.5'}
+                    `}
+                  >
+                    {isActive && !isCollapsed && (
+                      <span className="absolute left-0 top-2 bottom-2 w-1 bg-[#0284C7] rounded-r-full" />
+                    )}
+
+                    <Icon
+                      className={`w-4 h-4 shrink-0 transition-colors ${
+                        isActive ? 'text-[#0284C7]' : 'text-slate-400 group-hover:text-slate-700'
+                      }`}
+                    />
+
+                    {!isCollapsed && (
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="truncate">{item.name}</span>
+                        {item.badge && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {/* Desktop Footer Card */}

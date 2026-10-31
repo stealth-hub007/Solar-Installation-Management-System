@@ -370,3 +370,4 @@ export const installationAPI = {
 };
 
 export default installationAPI;
+

@@ -64,3 +64,4 @@ export const InstallationChecklistPage = () => {
 };
 
 export default InstallationChecklistPage;
+

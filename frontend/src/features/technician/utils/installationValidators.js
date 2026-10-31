@@ -50,3 +50,4 @@ export const validatePreCompletion = ({ checklist, signoff, verifiedEquipments, 
     blockingReasons,
   };
 };
+

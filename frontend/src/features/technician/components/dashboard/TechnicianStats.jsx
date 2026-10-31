@@ -120,3 +120,4 @@ export const TechnicianStats = ({ stats = {} }) => {
 };
 
 export default TechnicianStats;
+

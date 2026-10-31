@@ -47,3 +47,4 @@ export const RecentTechnicianActivity = ({ activities = [] }) => {
 };
 
 export default RecentTechnicianActivity;
+

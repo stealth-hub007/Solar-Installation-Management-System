@@ -74,3 +74,4 @@ export const EQUIPMENT_VERIFICATION_STATUSES = [
   { value: 'MISMATCH', label: 'Serial Mismatch', color: 'rose' },
   { value: 'DAMAGED', label: 'Physical Damage Noted', color: 'purple' },
 ];
+

@@ -39,3 +39,4 @@ export const equipmentAPI = {
 };
 
 export default equipmentAPI;
+

@@ -168,3 +168,4 @@ This document specifies the technical API integration contract between the **Tec
 ### D. Equipment Serial Number Verification
 - **Endpoint**: `GET /api/v1/serials/{serial_number}`
 - **Description**: Verifies physical serial numbers scanned on panels and inverters against warehouse delivery challan inventory.
+

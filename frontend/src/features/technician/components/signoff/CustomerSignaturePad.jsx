@@ -224,3 +224,4 @@ export const CustomerSignaturePad = ({ customerName = '', onSaveSignoff, isSubmi
 };
 
 export default CustomerSignaturePad;
+

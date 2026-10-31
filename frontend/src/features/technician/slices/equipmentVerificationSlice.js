@@ -59,3 +59,4 @@ const equipmentVerificationSlice = createSlice({
 
 export const { recordVerifiedSerial, flagEquipmentMismatch } = equipmentVerificationSlice.actions;
 export default equipmentVerificationSlice.reducer;
+

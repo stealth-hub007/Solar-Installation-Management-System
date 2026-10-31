@@ -135,3 +135,4 @@ export const WorkTimeTracker = ({ jobId, onLogHours, workLogs = [] }) => {
 };
 
 export default WorkTimeTracker;
+

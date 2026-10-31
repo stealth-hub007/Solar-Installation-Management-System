@@ -126,3 +126,4 @@ export const InstallationChecklist = ({ checklist = {}, onSaveChecklist, isSavin
 };
 
 export default InstallationChecklist;
+

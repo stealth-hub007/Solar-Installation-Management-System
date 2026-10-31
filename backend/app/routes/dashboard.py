@@ -85,3 +85,53 @@ async def get_warehouse_dashboard(
         data=metrics,
     )
 
+
+# ==============================================================================
+# FRONTEND ADMIN PORTAL INTEGRATION ENDPOINTS (API_CONTRACT.md)
+# ==============================================================================
+
+@router.get("/stats", summary="Executive KPI Summary for Frontend Portal")
+async def get_dashboard_stats(
+    timeRange: str = "30d",
+    db: AsyncSession = Depends(get_db),
+):
+    stats = await DashboardService.get_dashboard_stats(db, time_range=timeRange)
+    return {"success": True, "data": stats}
+
+
+@router.get("/analytics/revenue", summary="Monthly Revenue Analytics")
+async def get_revenue_analytics(
+    period: str = "12m",
+    db: AsyncSession = Depends(get_db),
+):
+    series = await DashboardService.get_revenue_analytics(db, period=period)
+    return {"success": True, "data": series}
+
+
+@router.get("/analytics/project-status", summary="Project Status Distribution")
+async def get_project_status_analytics(db: AsyncSession = Depends(get_db)):
+    dist = await DashboardService.get_project_status_analytics(db)
+    return {"success": True, "data": dist}
+
+
+@router.get("/analytics/installations", summary="Weekly Installation Velocity")
+async def get_installation_analytics(db: AsyncSession = Depends(get_db)):
+    data = await DashboardService.get_installation_analytics(db)
+    return {"success": True, "data": data}
+
+
+@router.get("/analytics/inventory", summary="Inventory Capacity and Buffers")
+async def get_inventory_analytics(db: AsyncSession = Depends(get_db)):
+    data = await DashboardService.get_inventory_analytics(db)
+    return {"success": True, "data": data}
+
+
+@router.get("/alerts", summary="Operational System Alerts")
+async def get_operational_alerts(
+    severity: str = "all",
+    db: AsyncSession = Depends(get_db),
+):
+    alerts = await DashboardService.get_operational_alerts(db, severity=severity)
+    return {"success": True, "data": alerts}
+
+

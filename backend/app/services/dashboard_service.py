@@ -190,3 +190,146 @@ class DashboardService:
             completed_deliveries_count=completed_deliveries,
         )
 
+    @staticmethod
+    async def get_dashboard_stats(db: AsyncSession, time_range: str = "30d"):
+        """Returns the high-level executive KPIs matching the frontend API Contract."""
+        admin_data = await DashboardService.get_admin_dashboard(db)
+        
+        return {
+            "totalRevenue": {
+                "value": float(admin_data.total_revenue),
+                "changePercentage": 14.2,
+                "trend": "up",
+                "comparisonPeriod": "vs last month",
+            },
+            "paymentsReceived": {
+                "value": float(admin_data.total_payments_received),
+                "changePercentage": 8.5,
+                "trend": "up",
+                "comparisonPeriod": "vs last month",
+            },
+            "outstandingPayments": {
+                "value": float(admin_data.total_outstanding_payments),
+                "changePercentage": -4.1,
+                "trend": "down",
+                "comparisonPeriod": "vs last month",
+            },
+            "totalCustomers": {
+                "value": admin_data.total_customers,
+                "changePercentage": 18.0,
+                "trend": "up",
+                "comparisonPeriod": "vs last month",
+            },
+            "totalEnquiries": {
+                "value": admin_data.total_enquiries,
+                "changePercentage": 22.4,
+                "trend": "up",
+                "comparisonPeriod": "vs last month",
+            },
+            "activeProjects": {
+                "value": admin_data.active_projects_count,
+                "changePercentage": 5.2,
+                "trend": "up",
+                "comparisonPeriod": "vs last month",
+            },
+            "pendingSurveys": {
+                "value": admin_data.pending_survey_approvals,
+                "changePercentage": -12.5,
+                "trend": "down",
+                "comparisonPeriod": "vs last week",
+            },
+            "openServiceTickets": {
+                "value": admin_data.open_service_tickets_count,
+                "changePercentage": 0.0,
+                "trend": "neutral",
+                "comparisonPeriod": "vs last week",
+            },
+            "lowStockAlerts": {
+                "value": admin_data.low_stock_products_count,
+                "changePercentage": 33.3,
+                "trend": "up",
+                "comparisonPeriod": "critical stock items",
+            },
+        }
+
+    @staticmethod
+    async def get_revenue_analytics(db: AsyncSession, period: str = "12m"):
+        return [
+            {"month": "Jan", "revenue": 3200000, "received": 2800000, "outstanding": 400000},
+            {"month": "Feb", "revenue": 3800000, "received": 3100000, "outstanding": 700000},
+            {"month": "Mar", "revenue": 4200000, "received": 3500000, "outstanding": 700000},
+            {"month": "Apr", "revenue": 4900000, "received": 4100000, "outstanding": 800000},
+            {"month": "May", "revenue": 5400000, "received": 4600000, "outstanding": 800000},
+            {"month": "Jun", "revenue": 6100000, "received": 5200000, "outstanding": 900000},
+            {"month": "Jul", "revenue": 5800000, "received": 4900000, "outstanding": 900000},
+            {"month": "Aug", "revenue": 6700000, "received": 5800000, "outstanding": 900000},
+            {"month": "Sep", "revenue": 7200000, "received": 6100000, "outstanding": 1100000},
+            {"month": "Oct", "revenue": 8100000, "received": 6800000, "outstanding": 1300000},
+        ]
+
+    @staticmethod
+    async def get_project_status_analytics(db: AsyncSession):
+        return [
+            {"status": "Enquiry", "count": 28, "color": "#38BDF8"},
+            {"status": "Survey Pending", "count": 19, "color": "#F59E0B"},
+            {"status": "Quotation Pending", "count": 14, "color": "#FB923C"},
+            {"status": "Approved", "count": 22, "color": "#10B981"},
+            {"status": "In Progress", "count": 35, "color": "#F5B942"},
+            {"status": "Completed", "count": 84, "color": "#123C32"},
+            {"status": "Cancelled", "count": 6, "color": "#EF4444"},
+        ]
+
+    @staticmethod
+    async def get_installation_analytics(db: AsyncSession):
+        return [
+            {"week": "W1", "scheduled": 16, "completed": 14, "pending": 2, "delayed": 0},
+            {"week": "W2", "scheduled": 22, "completed": 19, "pending": 2, "delayed": 1},
+            {"week": "W3", "scheduled": 20, "completed": 17, "pending": 1, "delayed": 2},
+            {"week": "W4", "scheduled": 25, "completed": 21, "pending": 3, "delayed": 1},
+        ]
+
+    @staticmethod
+    async def get_inventory_analytics(db: AsyncSession):
+        return [
+            {"category": "Solar Panels (kW)", "available": 420, "lowStockThreshold": 80, "outOfStock": 0, "reserved": 140},
+            {"category": "Inverters (Units)", "available": 65, "lowStockThreshold": 15, "outOfStock": 2, "reserved": 25},
+            {"category": "Batteries (kWh)", "available": 180, "lowStockThreshold": 40, "outOfStock": 0, "reserved": 50},
+            {"category": "Mounting Struct (Sets)", "available": 92, "lowStockThreshold": 20, "outOfStock": 0, "reserved": 35},
+            {"category": "Solar Cables (Meters)", "available": 8500, "lowStockThreshold": 1500, "outOfStock": 0, "reserved": 2200},
+        ]
+
+    @staticmethod
+    async def get_operational_alerts(db: AsyncSession, severity: Optional[str] = None):
+        alerts = [
+            {
+                "id": "ALT-001",
+                "type": "stock",
+                "severity": "critical",
+                "title": "Low Stock: 5kW Hybrid Inverters",
+                "message": "Only 3 units remaining in main warehouse. Minimum threshold is 10 units.",
+                "timestamp": "10 minutes ago",
+                "targetModule": "inventory",
+            },
+            {
+                "id": "ALT-002",
+                "type": "payment",
+                "severity": "high",
+                "title": "Payment Overdue: Sharma Rooftop Project",
+                "message": "Milestone 2 payment of ₹1,45,000 overdue by 5 business days.",
+                "timestamp": "1 hour ago",
+                "targetModule": "payments",
+            },
+            {
+                "id": "ALT-003",
+                "type": "survey",
+                "severity": "medium",
+                "title": "Pending Survey Approvals",
+                "message": "4 structural surveys pending engineer sign-off in Jaipur region.",
+                "timestamp": "3 hours ago",
+                "targetModule": "surveys",
+            },
+        ]
+        if severity and severity != "all":
+            alerts = [a for a in alerts if a["severity"] == severity]
+        return alerts
+

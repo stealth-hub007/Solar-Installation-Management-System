@@ -134,7 +134,7 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
 app.add_exception_handler(Exception, generic_exception_handler)
 
 # ------------------------------------------------------------------------------
-# Register API Routers
+# Register API Routers (Mount at both /api/v1 and /api for frontend compatibility)
 # ------------------------------------------------------------------------------
 api_v1_router = APIRouter(prefix=settings.API_V1_STR)
 api_v1_router.include_router(health_router)
@@ -160,6 +160,32 @@ api_v1_router.include_router(dashboard_router)
 api_v1_router.include_router(notifications_router)
 
 app.include_router(api_v1_router)
+
+# Also mount under /api so frontend calls using baseURL = 'http://localhost:8000/api' match directly
+api_router = APIRouter(prefix="/api")
+api_router.include_router(health_router)
+api_router.include_router(auth_router)
+api_router.include_router(users_router)
+api_router.include_router(customers_router)
+api_router.include_router(enquiries_router)
+api_router.include_router(surveys_router)
+api_router.include_router(products_router)
+api_router.include_router(packages_router)
+api_router.include_router(quotations_router)
+api_router.include_router(orders_router)
+api_router.include_router(payments_router)
+api_router.include_router(inventory_router)
+api_router.include_router(serials_router)
+api_router.include_router(dispatches_router)
+api_router.include_router(warranties_router)
+api_router.include_router(installations_router)
+api_router.include_router(service_tickets_router)
+api_router.include_router(expenses_router)
+api_router.include_router(reports_router)
+api_router.include_router(dashboard_router)
+api_router.include_router(notifications_router)
+
+app.include_router(api_router)
 
 
 # Support both /docs and /api/v1/docs

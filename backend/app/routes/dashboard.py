@@ -93,19 +93,24 @@ async def get_warehouse_dashboard(
 
 @router.get("/stats", summary="Executive KPI Summary for Frontend Portal")
 async def get_dashboard_stats(
-    timeRange: str = "30d",
+    timeRange: Optional[str] = Query("30d"),
+    time_range: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    stats = await DashboardService.get_dashboard_stats(db, time_range=timeRange)
+    selected_range = time_range or timeRange or "30d"
+    stats = await DashboardService.get_dashboard_stats(db, time_range=selected_range)
     return {"success": True, "data": stats}
 
 
 @router.get("/analytics/revenue", summary="Monthly Revenue Analytics")
 async def get_revenue_analytics(
-    period: str = "12m",
+    period: Optional[str] = Query("12m"),
+    timeRange: Optional[str] = Query(None),
+    time_range: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    series = await DashboardService.get_revenue_analytics(db, period=period)
+    selected_period = time_range or timeRange or period or "12m"
+    series = await DashboardService.get_revenue_analytics(db, period=selected_period)
     return {"success": True, "data": series}
 
 

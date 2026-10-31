@@ -15,10 +15,10 @@ export const dashboardAPI = {
   async getDashboardStats(params = {}) {
     if (USE_MOCK) {
       await asyncDelay();
-      const stats = storageService.getStats(params.timeRange);
+      const stats = storageService.getStats(params?.timeRange);
       return { success: true, data: stats };
     }
-    const response = await axiosInstance.get('/dashboard/stats', { params });
+    const response = await axiosInstance.get('/dashboard/stats', { params: params || {} });
     return response.data;
   },
 

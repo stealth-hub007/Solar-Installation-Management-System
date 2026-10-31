@@ -232,18 +232,7 @@ export const RecentServiceTickets = ({
           title={`Ticket: ${viewTicket.id}`}
           subtitle={`Reported by ${viewTicket.customerName}`}
           footer={
-            <div className="flex items-center justify-between w-full">
-              <Button
-                variant="outline"
-                size="sm"
-                icon={Edit2}
-                onClick={() => {
-                  setEditingTicket(viewTicket);
-                  setViewTicket(null);
-                }}
-              >
-                Edit Ticket
-              </Button>
+            <div className="flex items-center justify-end w-full">
               <Button variant="primary" size="sm" onClick={() => setViewTicket(null)}>
                 Close Ticket
               </Button>

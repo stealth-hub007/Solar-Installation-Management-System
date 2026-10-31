@@ -221,18 +221,7 @@ export const RecentPayments = ({
           title={`Payment Voucher: ${viewPayment.id}`}
           subtitle={`Received from ${viewPayment.customerName}`}
           footer={
-            <div className="flex items-center justify-between w-full">
-              <Button
-                variant="outline"
-                size="sm"
-                icon={Edit2}
-                onClick={() => {
-                  setEditingPayment(viewPayment);
-                  setViewPayment(null);
-                }}
-              >
-                Edit Payment
-              </Button>
+            <div className="flex items-center justify-end w-full">
               <Button variant="primary" size="sm" onClick={() => setViewPayment(null)}>
                 Close Voucher
               </Button>

@@ -227,18 +227,7 @@ export const RecentProjects = ({
           title={`Project Details: ${viewProject.id}`}
           subtitle={viewProject.projectName}
           footer={
-            <div className="flex items-center justify-between w-full">
-              <Button
-                variant="outline"
-                size="sm"
-                icon={Edit2}
-                onClick={() => {
-                  setEditingProject(viewProject);
-                  setViewProject(null);
-                }}
-              >
-                Edit Project
-              </Button>
+            <div className="flex items-center justify-end w-full">
               <Button variant="primary" size="sm" onClick={() => setViewProject(null)}>
                 Close Details
               </Button>

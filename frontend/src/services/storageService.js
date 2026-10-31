@@ -13,6 +13,12 @@ import {
   mockCustomers,
   mockProducts,
   mockAccessRequests,
+  mockFollowUps,
+  mockSalesSurveys,
+  mockSalesQuotations,
+  mockSalesOrders,
+  mockSalesStats,
+  mockSalesAnalytics,
 } from './mockData';
 
 const KEYS = {
@@ -26,6 +32,10 @@ const KEYS = {
   CUSTOMERS: 'sims_customers_data',
   PRODUCTS: 'sims_products_catalog',
   ACCESS_REQUESTS: 'sims_access_requests',
+  FOLLOW_UPS: 'sims_followups_data',
+  SURVEYS: 'sims_surveys_data',
+  QUOTATIONS: 'sims_quotations_data',
+  ORDERS: 'sims_orders_data',
 };
 
 // Safe JSON parse from localStorage with fallback
@@ -69,6 +79,10 @@ export const storageService = {
     getStored(KEYS.CUSTOMERS, mockCustomers);
     getStored(KEYS.PRODUCTS, mockProducts);
     getStored(KEYS.ACCESS_REQUESTS, mockAccessRequests);
+    getStored(KEYS.FOLLOW_UPS, mockFollowUps);
+    getStored(KEYS.SURVEYS, mockSalesSurveys);
+    getStored(KEYS.QUOTATIONS, mockSalesQuotations);
+    getStored(KEYS.ORDERS, mockSalesOrders);
   },
 
   // --------------------------------------------------------------------------
@@ -931,6 +945,456 @@ export const storageService = {
   },
 
   // --------------------------------------------------------------------------
+  // SALES MODULE: FOLLOW-UPS CRUD
+  // --------------------------------------------------------------------------
+  getFollowUps() {
+    return getStored(KEYS.FOLLOW_UPS, mockFollowUps);
+  },
+
+  createFollowUp(data) {
+    const list = this.getFollowUps();
+    const newId = `FOL-${300 + list.length + 1}`;
+    const newFollowUp = {
+      id: newId,
+      enquiryId: data.enquiryId || 'ENQ-GENERAL',
+      customerId: data.customerId || '',
+      customerName: data.customerName || 'Prospect',
+      contact: data.contact || '',
+      followUpDate: data.followUpDate || new Date().toISOString().split('T')[0],
+      followUpTime: data.followUpTime || '11:00 AM',
+      type: data.type || 'Phone Call',
+      purpose: data.purpose || 'Follow-up regarding solar requirement',
+      priority: data.priority || 'Medium',
+      status: 'Pending',
+      notes: data.notes || '',
+      assignedTo: data.assignedTo || 'Vikram Singh',
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [newFollowUp, ...list];
+    setStored(KEYS.FOLLOW_UPS, updated);
+
+    this.logActivity(
+      `Scheduled ${newFollowUp.type} follow-up for ${newFollowUp.customerName} (${newFollowUp.followUpDate})`,
+      'Sales Follow-ups',
+      'Created'
+    );
+
+    return newFollowUp;
+  },
+
+  updateFollowUp(id, patch) {
+    const list = this.getFollowUps();
+    const index = list.findIndex((f) => f.id === id);
+    if (index === -1) throw new Error(`Follow-up with ID ${id} not found`);
+
+    const updated = { ...list[index], ...patch };
+    list[index] = updated;
+    setStored(KEYS.FOLLOW_UPS, list);
+
+    this.logActivity(`Updated follow-up record ${id}`, 'Sales Follow-ups', 'Updated');
+    return updated;
+  },
+
+  completeFollowUp(id, outcomeNotes = '') {
+    const list = this.getFollowUps();
+    const index = list.findIndex((f) => f.id === id);
+    if (index === -1) throw new Error(`Follow-up with ID ${id} not found`);
+
+    list[index] = {
+      ...list[index],
+      status: 'Completed',
+      outcomeNotes: outcomeNotes || 'Follow-up completed successfully.',
+      completedAt: new Date().toISOString(),
+    };
+
+    setStored(KEYS.FOLLOW_UPS, list);
+    this.logActivity(
+      `Completed follow-up ${id} for ${list[index].customerName}`,
+      'Sales Follow-ups',
+      'Completed'
+    );
+    return list[index];
+  },
+
+  rescheduleFollowUp(id, newDate, newTime, notes = '') {
+    const list = this.getFollowUps();
+    const index = list.findIndex((f) => f.id === id);
+    if (index === -1) throw new Error(`Follow-up with ID ${id} not found`);
+
+    list[index] = {
+      ...list[index],
+      followUpDate: newDate,
+      followUpTime: newTime,
+      status: 'Rescheduled',
+      notes: notes ? `${list[index].notes ? list[index].notes + ' | ' : ''}Rescheduled: ${notes}` : list[index].notes,
+    };
+
+    setStored(KEYS.FOLLOW_UPS, list);
+    this.logActivity(
+      `Rescheduled follow-up ${id} for ${list[index].customerName} to ${newDate} ${newTime}`,
+      'Sales Follow-ups',
+      'Rescheduled'
+    );
+    return list[index];
+  },
+
+  deleteFollowUp(id) {
+    const list = this.getFollowUps();
+    const updated = list.filter((f) => f.id !== id);
+    setStored(KEYS.FOLLOW_UPS, updated);
+    this.logActivity(`Deleted follow-up ${id}`, 'Sales Follow-ups', 'Deleted');
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // SALES MODULE: SITE SURVEYS CRUD
+  // --------------------------------------------------------------------------
+  getSurveys() {
+    return getStored(KEYS.SURVEYS, mockSalesSurveys);
+  },
+
+  scheduleSurvey(data) {
+    const list = this.getSurveys();
+    const newId = `SRV-${200 + list.length + 1}`;
+    const newSurvey = {
+      id: newId,
+      enquiryId: data.enquiryId || 'ENQ-GENERAL',
+      customerId: data.customerId || '',
+      customerName: data.customerName || 'Customer',
+      contact: data.contact || '',
+      siteLocation: data.siteLocation || 'Jaipur, Rajasthan',
+      scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
+      scheduledTime: data.scheduledTime || '10:30 AM',
+      assignedSurveyor: data.assignedSurveyor || 'Kailash Chand (Field Tech)',
+      status: 'Scheduled',
+      roofType: data.roofType || 'RCC Flat Roof',
+      roofAreaSqFt: Number(data.roofAreaSqFt) || 1000,
+      shadowHazards: data.shadowHazards || 'None reported',
+      notes: data.notes || '',
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [newSurvey, ...list];
+    setStored(KEYS.SURVEYS, updated);
+
+    // Also update linked enquiry status to 'Survey Scheduled'
+    if (data.enquiryId) {
+      try {
+        this.updateEnquiry(data.enquiryId, { enquiryStatus: 'Survey Scheduled' });
+      } catch {
+        // ignore if enquiry doesn't exist
+      }
+    }
+
+    this.logActivity(
+      `Scheduled site survey ${newSurvey.id} for ${newSurvey.customerName} on ${newSurvey.scheduledDate}`,
+      'Site Surveys',
+      'Scheduled'
+    );
+
+    return newSurvey;
+  },
+
+  updateSurvey(id, patch) {
+    const list = this.getSurveys();
+    const index = list.findIndex((s) => s.id === id);
+    if (index === -1) throw new Error(`Survey with ID ${id} not found`);
+
+    const updated = { ...list[index], ...patch };
+    list[index] = updated;
+    setStored(KEYS.SURVEYS, list);
+    this.logActivity(`Updated site survey ${id}`, 'Site Surveys', 'Updated');
+    return updated;
+  },
+
+  deleteSurvey(id) {
+    const list = this.getSurveys();
+    const updated = list.filter((s) => s.id !== id);
+    setStored(KEYS.SURVEYS, updated);
+    this.logActivity(`Cancelled site survey ${id}`, 'Site Surveys', 'Deleted');
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // SALES MODULE: QUOTATIONS CRUD
+  // --------------------------------------------------------------------------
+  getQuotations() {
+    return getStored(KEYS.QUOTATIONS, mockSalesQuotations);
+  },
+
+  getQuotationById(id) {
+    const list = this.getQuotations();
+    return list.find((q) => q.id === id) || null;
+  },
+
+  createQuotation(data) {
+    const list = this.getQuotations();
+    const newId = `QUO-${700 + list.length + 1}`;
+    
+    // Auto calculate if items provided
+    const items = data.items || [];
+    const subtotal = data.subtotal || items.reduce((acc, curr) => acc + (Number(curr.lineTotal) || 0), 0);
+    const subsidy = Number(data.subsidy) || 0;
+    const discount = Number(data.discount) || 0;
+    const taxRate = Number(data.taxRate) || 13.8;
+    const taxAmount = data.taxAmount !== undefined ? Number(data.taxAmount) : Math.round((subtotal - discount) * (taxRate / 100));
+    const finalAmount = data.finalAmount || (subtotal - subsidy - discount + taxAmount);
+
+    const newQuotation = {
+      id: newId,
+      enquiryId: data.enquiryId || '',
+      customerId: data.customerId || '',
+      customerName: data.customerName || 'Valued Client',
+      contact: data.contact || '',
+      systemCapacity: Number(data.systemCapacity) || 5.0,
+      dailyGeneration: `${Math.round((Number(data.systemCapacity) || 5) * 4.5)} kWh`,
+      items,
+      subtotal,
+      subsidy,
+      discount,
+      taxRate,
+      taxAmount,
+      finalAmount,
+      createdDate: new Date().toISOString(),
+      expiryDate: data.expiryDate || new Date(Date.now() + 30 * 86400000).toISOString(),
+      approvalStatus: data.approvalStatus || 'Draft',
+      status: data.status || 'Draft',
+      notes: data.notes || '',
+    };
+
+    const updated = [newQuotation, ...list];
+    setStored(KEYS.QUOTATIONS, updated);
+
+    // Link enquiry status if provided
+    if (data.enquiryId) {
+      try {
+        this.updateEnquiry(data.enquiryId, { enquiryStatus: 'Quotation Sent' });
+      } catch {
+        // ignore
+      }
+    }
+
+    this.logActivity(
+      `Created quotation ${newQuotation.id} for ${newQuotation.customerName} (₹${newQuotation.finalAmount.toLocaleString('en-IN')})`,
+      'Quotations',
+      'Created'
+    );
+
+    return newQuotation;
+  },
+
+  updateQuotation(id, patch) {
+    const list = this.getQuotations();
+    const index = list.findIndex((q) => q.id === id);
+    if (index === -1) throw new Error(`Quotation with ID ${id} not found`);
+
+    const updated = { ...list[index], ...patch };
+    list[index] = updated;
+    setStored(KEYS.QUOTATIONS, list);
+    this.logActivity(`Updated quotation ${id}`, 'Quotations', 'Updated');
+    return updated;
+  },
+
+  approveQuotation(id) {
+    return this.updateQuotation(id, { approvalStatus: 'Approved', status: 'Approved' });
+  },
+
+  acceptQuotation(id, convertToOrder = true) {
+    const quotation = this.updateQuotation(id, { status: 'Accepted' });
+    let linkedOrder = null;
+
+    if (convertToOrder) {
+      linkedOrder = this.createOrder({
+        quotationId: quotation.id,
+        enquiryId: quotation.enquiryId,
+        customerId: quotation.customerId,
+        customerName: quotation.customerName,
+        contact: quotation.contact,
+        capacity: `${quotation.systemCapacity} kW`,
+        amount: quotation.finalAmount,
+      });
+    }
+
+    this.logActivity(
+      `Quotation ${id} accepted by customer. Converted into order ${linkedOrder?.id || ''}`,
+      'Quotations',
+      'Accepted'
+    );
+
+    return { quotation, order: linkedOrder };
+  },
+
+  deleteQuotation(id) {
+    const list = this.getQuotations();
+    const updated = list.filter((q) => q.id !== id);
+    setStored(KEYS.QUOTATIONS, updated);
+    this.logActivity(`Deleted quotation ${id}`, 'Quotations', 'Deleted');
+    return { id, success: true };
+  },
+
+  // --------------------------------------------------------------------------
+  // SALES MODULE: ORDERS CRUD
+  // --------------------------------------------------------------------------
+  getOrders() {
+    const raw = getStored(KEYS.ORDERS, mockSalesOrders);
+    let changed = false;
+    const normalized = raw.map((ord) => {
+      const milestones = ord.milestones || [];
+      const completed = milestones.filter((m) => m.status === 'Completed').length;
+      const is100 = (milestones.length > 0 && completed === milestones.length) || String(ord.orderStatus).toLowerCase() === 'done';
+      if (is100) {
+        if (ord.orderStatus !== 'Done' || !ord.paymentStatus?.toLowerCase().includes('full')) {
+          changed = true;
+          return {
+            ...ord,
+            orderStatus: 'Done',
+            paymentStatus: 'Full payment received',
+            stage: 'Completed',
+          };
+        }
+      }
+      return ord;
+    });
+    if (changed) {
+      setStored(KEYS.ORDERS, normalized);
+    }
+    return normalized;
+  },
+
+  getOrderById(id) {
+    const list = this.getOrders();
+    return list.find((o) => o.id === id) || null;
+  },
+
+  createOrder(data) {
+    const list = this.getOrders();
+    const newId = `ORD-${900 + list.length + 1}`;
+    const newOrder = {
+      id: newId,
+      quotationId: data.quotationId || 'QUO-DIRECT',
+      enquiryId: data.enquiryId || '',
+      customerId: data.customerId || '',
+      customerName: data.customerName || 'Valued Customer',
+      contact: data.contact || '',
+      capacity: data.capacity || '5.0 kW',
+      amount: Number(data.amount) || 250000,
+      orderDate: new Date().toISOString(),
+      paymentStatus: data.paymentStatus || 'Advance Paid (30%)',
+      orderStatus: data.orderStatus || 'Confirmed',
+      milestones: [
+        { step: 'Order Contract Signed', status: 'Completed', date: new Date().toISOString().split('T')[0] },
+        { step: 'DISCOM Application Submitted', status: 'In Progress', date: null },
+        { step: 'Warehouse Material Staging', status: 'Pending', date: null },
+        { step: 'Rooftop Installation', status: 'Pending', date: null },
+        { step: 'Net Metering & Commissioning', status: 'Pending', date: null },
+      ],
+    };
+
+    const updated = [newOrder, ...list];
+    setStored(KEYS.ORDERS, updated);
+
+    this.logActivity(
+      `Converted confirmed solar order ${newOrder.id} for ${newOrder.customerName} (₹${newOrder.amount.toLocaleString('en-IN')})`,
+      'Sales Orders',
+      'Confirmed'
+    );
+
+    return newOrder;
+  },
+
+  updateOrderStatus(id, status, milestoneIndex = null) {
+    const list = this.getOrders();
+    const index = list.findIndex((o) => o.id === id);
+    if (index === -1) throw new Error(`Order with ID ${id} not found`);
+
+    const order = { ...list[index] };
+    if (status) order.orderStatus = status;
+
+    if (milestoneIndex !== null && order.milestones && order.milestones[milestoneIndex]) {
+      order.milestones[milestoneIndex].status = 'Completed';
+      order.milestones[milestoneIndex].date = new Date().toISOString().split('T')[0];
+    }
+
+    const completedCount = (order.milestones || []).filter((m) => m.status === 'Completed').length;
+    const totalCount = (order.milestones || []).length;
+    if ((totalCount > 0 && completedCount === totalCount) || order.orderStatus === 'Done') {
+      order.orderStatus = 'Done';
+      order.paymentStatus = 'Full payment received';
+      order.stage = 'Completed';
+    }
+
+    list[index] = order;
+    setStored(KEYS.ORDERS, list);
+    this.logActivity(`Updated order ${id} status to "${order.orderStatus}"`, 'Sales Orders', 'Updated');
+    return order;
+  },
+
+  // --------------------------------------------------------------------------
+  // SALES MODULE: DYNAMIC METRICS & ANALYTICS
+  // --------------------------------------------------------------------------
+  getSalesStats() {
+    const customers = this.getCustomers();
+    const enquiries = this.getEnquiries();
+    const followUps = this.getFollowUps();
+    const surveys = this.getSurveys();
+    const quotations = this.getQuotations();
+    const orders = this.getOrders();
+
+    const totalCustomers = customers.length;
+    const totalEnquiries = enquiries.length;
+    const newLeads = enquiries.filter((e) => (e.enquiryStatus || e.status) === 'New').length;
+    const convertedEnquiries = enquiries.filter(
+      (e) => (e.enquiryStatus || e.status) === 'Converted' || (e.enquiryStatus || e.status) === 'Quotation Accepted'
+    ).length;
+
+    const totalFollowUps = followUps.length;
+    const pendingFollowUps = followUps.filter((f) => f.status === 'Pending' || f.status === 'Overdue').length;
+    const completedFollowUps = followUps.filter((f) => f.status === 'Completed').length;
+
+    const totalSurveys = surveys.length;
+    const upcomingSurveys = surveys.filter((s) => s.status === 'Scheduled' || s.status === 'In Progress').length;
+    const completedSurveys = surveys.filter((s) => s.status === 'Completed').length;
+
+    const totalQuotations = quotations.length;
+    const pendingQuotations = quotations.filter((q) => q.status === 'Draft' || q.status === 'Sent' || q.status === 'Submitted' || q.status === 'Approved').length;
+    const acceptedQuotations = quotations.filter((q) => q.status === 'Accepted').length;
+
+    const totalOrders = orders.length;
+
+    // Monthly revenue from orders
+    const monthlySalesRevenue = orders.reduce((acc, curr) => acc + (Number(curr.amount || curr.contractValue || curr.finalAmount) || 0), 0);
+    const monthlyTarget = 6000000;
+    const targetAchievementPercent = Math.min(100, Number(((monthlySalesRevenue / monthlyTarget) * 100).toFixed(1)));
+    const conversionRate = totalEnquiries > 0 ? Number(((convertedEnquiries / totalEnquiries) * 100).toFixed(1)) : 0;
+
+    return {
+      totalCustomers,
+      totalEnquiries,
+      newLeads,
+      convertedEnquiries,
+      conversionRate,
+      totalFollowUps,
+      pendingFollowUps,
+      completedFollowUps,
+      totalSurveys,
+      upcomingSurveys,
+      completedSurveys,
+      totalQuotations,
+      pendingQuotations,
+      acceptedQuotations,
+      totalOrders,
+      monthlySalesRevenue,
+      monthlyTarget,
+      targetAchievementPercent,
+    };
+  },
+
+  getSalesAnalytics() {
+    return mockSalesAnalytics;
+  },
+
+  // --------------------------------------------------------------------------
   // RESET ALL DATA TO PRISTINE SAMPLE STATE
   // --------------------------------------------------------------------------
   resetToDefaults() {
@@ -944,8 +1408,12 @@ export const storageService = {
     setStored(KEYS.CUSTOMERS, mockCustomers);
     setStored(KEYS.PRODUCTS, mockProducts);
     setStored(KEYS.ACCESS_REQUESTS, mockAccessRequests);
+    setStored(KEYS.FOLLOW_UPS, mockFollowUps);
+    setStored(KEYS.SURVEYS, mockSalesSurveys);
+    setStored(KEYS.QUOTATIONS, mockSalesQuotations);
+    setStored(KEYS.ORDERS, mockSalesOrders);
 
-    this.logActivity('Reset all administrative sample data to default baseline', 'System', 'Success');
+    this.logActivity('Reset all administrative and sales sample data to default baseline', 'System', 'Success');
     return true;
   },
 };

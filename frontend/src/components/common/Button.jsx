@@ -2,7 +2,8 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 /**
- * Reusable Button Component for SIMS (Light Blue & White Theme)
+ * Standardized Button Component for SIMS
+ * Uniform button heights, padding, and single-row alignment
  */
 export const Button = React.forwardRef(
   (
@@ -22,7 +23,7 @@ export const Button = React.forwardRef(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed select-none active:scale-[0.98]';
+      'inline-flex flex-row flex-nowrap items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed select-none active:scale-[0.98] whitespace-nowrap cursor-pointer';
 
     const variants = {
       primary:
@@ -30,7 +31,7 @@ export const Button = React.forwardRef(
       secondary:
         'bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#0369A1] font-semibold focus:ring-[#0284C7] border border-[#BAE6FD]',
       outline:
-        'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 focus:ring-slate-300',
+        'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 focus:ring-slate-300 shadow-2xs',
       blueOutline:
         'border border-[#0284C7] text-[#0284C7] bg-white hover:bg-[#F0F7FF] focus:ring-[#0284C7]',
       forestOutline:
@@ -39,15 +40,18 @@ export const Button = React.forwardRef(
         'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-slate-200',
       danger:
         'bg-rose-600 hover:bg-rose-700 text-white focus:ring-rose-500 shadow-sm',
+      success:
+        'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500 shadow-sm',
       subtle:
         'bg-slate-100 hover:bg-slate-200 text-slate-800 focus:ring-slate-200',
     };
 
+    // Standardized button dimensions
     const sizes = {
-      xs: 'text-xs px-2.5 py-1.5 gap-1.5',
-      sm: 'text-xs sm:text-sm px-3 py-1.5 gap-1.5',
-      md: 'text-sm px-4 py-2 gap-2',
-      lg: 'text-base px-5 py-2.5 gap-2.5',
+      xs: 'h-7 px-2.5 text-xs gap-1.5',
+      sm: 'h-8.5 px-3.5 text-xs font-semibold gap-2',
+      md: 'h-9.5 px-4 text-xs sm:text-sm font-semibold gap-2',
+      lg: 'h-11 px-5 text-sm font-bold gap-2.5',
     };
 
     const selectedVariant = variants[variant] || variants.primary;
@@ -63,11 +67,13 @@ export const Button = React.forwardRef(
         {...props}
       >
         {isLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin text-current" />
+          <Loader2 className="w-4 h-4 animate-spin text-current shrink-0" />
         ) : Icon ? (
           <Icon className="w-4 h-4 shrink-0" />
         ) : null}
-        <span>{children}</span>
+        <span className="inline-flex flex-row flex-nowrap items-center gap-1.5 whitespace-nowrap text-inherit">
+          {children}
+        </span>
         {!isLoading && IconRight && <IconRight className="w-4 h-4 shrink-0" />}
       </button>
     );

@@ -26,6 +26,7 @@ export const InventoryPage = () => {
 
   // Direct stock value input state
   const [newStockValue, setNewStockValue] = useState(0);
+  const [addError, setAddError] = useState('');
 
   const [newItem, setNewItem] = useState({
     category: '',
@@ -62,8 +63,9 @@ export const InventoryPage = () => {
 
   const handleAddItem = (e) => {
     e.preventDefault();
-    if (!newItem.category) {
-      alert('Please enter category name');
+    setAddError('');
+    if (!newItem.category.trim()) {
+      setAddError('Please enter category name');
       return;
     }
     const current = storageService.getInventory();
@@ -326,6 +328,12 @@ export const InventoryPage = () => {
           }
         >
           <form onSubmit={handleAddItem} className="space-y-3 text-xs sm:text-sm">
+            {addError && (
+              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{addError}</span>
+              </div>
+            )}
             <div>
               <label className="block text-slate-700 font-medium mb-1">Equipment / Category Name *</label>
               <input

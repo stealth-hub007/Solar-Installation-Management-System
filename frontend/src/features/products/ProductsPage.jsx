@@ -68,10 +68,13 @@ export const ProductsPage = () => {
     }
   }, [editingProduct]);
 
+  const [addError, setAddError] = useState('');
+
   const handleAddSubmit = (e) => {
     e.preventDefault();
-    if (!addForm.name || !addForm.brand) {
-      alert('Please fill in product name and brand.');
+    setAddError('');
+    if (!addForm.name.trim() || !addForm.brand.trim()) {
+      setAddError('Please fill in product name and brand.');
       return;
     }
     storageService.createProduct(addForm);
@@ -347,6 +350,12 @@ export const ProductsPage = () => {
           }
         >
           <form onSubmit={handleAddSubmit} className="space-y-3.5 text-xs sm:text-sm">
+            {addError && (
+              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{addError}</span>
+              </div>
+            )}
             <div>
               <label className="block text-slate-700 font-medium mb-1">Product Model & Description *</label>
               <input

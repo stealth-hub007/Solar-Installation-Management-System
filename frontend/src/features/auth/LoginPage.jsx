@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Sun, Shield, Lock, Mail, User, Building, CheckCircle2, ArrowRight, Loader2, KeyRound } from 'lucide-react';
+import { Sun, Shield, Lock, Mail, User, Building, CheckCircle2, ArrowRight, Loader2, KeyRound, AlertCircle } from 'lucide-react';
 import Button from '../../components/common/Button';
 import storageService from '../../services/storageService';
 import axiosInstance from '../../services/axiosInstance';
@@ -24,6 +24,7 @@ export const LoginPage = () => {
     reason: '',
   });
   const [requestSuccess, setRequestSuccess] = useState(false);
+  const [requestError, setRequestError] = useState('');
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -31,7 +32,6 @@ export const LoginPage = () => {
       setSignInError('Please enter both email and password.');
       return;
     }
-
     setLoading(true);
     setSignInError('');
 
@@ -45,21 +45,23 @@ export const LoginPage = () => {
       if (response.data && response.data.data) {
         const { access_token, user } = response.data.data;
         localStorage.setItem('sims_auth_token', access_token);
-        localStorage.setItem(
-          'sims_auth_user',
-          JSON.stringify({
-            id: user.id,
-            email: user.email,
-            name: user.full_name || 'Admin User',
-            role: user.role === 'ADMIN' ? 'Super Administrator' : user.role,
-          })
-        );
+        const userObj = {
+          id: user.id,
+          email: user.email,
+          name: user.full_name || (user.role === 'SALES' ? 'Vikram Singh (Sales)' : 'Admin User'),
+          role: user.role === 'ADMIN' ? 'Super Administrator' : (user.role === 'SALES' ? 'Sales Executive' : user.role),
+        };
+        localStorage.setItem('sims_auth_user', JSON.stringify(userObj));
         storageService.logActivity(
           `User ${user.email} authenticated via live FastAPI JWT service`,
           'Authentication',
           'Success'
         );
-        navigate('/admin/dashboard');
+        if (user.role === 'SALES' || email.toLowerCase().includes('sales')) {
+          navigate('/sales/dashboard');
+        } else {
+          navigate('/admin/dashboard');
+        }
         return;
       }
     } catch (err) {
@@ -72,12 +74,13 @@ export const LoginPage = () => {
       }
 
       // If backend network is unreachable or testing in offline simulated mode:
+      const isSales = email.toLowerCase().includes('sales');
       localStorage.setItem(
         'sims_auth_user',
         JSON.stringify({
           email,
-          name: 'Super Administrator',
-          role: 'Super Administrator',
+          name: isSales ? 'Vikram Singh' : 'Super Administrator',
+          role: isSales ? 'Sales Executive' : 'Super Administrator',
         })
       );
       storageService.logActivity(
@@ -85,16 +88,22 @@ export const LoginPage = () => {
         'Authentication',
         'Success'
       );
-      navigate('/admin/dashboard');
+      if (isSales) {
+        navigate('/sales/dashboard');
+      } else {
+        navigate('/admin/dashboard');
+      }
     } finally {
       setLoading(false);
+    }
     }
   };
 
   const handleRequestAccess = (e) => {
     e.preventDefault();
-    if (!requestForm.name || !requestForm.email) {
-      alert('Please fill in your name and corporate email address.');
+    setRequestError('');
+    if (!requestForm.name.trim() || !requestForm.email.trim()) {
+      setRequestError('Please fill in your name and corporate email address.');
       return;
     }
 
@@ -167,6 +176,31 @@ export const LoginPage = () => {
                 {signInError}
               </div>
             )}
+
+            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-lg text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setEmail('admin@solar-sims.com')}
+                className={`flex-1 py-1.5 rounded-md transition ${
+                  email === 'admin@solar-sims.com'
+                    ? 'bg-white text-[#0284C7] shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Admin Portal
+              </button>
+              <button
+                type="button"
+                onClick={() => setEmail('sales@solar-sims.com')}
+                className={`flex-1 py-1.5 rounded-md transition ${
+                  email === 'sales@solar-sims.com'
+                    ? 'bg-white text-[#0284C7] shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Sales Portal
+              </button>
+            </div>
 
             <form onSubmit={handleSignIn} className="space-y-3.5 text-xs sm:text-sm">
               <div>
@@ -276,6 +310,12 @@ export const LoginPage = () => {
               </div>
             ) : (
               <form onSubmit={handleRequestAccess} className="space-y-3 text-xs sm:text-sm">
+                {requestError && (
+                  <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{requestError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="block text-slate-700 font-medium mb-1">Full Name *</label>
                   <div className="relative">

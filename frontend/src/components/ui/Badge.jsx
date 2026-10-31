@@ -3,7 +3,7 @@ import React from 'react';
 export const Badge = ({
   children,
   variant = 'neutral', // 'success' | 'warning' | 'danger' | 'info' | 'forest' | 'neutral'
-  size = 'md', // 'sm' | 'md'
+  size = 'md', // 'sm' | 'md' | 'lg'
   dot = false,
   className = '',
 }) => {
@@ -27,9 +27,11 @@ export const Badge = ({
     neutral: 'bg-slate-400',
   };
 
+  // Standardized badge sizes with fixed heights and min-width for uniform appearance
   const sizeMap = {
-    sm: 'text-[11px] px-2 py-0.5 font-medium gap-1.5',
-    md: 'text-xs px-2.5 py-1 font-medium gap-1.5',
+    sm: 'text-[11px] h-6 px-2.5 font-medium gap-1.5 min-w-[90px] justify-center',
+    md: 'text-xs h-6.5 px-3 font-semibold gap-1.5 min-w-[110px] justify-center',
+    lg: 'text-xs h-7 px-3.5 font-bold gap-2 min-w-[124px] justify-center',
   };
 
   const selectedVariant = variantMap[variant] || variantMap.neutral;
@@ -37,18 +39,18 @@ export const Badge = ({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border ${selectedVariant} ${sizeMap[size] || sizeMap.md} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full border whitespace-nowrap select-none transition-colors ${selectedVariant} ${sizeMap[size] || sizeMap.md} ${className}`}
     >
       {dot && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${selectedDotColor}`} />}
-      <span>{children}</span>
+      <span className="truncate">{children}</span>
     </span>
   );
 };
 
 /**
- * Helper to auto-map status strings to badge variant
+ * Universal helper to auto-map status strings to uniform badge variant & size
  */
-export const StatusBadge = ({ status, className = '' }) => {
+export const StatusBadge = ({ status, size = 'md', className = '' }) => {
   if (!status) return null;
 
   const normalized = String(status).toLowerCase().trim();
@@ -61,7 +63,8 @@ export const StatusBadge = ({ status, className = '' }) => {
     normalized.includes('paid') ||
     normalized.includes('success') ||
     normalized.includes('active') ||
-    normalized.includes('resolved')
+    normalized.includes('resolved') ||
+    normalized.includes('done')
   ) {
     variant = 'success';
   } else if (
@@ -88,17 +91,20 @@ export const StatusBadge = ({ status, className = '' }) => {
     normalized.includes('enquiry') ||
     normalized.includes('info') ||
     normalized.includes('new') ||
-    normalized.includes('open')
+    normalized.includes('open') ||
+    normalized.includes('draft') ||
+    normalized.includes('sent') ||
+    normalized.includes('quoted') ||
+    normalized.includes('review')
   ) {
     variant = 'info';
   }
 
   return (
-    <Badge variant={variant} dot className={className}>
+    <Badge variant={variant} dot size={size} className={className}>
       {status}
     </Badge>
   );
 };
 
 export default Badge;
-

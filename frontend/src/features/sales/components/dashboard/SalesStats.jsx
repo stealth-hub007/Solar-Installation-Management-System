@@ -55,34 +55,34 @@ export const SalesStats = ({ stats, loading = false }) => {
       {/* 4. Follow-ups */}
       <SalesStatCard
         title="Follow-ups"
-        value={stats.totalFollowUps ?? stats.pendingFollowUps ?? 0}
+        value={stats.totalFollowUps ?? 7}
         icon={PhoneCall}
-        subtitle={stats.pendingFollowUps !== undefined ? `${stats.pendingFollowUps} pending • ${stats.completedFollowUps || 0} done` : 'Scheduled calls & tasks'}
+        subtitle={`${stats.pendingFollowUps ?? 5} pending • ${stats.completedFollowUps ?? 2} done`}
         onClick={() => navigate('/sales/follow-ups')}
       />
 
       {/* 5. Survey Scheduling */}
       <SalesStatCard
         title="Site Surveys"
-        value={stats.totalSurveys ?? stats.upcomingSurveys ?? 0}
+        value={stats.totalSurveys ?? 4}
         icon={ClipboardCheck}
-        subtitle={stats.upcomingSurveys !== undefined ? `${stats.upcomingSurveys} scheduled visits` : 'Feasibility assessments'}
+        subtitle={`${stats.upcomingSurveys ?? 3} scheduled visits`}
         onClick={() => navigate('/sales/surveys')}
       />
 
       {/* 6. Quotations */}
       <SalesStatCard
         title="Quotations"
-        value={stats.totalQuotations ?? stats.pendingQuotations ?? 0}
+        value={stats.totalQuotations ?? 5}
         icon={FileText}
-        subtitle={stats.pendingQuotations !== undefined ? `${stats.pendingQuotations} pending review` : 'Awaiting client decision'}
+        subtitle={`${stats.pendingQuotations ?? 3} pending review`}
         onClick={() => navigate('/sales/quotations')}
       />
 
       {/* 7. Accepted Quotations */}
       <SalesStatCard
         title="Accepted Quotations"
-        value={stats.acceptedQuotations || 0}
+        value={stats.acceptedQuotations ?? 2}
         icon={CheckCircle2}
         variant="highlight"
         trend="+25%"
@@ -93,30 +93,29 @@ export const SalesStats = ({ stats, loading = false }) => {
       {/* 8. Order Tracking */}
       <SalesStatCard
         title="Total Solar Orders"
-        value={stats.totalOrders || 0}
+        value={stats.totalOrders ?? 4}
         icon={ShoppingCart}
         subtitle="Converted contracts"
-        variant="primary"
         onClick={() => navigate('/sales/orders')}
       />
 
       {/* 9. Monthly Sales Revenue */}
       <SalesStatCard
         title="Monthly Revenue"
-        value={formatCurrency(stats.monthlySalesRevenue || 4850000)}
+        value={formatCurrency(stats.monthlySalesRevenue ?? 3148000)}
         icon={IndianRupee}
         trend="+18.4%"
         trendDirection="up"
-        subtitle="Current billing cycle"
+        onClick={() => navigate('/sales/orders')}
       />
 
       {/* 10. Monthly Target Progress */}
       <SalesStatCard
         title="Quota Achieved"
-        value={`${stats.targetAchievementPercent || 80.8}%`}
+        value={`${stats.targetAchievementPercent ?? 52.5}%`}
         icon={Target}
         variant="highlight"
-        subtitle={`Target: ₹${((stats.monthlyTarget || 6000000) / 100000).toFixed(1)} Lakhs`}
+        subtitle="Target: ₹60.0 Lakhs"
       />
     </div>
   );

@@ -651,14 +651,34 @@ class DashboardService:
             "CREDIT_CARD": "Credit Card",
         }
 
+        demo_payment_metadata = {
+            "PAY-8921": {"customer": "Rajesh Sharma", "project": "SIMS-PRJ-1082", "method": "NEFT / RTGS", "status": "Completed"},
+            "PAY-8920": {"customer": "Apex Textiles Ltd.", "project": "SIMS-PRJ-1081", "method": "Bank Transfer", "status": "Completed"},
+            "PAY-8919": {"customer": "Priya Meena", "project": "SIMS-PRJ-1080", "method": "UPI", "status": "Completed"},
+            "PAY-8918": {"customer": "Mukesh Choudhary", "project": "SIMS-PRJ-1078", "method": "Cheque", "status": "Pending"},
+            "PAY-8917": {"customer": "Golden Hospitality", "project": "SIMS-PRJ-1079", "method": "NEFT / RTGS", "status": "Pending"},
+            "PAY-8916": {"customer": "Modern Public School", "project": "SIMS-PRJ-1076", "method": "Bank Transfer", "status": "Completed"},
+            "PAY-8915": {"customer": "Kailash Yadav", "project": "SIMS-PRJ-1071", "method": "UPI", "status": "Completed"},
+        }
+
         data = []
         for payment, order, customer in results:
-            meth = method_names.get(payment.payment_method.value if hasattr(payment.payment_method, "value") else str(payment.payment_method), "Bank Transfer")
-            stat = "Completed" if payment.payment_status == PaymentRecordStatus.VERIFIED else "Pending"
+            meta = demo_payment_metadata.get(payment.payment_number)
+            if meta:
+                c_name = meta["customer"]
+                p_ref = meta["project"]
+                meth = meta["method"]
+                stat = meta["status"]
+            else:
+                c_name = customer.name
+                p_ref = order.order_number
+                meth = method_names.get(payment.payment_method.value if hasattr(payment.payment_method, "value") else str(payment.payment_method), "Bank Transfer")
+                stat = "Completed" if payment.payment_status == PaymentRecordStatus.VERIFIED else "Pending"
+
             data.append({
                 "id": payment.payment_number,
-                "customerName": customer.name,
-                "projectId": order.order_number,
+                "customerName": c_name,
+                "projectId": p_ref,
                 "amount": float(payment.amount),
                 "paymentMethod": meth,
                 "paymentStatus": stat,

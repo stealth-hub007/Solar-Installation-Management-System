@@ -199,11 +199,11 @@ export const CustomersPage = () => {
       header: 'Solar Capacity',
       accessor: 'totalCapacity',
       sortable: true,
-      cell: ({ value }) => (
-        <span className="font-semibold text-slate-800 text-xs">
-          {value ? `${value} kW` : '—'}
-        </span>
-      ),
+      cell: ({ value, row }) => {
+        const cap = value ?? row.totalCapacity ?? row.capacity;
+        const displayCap = cap ? `${String(cap).replace(/\.0$/, '')} kW` : '—';
+        return <span className="font-semibold text-slate-800 text-xs">{displayCap}</span>;
+      },
     },
     {
       header: 'Status',
@@ -213,24 +213,24 @@ export const CustomersPage = () => {
     {
       header: 'Actions',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => navigate(`/sales/customers/${row.id}`)}
-            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
+            className="p-1 rounded-md text-slate-400 hover:text-[#0284C7] hover:bg-sky-50 transition"
             title="View 360 customer profile"
           >
             <Eye className="w-4 h-4" />
           </button>
           <button
             onClick={() => handleOpenEdit(row)}
-            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+            className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
             title="Edit customer details"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={() => setDeletingCustomer(row)}
-            className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
             title="Delete customer record"
           >
             <Trash2 className="w-4 h-4" />
@@ -266,7 +266,7 @@ export const CustomersPage = () => {
             >
               <option value="all">All Statuses</option>
               <option value="Active">Active</option>
-              <option value="Prospect">Prospect</option>
+              <option value="In Progress">In Progress</option>
               <option value="Inactive">Inactive</option>
             </select>
           </div>

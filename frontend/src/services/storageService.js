@@ -1120,7 +1120,22 @@ export const storageService = {
   // SALES MODULE: QUOTATIONS CRUD
   // --------------------------------------------------------------------------
   getQuotations() {
-    return getStored(KEYS.QUOTATIONS, mockSalesQuotations);
+    const raw = getStored(KEYS.QUOTATIONS, mockSalesQuotations);
+    if (Array.isArray(raw)) {
+      const needsFix = raw.some(
+        (q) =>
+          !q.capacity ||
+          !q.systemCapacity ||
+          (!q.subtotal && !q.totalCost) ||
+          (Number(q.totalCost) === 0 && Number(q.subtotal) === 0) ||
+          !q.netPayable
+      );
+      if (needsFix) {
+        setStored(KEYS.QUOTATIONS, mockSalesQuotations);
+        return mockSalesQuotations;
+      }
+    }
+    return raw;
   },
 
   getQuotationById(id) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/common/PageHeader';
 import Card from '../../components/ui/Card';
@@ -11,42 +11,61 @@ import storageService from '../../services/storageService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import { paginateCollection } from '../../services/mockData';
+import { quotationAPI } from '../sales/services/quotationAPI';
 
 const initialQuotations = [
-  { id: 'QUO-501', customerName: 'Rajesh Sharma', capacity: 10.5, dailyGen: '45 kWh', totalCost: 520000, subsidy: 78000, netPayable: 442000, status: 'Approved', date: '2026-10-28T10:00:00Z' },
-  { id: 'QUO-502', customerName: 'Apex Textiles Ltd.', capacity: 50.0, dailyGen: '220 kWh', totalCost: 2200000, subsidy: 0, netPayable: 2200000, status: 'Sent', date: '2026-10-27T14:30:00Z' },
-  { id: 'QUO-503', customerName: 'Mukesh Choudhary', capacity: 30.0, dailyGen: '135 kWh', totalCost: 1350000, subsidy: 0, netPayable: 1350000, status: 'Draft', date: '2026-10-26T09:15:00Z' },
-  { id: 'QUO-504', customerName: 'Sunita Agarwal', capacity: 8.0, dailyGen: '36 kWh', totalCost: 410000, subsidy: 78000, netPayable: 332000, status: 'Sent', date: '2026-10-25T11:45:00Z' },
-  { id: 'QUO-505', customerName: 'Priya Meena', capacity: 5.0, dailyGen: '22 kWh', totalCost: 260000, subsidy: 78000, netPayable: 182000, status: 'Approved', date: '2026-10-24T16:00:00Z' },
-  { id: 'QUO-506', customerName: 'Golden Hospitality', capacity: 25.0, dailyGen: '110 kWh', totalCost: 1150000, subsidy: 0, netPayable: 1150000, status: 'Draft', date: '2026-10-23T13:20:00Z' },
-  { id: 'QUO-507', customerName: 'Modern Public School', capacity: 40.0, dailyGen: '180 kWh', totalCost: 1800000, subsidy: 0, netPayable: 1800000, status: 'Approved', date: '2026-10-22T08:50:00Z' },
-  { id: 'QUO-508', customerName: 'Kailash Yadav', capacity: 15.0, dailyGen: '68 kWh', totalCost: 710000, subsidy: 0, netPayable: 710000, status: 'Sent', date: '2026-10-21T10:15:00Z' },
-  { id: 'QUO-509', customerName: 'Gaurav Rathore', capacity: 8.0, dailyGen: '36 kWh', totalCost: 420000, subsidy: 78000, netPayable: 342000, status: 'Draft', date: '2026-10-20T12:00:00Z' },
-  { id: 'QUO-510', customerName: 'Shree Cement Infra', capacity: 75.0, dailyGen: '340 kWh', totalCost: 3350000, subsidy: 0, netPayable: 3350000, status: 'Approved', date: '2026-10-19T14:45:00Z' },
-  { id: 'QUO-511', customerName: 'Ravi Teja Logistics', capacity: 100.0, dailyGen: '450 kWh', totalCost: 4500000, subsidy: 0, netPayable: 4500000, status: 'Sent', date: '2026-10-18T09:30:00Z' },
-  { id: 'QUO-512', customerName: 'Hotel Royal Palace', capacity: 45.0, dailyGen: '200 kWh', totalCost: 2050000, subsidy: 0, netPayable: 2050000, status: 'Draft', date: '2026-10-17T11:15:00Z' },
+  { id: 'QUO-701', customerName: 'Sunita Agarwal', capacity: 8.0, systemCapacity: 8.0, dailyGen: '36 kWh', dailyGeneration: '36 kWh', totalCost: 368000, subtotal: 368000, subsidy: 78000, netPayable: 324000, finalAmount: 324000, status: 'Sent', date: '2026-10-28T10:00:00Z', createdDate: '2026-10-28T10:00:00Z' },
+  { id: 'QUO-702', customerName: 'Mukesh Choudhary', capacity: 30.0, systemCapacity: 30.0, dailyGen: '135 kWh', dailyGeneration: '135 kWh', totalCost: 1250000, subtotal: 1250000, subsidy: 0, netPayable: 1350000, finalAmount: 1350000, status: 'Draft', date: '2026-10-26T14:30:00Z', createdDate: '2026-10-26T14:30:00Z' },
+  { id: 'QUO-703', customerName: 'Rajesh Sharma', capacity: 10.5, systemCapacity: 10.5, dailyGen: '48 kWh', dailyGeneration: '48 kWh', totalCost: 470000, subtotal: 470000, subsidy: 78000, netPayable: 432000, finalAmount: 432000, status: 'Accepted', date: '2026-10-24T16:00:00Z', createdDate: '2026-10-24T16:00:00Z' },
+  { id: 'QUO-704', customerName: 'Modern Public School', capacity: 40.0, systemCapacity: 40.0, dailyGen: '180 kWh', dailyGeneration: '180 kWh', totalCost: 1689000, subtotal: 1689000, subsidy: 0, netPayable: 1824000, finalAmount: 1824000, status: 'Accepted', date: '2026-10-22T08:50:00Z', createdDate: '2026-10-22T08:50:00Z' },
+  { id: 'QUO-705', customerName: 'Priya Meena', capacity: 5.0, systemCapacity: 5.0, dailyGen: '22 kWh', dailyGeneration: '22 kWh', totalCost: 244000, subtotal: 244000, subsidy: 78000, netPayable: 182000, finalAmount: 182000, status: 'Sent', date: '2026-10-20T12:00:00Z', createdDate: '2026-10-20T12:00:00Z' },
 ];
+
+const normalizeQuote = (q) => {
+  const cap = Number(q.capacity ?? q.systemCapacity) || 10.0;
+  const sub = Number(q.totalCost) > 0 ? Number(q.totalCost) : (Number(q.subtotal) > 0 ? Number(q.subtotal) : (Number(q.finalAmount) > 0 ? Number(q.finalAmount) : Math.round(cap * 45000)));
+  const subBenefit = q.subsidy !== undefined ? Number(q.subsidy) : (cap <= 10 ? 78000 : 0);
+  const net = Number(q.netPayable) > 0 ? Number(q.netPayable) : (Number(q.finalAmount) > 0 ? Number(q.finalAmount) : Math.max(0, sub - subBenefit));
+  const gen = q.dailyGen ?? q.dailyGeneration ?? `${Math.round(cap * 4.5)} kWh`;
+  const dt = q.date ?? q.createdDate ?? '2026-10-28T10:00:00Z';
+  return {
+    ...q,
+    capacity: cap,
+    systemCapacity: cap,
+    dailyGen: gen,
+    dailyGeneration: gen,
+    totalCost: sub,
+    subtotal: sub,
+    netPayable: net,
+    finalAmount: net,
+    subsidy: subBenefit,
+    date: dt,
+    createdDate: dt,
+  };
+};
 
 export const QuotationsPage = () => {
   const [quotations, setQuotations] = useState(() => {
     try {
       const stored = storageService.getQuotations();
       if (Array.isArray(stored) && stored.length > 0) {
-        return stored.map((q) => ({
-          ...q,
-          capacity: q.capacity ?? q.systemCapacity,
-          dailyGen: q.dailyGen ?? q.dailyGeneration,
-          totalCost: q.totalCost ?? q.subtotal ?? q.finalAmount ?? 0,
-          netPayable: q.netPayable ?? q.finalAmount ?? q.subtotal ?? 0,
-          subsidy: q.subsidy ?? 0,
-          date: q.date ?? q.createdDate ?? null,
-        }));
+        return stored.map(normalizeQuote);
       }
       return initialQuotations;
     } catch {
       return initialQuotations;
     }
   });
+
+  useEffect(() => {
+    quotationAPI.getQuotations()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setQuotations(data.map(normalizeQuote));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -82,33 +101,44 @@ export const QuotationsPage = () => {
     {
       header: 'Capacity',
       accessor: 'capacity',
-      cell: ({ value, row }) => (
-        <div>
-          <span className="font-bold text-slate-900">{value ? `${value} kW` : 'kW'}</span>
-          <span className="block text-[11px] text-sky-700">{row.dailyGen ? `~${row.dailyGen}/d` : '~/d'}</span>
-        </div>
-      ),
+      cell: ({ value, row }) => {
+        const cap = row.capacity ?? row.systemCapacity ?? value;
+        const gen = row.dailyGen ?? row.dailyGeneration;
+        return (
+          <div>
+            <span className="font-bold text-slate-900">{cap ? `${cap} kW` : '—'}</span>
+            <span className="block text-[11px] text-sky-700">{gen ? `~${gen}/d` : '—'}</span>
+          </div>
+        );
+      },
     },
     {
       header: 'Total Cost',
       accessor: 'totalCost',
       align: 'right',
-      cell: ({ value }) => (
-        <span className="font-bold text-slate-900">{formatCurrency(value || 0)}</span>
-      ),
+      cell: ({ value, row }) => {
+        const total = row.totalCost ?? row.subtotal ?? row.finalAmount ?? value ?? 0;
+        return (
+          <span className="font-bold text-slate-900">{formatCurrency(total)}</span>
+        );
+      },
     },
     {
       header: 'Net Payable',
       accessor: 'netPayable',
       align: 'right',
-      cell: ({ value, row }) => (
-        <div>
-          <span className="font-bold text-[#0284C7]">{formatCurrency(value || 0)}</span>
-          {row.subsidy > 0 && (
-            <span className="block text-[11px] text-amber-600">Sub: -{formatCurrency(row.subsidy, { compact: true })}</span>
-          )}
-        </div>
-      ),
+      cell: ({ value, row }) => {
+        const net = row.netPayable ?? row.finalAmount ?? row.totalCost ?? value ?? 0;
+        const sub = Number(row.subsidy);
+        return (
+          <div>
+            <span className="font-bold text-[#0284C7]">{formatCurrency(net)}</span>
+            {sub > 0 && (
+              <span className="block text-[11px] text-amber-600">Sub: -{formatCurrency(sub, { compact: true })}</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Status',
@@ -118,11 +148,14 @@ export const QuotationsPage = () => {
     {
       header: 'Created Date',
       accessor: 'date',
-      cell: ({ value }) => (
-        <span className="text-xs text-slate-500">
-          {value ? formatDate(value, { format: 'short' }) : '—'}
-        </span>
-      ),
+      cell: ({ value, row }) => {
+        const dt = row.date ?? row.createdDate ?? value;
+        return (
+          <span className="text-xs text-slate-500">
+            {dt ? formatDate(dt, { format: 'short' }) : '—'}
+          </span>
+        );
+      },
     },
     {
       header: 'Actions',

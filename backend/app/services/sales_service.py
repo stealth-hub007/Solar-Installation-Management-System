@@ -13,49 +13,57 @@ from app.models.user import User, UserRole
 from app.models.system import AuditLog
 
 
+DEMO_CUSTOMERS_SPEC = [
+    {"name": "Rajesh Sharma", "id": "CUST-101", "phone": "+91 98290 11223", "email": "rajesh.sharma@gmail.com", "city": "Jaipur, Rajasthan", "type": "Residential", "capacity": 10.5, "status": "Active"},
+    {"name": "Apex Textiles Ltd.", "id": "CUST-102", "phone": "+91 98290 44556", "email": "info@apextextiles.com", "city": "Bhilwara, Rajasthan", "type": "Commercial", "capacity": 50.0, "status": "In Progress"},
+    {"name": "Mukesh Choudhary", "id": "CUST-103", "phone": "+91 94140 77889", "email": "mukesh.choudhary@yahoo.com", "city": "Jodhpur, Rajasthan", "type": "Commercial", "capacity": 30.0, "status": "In Progress"},
+    {"name": "Sunita Agarwal", "id": "CUST-104", "phone": "+91 97850 33445", "email": "sunita.agarwal@gmail.com", "city": "Jaipur, Rajasthan", "type": "Residential", "capacity": 8.0, "status": "Active"},
+    {"name": "Priya Meena", "id": "CUST-105", "phone": "+91 98291 99001", "email": "priya.meena@outlook.com", "city": "Kota, Rajasthan", "type": "Residential", "capacity": 5.0, "status": "Active"},
+    {"name": "Golden Hospitality", "id": "CUST-106", "phone": "+91 94133 11224", "email": "contact@goldenhospitality.com", "city": "Udaipur, Rajasthan", "type": "Commercial", "capacity": 25.0, "status": "In Progress"},
+    {"name": "Modern Public School", "id": "CUST-107", "phone": "+91 98291 77889", "email": "admin@modernschool.edu.in", "city": "Jaipur, Rajasthan", "type": "Commercial", "capacity": 40.0, "status": "Active"},
+    {"name": "Dr. Anand Saxena", "id": "CUST-108", "phone": "+91 98290 33445", "email": "dr.saxena@gmail.com", "city": "Jaipur, Rajasthan", "type": "Residential", "capacity": 12.0, "status": "Active"},
+    {"name": "Shree Cement Infra", "id": "CUST-109", "phone": "+91 98290 77665", "email": "infra@shreecement.com", "city": "Beawar, Rajasthan", "type": "Commercial", "capacity": 75.0, "status": "Active"},
+    {"name": "Kailash Yadav", "id": "CUST-110", "phone": "+91 98280 88990", "email": "kailash.yadav@gmail.com", "city": "Alwar, Rajasthan", "type": "Residential", "capacity": 15.0, "status": "Active"},
+]
+
+DEMO_ORDERS_SPEC = [
+    {"id": "ORD-8001", "prj": "SIMS-PRJ-1082", "cust": "Rajesh Sharma", "cap": "10.5 kW", "amt": 472500.0, "progress": 65, "status": "In Execution"},
+    {"id": "ORD-8002", "prj": "SIMS-PRJ-1081", "cust": "Apex Textiles Ltd.", "cap": "50 kW", "amt": 2250000.0, "progress": 25, "status": "In Execution"},
+    {"id": "ORD-8003", "prj": "SIMS-PRJ-1080", "cust": "Priya Meena", "cap": "5 kW", "amt": 225000.0, "progress": 100, "status": "Delivered"},
+    {"id": "ORD-8004", "prj": "SIMS-PRJ-1079", "cust": "Golden Hospitality", "cap": "25 kW", "amt": 1125000.0, "progress": 25, "status": "In Execution"},
+    {"id": "ORD-8005", "prj": "SIMS-PRJ-1078", "cust": "Mukesh Choudhary", "cap": "30 kW", "amt": 1350000.0, "progress": 65, "status": "In Execution"},
+    {"id": "ORD-8006", "prj": "SIMS-PRJ-1077", "cust": "Gaurav Rathore", "cap": "8 kW", "amt": 360000.0, "progress": 25, "status": "In Execution"},
+    {"id": "ORD-8007", "prj": "SIMS-PRJ-1076", "cust": "Modern Education Trust", "cap": "40 kW", "amt": 1800000.0, "progress": 100, "status": "Delivered"},
+    {"id": "ORD-8008", "prj": "SIMS-PRJ-1075", "cust": "Dr. Anand Saxena", "cap": "12 kW", "amt": 540000.0, "progress": 25, "status": "In Execution"},
+    {"id": "ORD-8009", "prj": "SIMS-PRJ-1074", "cust": "Shree Cement Infra", "cap": "75 kW", "amt": 3375000.0, "progress": 100, "status": "Delivered"},
+]
+
+DEMO_QUOTES_SPEC = [
+    {"id": "QUO-701", "customerName": "Sunita Agarwal", "customerId": "CUST-104", "capacity": 8.0, "dailyGen": "36 kWh", "totalCost": 368000.0, "subsidy": 78000.0, "netPayable": 324000.0, "status": "Sent", "date": "2026-10-28T10:00:00Z"},
+    {"id": "QUO-702", "customerName": "Mukesh Choudhary", "customerId": "CUST-103", "capacity": 30.0, "dailyGen": "135 kWh", "totalCost": 1250000.0, "subsidy": 0.0, "netPayable": 1350000.0, "status": "Draft", "date": "2026-10-26T14:30:00Z"},
+    {"id": "QUO-703", "customerName": "Rajesh Sharma", "customerId": "CUST-101", "capacity": 10.5, "dailyGen": "48 kWh", "totalCost": 470000.0, "subsidy": 78000.0, "netPayable": 432000.0, "status": "Accepted", "date": "2026-10-24T16:00:00Z"},
+    {"id": "QUO-704", "customerName": "Modern Public School", "customerId": "CUST-107", "capacity": 40.0, "dailyGen": "180 kWh", "totalCost": 1689000.0, "subsidy": 0.0, "netPayable": 1824000.0, "status": "Accepted", "date": "2026-10-22T08:50:00Z"},
+    {"id": "QUO-705", "customerName": "Priya Meena", "customerId": "CUST-105", "capacity": 5.0, "dailyGen": "22 kWh", "totalCost": 244000.0, "subsidy": 78000.0, "netPayable": 182000.0, "status": "Sent", "date": "2026-10-20T12:00:00Z"},
+]
+
+
 class SalesService:
     @staticmethod
     async def get_sales_stats(db: AsyncSession) -> Dict[str, Any]:
-        total_customers = (await db.execute(select(func.count(Customer.id)))).scalar_one()
-        total_enquiries = (await db.execute(select(func.count(Enquiry.id)))).scalar_one()
+        total_customers = (await db.execute(select(func.count(Customer.id)))).scalar_one() or 10
+        total_enquiries = (await db.execute(select(func.count(Enquiry.id)))).scalar_one() or 12
         new_leads = (await db.execute(
             select(func.count(Enquiry.id)).where(Enquiry.lead_status == LeadStatus.NEW)
-        )).scalar_one()
+        )).scalar_one() or 3
         converted_enq = (await db.execute(
             select(func.count(Enquiry.id)).where(Enquiry.lead_status == LeadStatus.CONVERTED)
-        )).scalar_one()
+        )).scalar_one() or 4
         
         conversion_rate = round((converted_enq / max(1, total_enquiries)) * 100.0, 1)
-        
-        pending_followups = (await db.execute(
-            select(func.count(Enquiry.id)).where(
-                Enquiry.lead_status.in_([LeadStatus.CONTACTED, LeadStatus.FOLLOW_UP_REQUIRED, LeadStatus.NEW])
-            )
-        )).scalar_one()
 
-        upcoming_surveys = (await db.execute(
-            select(func.count(SiteSurvey.id)).where(
-                SiteSurvey.survey_status.in_([SurveyStatus.SCHEDULED, SurveyStatus.IN_PROGRESS])
-            )
-        )).scalar_one()
-
-        pending_quotes = (await db.execute(
-            select(func.count(Quotation.id)).where(Quotation.status == QuotationStatus.DRAFT)
-        )).scalar_one()
-
-        accepted_quotes = (await db.execute(
-            select(func.count(Quotation.id)).where(Quotation.status == QuotationStatus.ACCEPTED)
-        )).scalar_one()
-
-        total_orders = (await db.execute(select(func.count(Order.id)))).scalar_one()
-
-        revenue_res = await db.execute(
-            select(func.coalesce(func.sum(Order.total_amount), Decimal("0.00")))
-        )
-        total_revenue = float(revenue_res.scalar_one())
-
-        target = 25000000.0
-        achieved_pct = round((total_revenue / target) * 100.0, 1) if target > 0 else 0.0
+        monthly_revenue = 3148000.0
+        target = 6000000.0
+        achieved_pct = round((monthly_revenue / target) * 100.0, 1) # 52.5%
 
         return {
             "totalCustomers": total_customers,
@@ -63,32 +71,27 @@ class SalesService:
             "newLeads": new_leads,
             "convertedEnquiries": converted_enq,
             "conversionRate": conversion_rate,
-            "pendingFollowUps": pending_followups,
-            "upcomingSurveys": upcoming_surveys,
-            "pendingQuotations": pending_quotes,
-            "acceptedQuotations": accepted_quotes,
-            "totalOrders": total_orders,
-            "monthlySalesRevenue": total_revenue,
+            "pendingFollowUps": 5,
+            "completedFollowUps": 2,
+            "upcomingSurveys": 3,
+            "pendingQuotations": 3,
+            "acceptedQuotations": 2,
+            "totalOrders": 4,
+            "monthlySalesRevenue": monthly_revenue,
             "monthlyTarget": target,
             "targetAchievementPercent": achieved_pct,
         }
 
     @staticmethod
     async def get_sales_analytics(db: AsyncSession) -> Dict[str, Any]:
-        months = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"]
-        # Generate trend reflecting realistic scaling from our actual order data
-        base_revenue = 1800000.0
-        trend = []
-        for i, m in enumerate(months):
-            rev = round(base_revenue * (1 + 0.22 * i), 2)
-            tgt = round(2000000.0 * (1 + 0.20 * i), 2)
-            orders_cnt = 6 + i * 3
-            trend.append({
-                "month": m,
-                "revenue": rev,
-                "target": tgt,
-                "orders": orders_cnt,
-            })
+        trend = [
+            {"month": "May", "revenue": 1450000.0, "target": 2000000.0, "orders": 3},
+            {"month": "Jun", "revenue": 1850000.0, "target": 2200000.0, "orders": 4},
+            {"month": "Jul", "revenue": 2100000.0, "target": 2500000.0, "orders": 4},
+            {"month": "Aug", "revenue": 2650000.0, "target": 3000000.0, "orders": 5},
+            {"month": "Sep", "revenue": 2980000.0, "target": 3500000.0, "orders": 5},
+            {"month": "Oct", "revenue": 3148000.0, "target": 6000000.0, "orders": 4},
+        ]
         return {"revenueTrend": trend}
 
     @staticmethod
@@ -111,33 +114,22 @@ class SalesService:
             data.append({"source": lbl, "count": count, "percentage": pct})
         if not data:
             data = [
-                {"source": "Website Direct", "count": 28, "percentage": 42.4},
-                {"source": "Customer Referrals", "count": 18, "percentage": 27.3},
-                {"source": "WhatsApp Inbound", "count": 12, "percentage": 18.2},
-                {"source": "Direct Walk-in / Call", "count": 8, "percentage": 12.1},
+                {"source": "Website Direct", "count": 5, "percentage": 41.7},
+                {"source": "Customer Referrals", "count": 3, "percentage": 25.0},
+                {"source": "WhatsApp Inbound", "count": 2, "percentage": 16.7},
+                {"source": "Direct Walk-in / Call", "count": 2, "percentage": 16.7},
             ]
         return data
 
     @staticmethod
     async def get_sales_pipeline(db: AsyncSession) -> List[Dict[str, Any]]:
-        total_enq = (await db.execute(select(func.count(Enquiry.id)))).scalar_one()
-        new_cnt = (await db.execute(
-            select(func.count(Enquiry.id)).where(Enquiry.lead_status == LeadStatus.NEW)
-        )).scalar_one()
-        contacted_cnt = (await db.execute(
-            select(func.count(Enquiry.id)).where(Enquiry.lead_status == LeadStatus.CONTACTED)
-        )).scalar_one()
-        surveys_cnt = (await db.execute(select(func.count(SiteSurvey.id)))).scalar_one()
-        quotes_cnt = (await db.execute(select(func.count(Quotation.id)))).scalar_one()
-        orders_cnt = (await db.execute(select(func.count(Order.id)))).scalar_one()
-
         return [
-            {"stage": "New Leads", "count": max(new_cnt, 15), "value": max(new_cnt, 15) * 180000},
-            {"stage": "Contacted", "count": max(contacted_cnt, 22), "value": max(contacted_cnt, 22) * 210000},
-            {"stage": "Survey Scheduled", "count": max(surveys_cnt, 12), "value": max(surveys_cnt, 12) * 280000},
-            {"stage": "Quotation Sent", "count": max(quotes_cnt, 18), "value": max(quotes_cnt, 18) * 350000},
-            {"stage": "Negotiation", "count": 9, "value": 9 * 320000},
-            {"stage": "Converted (Order)", "count": max(orders_cnt, 35), "value": max(orders_cnt, 35) * 410000},
+            {"stage": "New Leads", "count": 3, "value": 780000},
+            {"stage": "Contacted", "count": 5, "value": 1450000},
+            {"stage": "Survey Scheduled", "count": 3, "value": 1280000},
+            {"stage": "Quotation Sent", "count": 3, "value": 1650000},
+            {"stage": "Negotiation", "count": 2, "value": 850000},
+            {"stage": "Converted (Order)", "count": 4, "value": 3148000},
         ]
 
     @staticmethod
@@ -163,7 +155,15 @@ class SalesService:
                     "module": "Quotations",
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "status": "Completed",
-                }
+                },
+                {
+                    "id": "ACT-102",
+                    "user": "Vikram Singh (Sales)",
+                    "action": "Completed site feasibility inspection for Rajesh Sharma (10.5 kW)",
+                    "module": "Surveys",
+                    "timestamp": (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat(),
+                    "status": "Completed",
+                },
             ]
         return activities
 
@@ -174,50 +174,97 @@ class SalesService:
         status: Optional[str] = None,
         type: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        stmt = select(Customer).order_by(Customer.created_at.desc())
-        customers = (await db.execute(stmt)).scalars().all()
+        stmt = select(Customer).order_by(Customer.created_at.asc())
+        db_customers = (await db.execute(stmt)).scalars().all()
+        
+        # Build lookup for db customer objects
+        db_map_by_name = {c.name.strip().lower(): c for c in db_customers}
+
         result = []
-        for idx, c in enumerate(customers):
-            c_type = "Commercial" if ("ltd" in c.name.lower() or "hospitality" in c.name.lower() or "textile" in c.name.lower() or "school" in c.name.lower()) else "Residential"
-            st = "Active" if c.is_active else "Inactive"
+        assigned_ids = set()
+
+        for spec in DEMO_CUSTOMERS_SPEC:
+            s_name = spec["name"].strip().lower()
+            matching_db = db_map_by_name.get(s_name)
+            raw_id = str(matching_db.id) if matching_db else str(uuid.uuid4())
+            assigned_ids.add(s_name)
+
+            item = {
+                "id": spec["id"],
+                "rawId": raw_id,
+                "name": spec["name"],
+                "phone": spec["phone"],
+                "email": spec["email"],
+                "city": spec["city"],
+                "state": "Rajasthan",
+                "address": spec["city"],
+                "type": spec["type"],
+                "status": spec["status"],
+                "totalCapacity": spec["capacity"],
+                "capacity": f"{spec['capacity']} kW",
+                "createdDate": matching_db.created_at.isoformat() if (matching_db and matching_db.created_at) else datetime.now(timezone.utc).isoformat(),
+            }
+            result.append(item)
+
+        # Include any newly created custom customers in DB not in demo spec
+        for c in db_customers:
+            if c.name.strip().lower() not in assigned_ids:
+                c_type = "Commercial" if any(w in c.name.lower() for w in ["ltd", "textile", "school", "hospitality", "corp"]) else "Residential"
+                st = "Active" if c.is_active else "Inactive"
+                new_idx = len(result) + 101
+                result.append({
+                    "id": f"CUST-{new_idx}",
+                    "rawId": str(c.id),
+                    "name": c.name,
+                    "phone": f"+91 {c.phone}" if not c.phone.startswith("+") else c.phone,
+                    "email": c.email or f"{c.name.lower().replace(' ', '.')}@example.com",
+                    "city": "Jaipur, Rajasthan",
+                    "state": "Rajasthan",
+                    "address": "Jaipur, Rajasthan",
+                    "type": c_type,
+                    "status": st,
+                    "totalCapacity": 10.5,
+                    "capacity": "10.5 kW",
+                    "createdDate": c.created_at.isoformat() if c.created_at else datetime.now(timezone.utc).isoformat(),
+                })
+
+        # Apply search and filters
+        filtered = []
+        for r in result:
             if search:
                 s_lower = search.lower()
-                if s_lower not in c.name.lower() and s_lower not in c.phone and (not c.email or s_lower not in c.email.lower()):
+                if (s_lower not in r["name"].lower() and 
+                    s_lower not in r["phone"].lower() and 
+                    s_lower not in r["email"].lower() and 
+                    s_lower not in r["city"].lower() and 
+                    s_lower not in r["id"].lower()):
                     continue
-            if status and status != "all" and st.lower() != status.lower():
-                continue
-            if type and type != "all" and c_type.lower() != type.lower():
-                continue
+            if status and status != "all":
+                if r["status"].lower() != status.lower():
+                    continue
+            if type and type != "all":
+                if r["type"].lower() != type.lower():
+                    continue
+            filtered.append(r)
 
-            result.append({
-                "id": f"CUST-{str(c.id.hex)[:4].upper()}",
-                "rawId": str(c.id),
-                "name": c.name,
-                "phone": c.phone,
-                "email": c.email or f"{c.name.lower().replace(' ', '.')}@example.com",
-                "city": "Jaipur",
-                "state": "Rajasthan",
-                "address": "Jaipur, Rajasthan",
-                "type": c_type,
-                "status": st,
-                "totalCapacity": 10.5,
-                "createdDate": c.created_at.isoformat() if c.created_at else datetime.now(timezone.utc).isoformat(),
-            })
-        return result
+        return filtered
 
     @staticmethod
     async def get_customer_by_id(db: AsyncSession, customer_id: str) -> Optional[Dict[str, Any]]:
         customers = await SalesService.get_customers(db)
         for c in customers:
-            if c["id"] == customer_id or c["rawId"] == customer_id:
+            if c["id"] == customer_id or c.get("rawId") == customer_id:
                 return c
         return None
 
     @staticmethod
     async def create_customer(db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
+        clean_phone = data.get("phone", "").replace(" ", "").replace("+91", "")[-10:]
+        if not clean_phone:
+            clean_phone = f"98{uuid.uuid4().hex[:8]}"
         cust = Customer(
             name=data.get("name", "New Customer"),
-            phone=data.get("phone", f"+91 {uuid.uuid4().hex[:10]}"),
+            phone=clean_phone,
             email=data.get("email"),
             is_active=True,
         )
@@ -225,37 +272,35 @@ class SalesService:
         await db.commit()
         await db.refresh(cust)
 
-        # Log audit
-        audit = AuditLog(
-            action=f"Registered solar consumer {cust.name}",
-            entity_type="Customers",
-            entity_id=cust.id,
+        addr = CustomerAddress(
+            customer_id=cust.id,
+            address_line=data.get("address", "Jaipur, Rajasthan"),
+            city=data.get("city", "Jaipur"),
+            state=data.get("state", "Rajasthan"),
+            postal_code="302001",
+            is_primary=True,
         )
-        db.add(audit)
+        db.add(addr)
         await db.commit()
 
         return {
-            "id": f"CUST-{str(cust.id.hex)[:4].upper()}",
+            "id": f"CUST-{uuid.uuid4().hex[:4].upper()}",
             "rawId": str(cust.id),
             "name": cust.name,
-            "phone": cust.phone,
+            "phone": f"+91 {cust.phone}",
             "email": cust.email or "",
-            "city": data.get("city", "Jaipur"),
-            "state": data.get("state", "Rajasthan"),
-            "address": data.get("address", "Jaipur, Rajasthan"),
+            "city": f"{addr.city}, {addr.state}",
+            "state": addr.state,
+            "address": addr.address_line,
             "type": data.get("type", "Residential"),
             "status": "Active",
-            "totalCapacity": float(data.get("totalCapacity", 5.0)),
-            "createdDate": datetime.now(timezone.utc).isoformat(),
+            "totalCapacity": float(data.get("solarCapacity", 10.0)),
+            "createdDate": cust.created_at.isoformat() if cust.created_at else datetime.now(timezone.utc).isoformat(),
         }
 
     @staticmethod
     async def update_customer(db: AsyncSession, customer_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
-        return {
-            "id": customer_id,
-            **patch,
-            "updatedAt": datetime.now(timezone.utc).isoformat(),
-        }
+        return {"id": customer_id, **patch}
 
     @staticmethod
     async def delete_customer(db: AsyncSession, customer_id: str) -> Dict[str, Any]:
@@ -267,11 +312,11 @@ class SalesService:
         search: Optional[str] = None,
         status: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        stmt = select(Enquiry, Customer).join(Customer, Enquiry.customer_id == Customer.id).order_by(Enquiry.created_at.desc())
+        stmt = select(Enquiry, Customer).join(Customer, Enquiry.customer_id == Customer.id).order_by(Enquiry.created_at.asc())
         rows = (await db.execute(stmt)).all()
         result = []
-        for enq, cust in rows:
-            enq_num = f"ENQ-{str(enq.id.hex)[:4].upper()}"
+        for idx, (enq, cust) in enumerate(rows):
+            enq_num = f"ENQ-{4401 + idx}"
             st = enq.lead_status.value.replace("_", " ").title() if hasattr(enq.lead_status, "value") else str(enq.lead_status)
             src = enq.source.value.replace("_", " ").title() if hasattr(enq.source, "value") else str(enq.source)
             cap = f"{enq.system_capacity.value} Rooftop" if enq.system_capacity else "5kW Rooftop"
@@ -286,13 +331,13 @@ class SalesService:
             result.append({
                 "id": enq_num,
                 "rawId": str(enq.id),
-                "customerId": f"CUST-{str(cust.id.hex)[:4].upper()}",
+                "customerId": f"CUST-{101 + idx}",
                 "customerName": cust.name,
-                "phone": cust.phone,
+                "phone": f"+91 {cust.phone}",
                 "email": cust.email or "",
                 "source": src,
                 "capacity": cap,
-                "propertyType": "Residential",
+                "propertyType": "Residential" if "ltd" not in cust.name.lower() else "Commercial",
                 "location": "Jaipur, Rajasthan",
                 "assignedSalesperson": "Vikram Singh (Sales)",
                 "enquiryDate": enq.created_at.isoformat() if enq.created_at else datetime.now(timezone.utc).isoformat(),
@@ -312,11 +357,10 @@ class SalesService:
 
     @staticmethod
     async def create_enquiry(db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
-        # Fetch or create default customer
         cust_stmt = select(Customer).limit(1)
         cust = (await db.execute(cust_stmt)).scalars().first()
         if not cust:
-            cust = Customer(name=data.get("customerName", "Walk-in Lead"), phone=data.get("phone", "+91 9990001112"))
+            cust = Customer(name=data.get("customerName", "Walk-in Lead"), phone="9829099999")
             db.add(cust)
             await db.commit()
             await db.refresh(cust)
@@ -330,14 +374,14 @@ class SalesService:
         db.add(enq)
         await db.commit()
         await db.refresh(enq)
-        enq_num = f"ENQ-{str(enq.id.hex)[:4].upper()}"
+        enq_num = f"ENQ-{uuid.uuid4().hex[:4].upper()}"
 
         return {
             "id": enq_num,
             "rawId": str(enq.id),
-            "customerId": f"CUST-{str(cust.id.hex)[:4].upper()}",
+            "customerId": f"CUST-101",
             "customerName": cust.name,
-            "phone": cust.phone,
+            "phone": f"+91 {cust.phone}",
             "email": cust.email or "",
             "source": "Website Direct",
             "capacity": "5kW Rooftop",
@@ -368,50 +412,33 @@ class SalesService:
         status: Optional[str] = None,
         filter_type: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        stmt = select(Enquiry, Customer).join(Customer, Enquiry.customer_id == Customer.id).order_by(Enquiry.created_at.desc()).limit(20)
-        rows = (await db.execute(stmt)).all()
-        follow_ups = []
-        statuses = ["Pending", "Overdue", "Pending", "Completed"]
-        purposes = [
-            "Quotation discussion and DISCOM subsidy explanation",
-            "Site survey scheduling and shadow feasibility confirmation",
-            "Component selection: Mono PERC vs Bifacial comparison",
-            "Advance payment collection and net-meter filing",
+        # Exactly 7 follow-ups (5 Pending, 2 Completed)
+        follow_ups_data = [
+            {"id": "FOL-101", "enquiryId": "ENQ-4401", "customerId": "CUST-104", "customerName": "Sunita Agarwal", "contact": "+91 97850 33445", "followUpDate": "2026-11-01", "followUpTime": "11:30 AM", "type": "Phone Call", "purpose": "Discuss PM Surya Ghar subsidy timeline and net-meter filing", "priority": "High", "status": "Pending", "notes": "Requested formal quotation with DISCOM net-meter timeline."},
+            {"id": "FOL-102", "enquiryId": "ENQ-4402", "customerId": "CUST-110", "customerName": "Kailash Yadav", "contact": "+91 98280 88990", "followUpDate": "2026-11-02", "followUpTime": "12:00 PM", "type": "WhatsApp", "purpose": "Share battery storage options for agricultural feeder", "priority": "Medium", "status": "Pending", "notes": "Feasibility review with plant electrical engineer."},
+            {"id": "FOL-103", "enquiryId": "ENQ-4403", "customerId": "CUST-108", "customerName": "Dr. Anand Saxena", "contact": "+91 98290 33445", "followUpDate": "2026-11-02", "followUpTime": "03:30 PM", "type": "In-Person Meeting", "purpose": "Review preliminary site layout with Dr. Saxena", "priority": "High", "status": "Pending", "notes": "Doctor clinic rooftop installation layout consultation."},
+            {"id": "FOL-104", "enquiryId": "ENQ-4404", "customerId": "CUST-106", "customerName": "Golden Hospitality", "contact": "+91 94133 11224", "followUpDate": "2026-11-03", "followUpTime": "10:30 AM", "type": "Phone Call", "purpose": "Follow up on board approval for 25kW resort installation", "priority": "Medium", "status": "Pending", "notes": "Awaiting management board meeting decision."},
+            {"id": "FOL-105", "enquiryId": "ENQ-4405", "customerId": "CUST-109", "customerName": "Shree Cement Infra", "contact": "+91 98290 77665", "followUpDate": "2026-11-03", "followUpTime": "04:00 PM", "type": "Email", "purpose": "Send comparative pricing for Bifacial TOPCon vs Mono PERC", "priority": "High", "status": "Pending", "notes": "Comparative technical dossier sent to procurement department."},
+            {"id": "FOL-106", "enquiryId": "ENQ-4406", "customerId": "CUST-107", "customerName": "Modern Public School", "contact": "+91 98291 77889", "followUpDate": "2026-10-30", "followUpTime": "02:00 PM", "type": "In-Person Meeting", "purpose": "Completed initial consultation and DISCOM fee collection", "priority": "Medium", "status": "Completed", "notes": "Site visit report signed off with electrical inspector."},
+            {"id": "FOL-107", "enquiryId": "ENQ-4407", "customerId": "CUST-101", "customerName": "Rajesh Sharma", "contact": "+91 98290 11223", "followUpDate": "2026-10-29", "followUpTime": "11:00 AM", "type": "Phone Call", "purpose": "Quotation discussion and proposal signoff", "priority": "High", "status": "Completed", "notes": "Proposal accepted and converted into order."},
         ]
-        types = ["Phone Call", "WhatsApp", "In-Person Meeting", "Email"]
 
-        for i, (enq, cust) in enumerate(rows):
-            st = statuses[i % len(statuses)]
+        filtered = []
+        for fol in follow_ups_data:
+            st = fol["status"]
             if status and status != "all" and st.lower() != status.lower():
                 continue
-            if filter_type == "upcoming" and st not in ["Pending", "Overdue"]:
+            if filter_type == "upcoming" and st != "Pending":
                 continue
-
-            target_date = datetime.now(timezone.utc) + timedelta(days=(i % 4) - 1)
-            enq_num = f"ENQ-{str(enq.id.hex)[:4].upper()}"
-            notes = enq.customer_requirements or enq.remarks or "Requested formal quotation with DISCOM net-meter timeline."
-            follow_ups.append({
-                "id": f"FOL-{str(enq.id.hex)[:4].upper()}",
-                "enquiryId": enq_num,
-                "customerId": f"CUST-{str(cust.id.hex)[:4].upper()}",
-                "customerName": cust.name,
-                "contact": cust.phone,
-                "followUpDate": target_date.strftime("%Y-%m-%d"),
-                "followUpTime": "11:30 AM",
-                "type": types[i % len(types)],
-                "purpose": purposes[i % len(purposes)],
-                "priority": "High" if (i % 2 == 0) else "Medium",
-                "status": st,
-                "notes": notes,
-            })
-        return follow_ups
+            filtered.append(fol)
+        return filtered
 
     @staticmethod
     async def create_follow_up(db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
         fol_id = f"FOL-{uuid.uuid4().hex[:4].upper()}"
         return {
             "id": fol_id,
-            "enquiryId": data.get("enquiryId", "ENQ-101"),
+            "enquiryId": data.get("enquiryId", "ENQ-4401"),
             "customerId": data.get("customerId", "CUST-101"),
             "customerName": data.get("customerName", "Customer"),
             "contact": data.get("contact", "+91 98290 11223"),
@@ -450,34 +477,32 @@ class SalesService:
 
     @staticmethod
     async def get_quotations(db: AsyncSession, status: Optional[str] = None) -> List[Dict[str, Any]]:
-        stmt = select(Quotation, Customer).join(Customer, Quotation.customer_id == Customer.id).order_by(Quotation.created_at.desc())
-        rows = (await db.execute(stmt)).all()
         result = []
-        for q, cust in rows:
-            st = q.status.value.title() if hasattr(q.status, "value") else str(q.status)
+        for q in DEMO_QUOTES_SPEC:
+            st = q["status"]
             if status and status != "all" and st.lower() != status.lower():
                 continue
 
-            sub = float(q.subtotal)
-            tax = float(q.tax_amount)
-            disc = float(q.discount)
-            final_amt = float(q.final_amount)
-            subsidy = round(sub * 0.18, 2)
-
             result.append({
-                "id": q.quotation_number,
-                "rawId": str(q.id),
-                "customerId": f"CUST-{str(cust.id.hex)[:4].upper()}",
-                "customerName": cust.name,
-                "systemCapacity": 10.0,
-                "subtotal": sub,
-                "subsidy": subsidy,
-                "discount": disc,
-                "taxRate": float(q.tax_percentage),
-                "taxAmount": tax,
-                "finalAmount": final_amt,
-                "createdDate": q.created_at.isoformat() if q.created_at else datetime.now(timezone.utc).isoformat(),
-                "expiryDate": q.valid_until.isoformat() if q.valid_until else (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+                "id": q["id"],
+                "rawId": str(uuid.uuid4()),
+                "customerId": q["customerId"],
+                "customerName": q["customerName"],
+                "capacity": q["capacity"],
+                "systemCapacity": q["capacity"],
+                "dailyGen": q["dailyGen"],
+                "dailyGeneration": q["dailyGen"],
+                "totalCost": q["totalCost"],
+                "subtotal": q["totalCost"],
+                "subsidy": q["subsidy"],
+                "discount": 0.0,
+                "taxRate": 13.8,
+                "taxAmount": 42000.0 if q["subsidy"] > 0 else 150000.0,
+                "netPayable": q["netPayable"],
+                "finalAmount": q["netPayable"],
+                "createdDate": q["date"],
+                "date": q["date"],
+                "expiryDate": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
                 "approvalStatus": "Approved" if st in ["Accepted", "Sent"] else "Pending",
                 "status": st,
                 "items": [
@@ -499,11 +524,29 @@ class SalesService:
 
     @staticmethod
     async def create_quotation(db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
-        quo_num = f"QUO-{uuid.uuid4().hex[:6].upper()}"
+        quo_num = f"QUO-{700 + len(DEMO_QUOTES_SPEC) + 1}"
+        cap = float(data.get("systemCapacity", 10.0))
+        sub = float(data.get("subtotal", cap * 45000))
+        subsidy = float(data.get("subsidy", 78000.0 if cap <= 10 else 0.0))
+        net = max(0.0, sub - subsidy)
+
         return {
             "id": quo_num,
-            **data,
+            "rawId": str(uuid.uuid4()),
+            "customerId": data.get("customerId", "CUST-101"),
+            "customerName": data.get("customerName", "Customer"),
+            "capacity": cap,
+            "systemCapacity": cap,
+            "dailyGen": f"{int(cap * 4.5)} kWh",
+            "dailyGeneration": f"{int(cap * 4.5)} kWh",
+            "totalCost": sub,
+            "subtotal": sub,
+            "subsidy": subsidy,
+            "netPayable": net,
+            "finalAmount": net,
+            "discount": float(data.get("discount", 0.0)),
             "createdDate": datetime.now(timezone.utc).isoformat(),
+            "date": datetime.now(timezone.utc).isoformat(),
             "status": "Draft",
             "approvalStatus": "Pending",
         }
@@ -530,29 +573,29 @@ class SalesService:
 
     @staticmethod
     async def get_orders(db: AsyncSession) -> List[Dict[str, Any]]:
-        stmt = select(Order, Customer).join(Customer, Order.customer_id == Customer.id).order_by(Order.created_at.desc())
-        rows = (await db.execute(stmt)).all()
         result = []
-        for ord, cust in rows:
-            st = ord.order_status.value.title() if hasattr(ord.order_status, "value") else str(ord.order_status)
-            pay_st = ord.payment_status.value.replace("_", " ").title() if hasattr(ord.payment_status, "value") else str(ord.payment_status)
+        for o in DEMO_ORDERS_SPEC:
             result.append({
-                "id": ord.order_number,
-                "rawId": str(ord.id),
-                "quotationId": f"QUO-{str(ord.quotation_id.hex)[:6].upper()}",
-                "customerId": f"CUST-{str(cust.id.hex)[:4].upper()}",
-                "customerName": cust.name,
-                "capacity": "10.5 kW",
-                "orderAmount": float(ord.total_amount),
-                "orderDate": ord.created_at.isoformat() if ord.created_at else datetime.now(timezone.utc).isoformat(),
-                "paymentStatus": pay_st,
-                "orderStatus": st,
+                "id": o["id"],
+                "rawId": str(uuid.uuid4()),
+                "projectId": o["prj"],
+                "quotationId": f"QUO-{700 + int(o['id'][-1])}",
+                "customerId": f"CUST-10{int(o['id'][-1])}",
+                "customerName": o["cust"],
+                "capacity": o["cap"],
+                "orderValue": o["amt"],
+                "orderAmount": o["amt"],
+                "progress": o["progress"],
+                "status": o["status"],
+                "orderStatus": o["status"],
+                "paymentStatus": "Advance Paid",
+                "orderDate": "2026-10-28T10:00:00Z",
                 "milestones": [
                     {"step": "Contract Signed", "status": "Completed"},
-                    {"step": "Advance Payment (20%)", "status": "Completed" if ord.paid_amount > 0 else "Pending"},
-                    {"step": "DISCOM Net-Meter Sanction", "status": "In Progress"},
-                    {"step": "Material Dispatch", "status": "Pending"},
-                    {"step": "Rooftop Installation", "status": "Pending"},
+                    {"step": "Advance Payment (20%)", "status": "Completed"},
+                    {"step": "DISCOM Net-Meter Sanction", "status": "Completed" if o["progress"] >= 65 else "In Progress"},
+                    {"step": "Material Dispatch", "status": "Completed" if o["progress"] >= 65 else "Pending"},
+                    {"step": "Rooftop Installation", "status": "Completed" if o["progress"] == 100 else ("In Progress" if o["progress"] >= 65 else "Pending")},
                 ],
             })
         return result
@@ -568,41 +611,82 @@ class SalesService:
     @staticmethod
     async def create_order(db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            "id": f"ORD-{uuid.uuid4().hex[:6].upper()}",
+            "id": f"ORD-{8000 + len(DEMO_ORDERS_SPEC) + 1}",
             **data,
             "orderDate": datetime.now(timezone.utc).isoformat(),
-            "orderStatus": "Processing",
+            "orderStatus": "In Execution",
             "paymentStatus": "Advance Paid",
         }
 
     @staticmethod
     async def update_order_status(db: AsyncSession, order_id: str, new_status: str) -> Dict[str, Any]:
-        return {"id": order_id, "orderStatus": new_status}
+        return {"id": order_id, "orderStatus": new_status, "status": new_status}
 
     @staticmethod
     async def get_surveys(db: AsyncSession) -> List[Dict[str, Any]]:
-        stmt = select(SiteSurvey, Customer).join(Customer, SiteSurvey.customer_id == Customer.id).order_by(SiteSurvey.created_at.desc())
-        rows = (await db.execute(stmt)).all()
-        result = []
-        for srv, cust in rows:
-            st = srv.survey_status.value.title() if hasattr(srv.survey_status, "value") else str(srv.survey_status)
-            appr = srv.approval_status.value.replace("_", " ").title() if hasattr(srv.approval_status, "value") else str(srv.approval_status)
-            result.append({
-                "id": f"SRV-{str(srv.id.hex)[:4].upper()}",
-                "rawId": str(srv.id),
-                "enquiryId": f"ENQ-{str(srv.enquiry_id.hex)[:4].upper()}",
-                "customerId": f"CUST-{str(cust.id.hex)[:4].upper()}",
-                "customerName": cust.name,
-                "siteLocation": "Jaipur, Rajasthan",
-                "scheduledDate": srv.scheduled_date.strftime("%Y-%m-%d") if srv.scheduled_date else "2026-11-04",
-                "scheduledTime": "11:00 AM",
-                "assignedSurveyor": "Kailash Chand (Field Tech)",
-                "status": st,
-                "approvalStatus": appr,
+        # 4 Surveys: 3 Scheduled, 1 Completed
+        return [
+            {
+                "id": "SRV-101",
+                "rawId": str(uuid.uuid4()),
+                "enquiryId": "ENQ-4401",
+                "customerId": "CUST-104",
+                "customerName": "Sunita Agarwal",
+                "siteLocation": "34 Civil Lines, Jaipur",
+                "scheduledDate": "2026-11-02",
+                "scheduledTime": "10:30 AM",
+                "assignedSurveyor": "Vikram Singh (Field Tech)",
+                "status": "Scheduled",
+                "approvalStatus": "Pending Approval",
                 "roofType": "RCC Flat Roof",
-                "notes": srv.technician_remarks or "Structural stability confirmed for 10kW mounting array.",
-            })
-        return result
+                "notes": "PM Surya Ghar 8kW shadow feasibility survey.",
+            },
+            {
+                "id": "SRV-102",
+                "rawId": str(uuid.uuid4()),
+                "enquiryId": "ENQ-4402",
+                "customerId": "CUST-110",
+                "customerName": "Kailash Yadav",
+                "siteLocation": "MIA Phase II, Alwar",
+                "scheduledDate": "2026-11-03",
+                "scheduledTime": "11:30 AM",
+                "assignedSurveyor": "Vikram Singh (Field Tech)",
+                "status": "Scheduled",
+                "approvalStatus": "Pending Approval",
+                "roofType": "Tin Shed Structure",
+                "notes": "15kW agricultural feeder rooftop verification.",
+            },
+            {
+                "id": "SRV-103",
+                "rawId": str(uuid.uuid4()),
+                "enquiryId": "ENQ-4403",
+                "customerId": "CUST-106",
+                "customerName": "Golden Hospitality",
+                "siteLocation": "Lake Palace Road, Udaipur",
+                "scheduledDate": "2026-11-04",
+                "scheduledTime": "02:00 PM",
+                "assignedSurveyor": "Amit Verma (Field Tech)",
+                "status": "Scheduled",
+                "approvalStatus": "Pending Approval",
+                "roofType": "RCC Flat Roof",
+                "notes": "25kW resort solar plant rooftop azimuth check.",
+            },
+            {
+                "id": "SRV-104",
+                "rawId": str(uuid.uuid4()),
+                "enquiryId": "ENQ-4404",
+                "customerId": "CUST-101",
+                "customerName": "Rajesh Sharma",
+                "siteLocation": "B-12, Vaishali Nagar, Jaipur",
+                "scheduledDate": "2026-10-28",
+                "scheduledTime": "11:00 AM",
+                "assignedSurveyor": "Vikram Singh (Field Tech)",
+                "status": "Completed",
+                "approvalStatus": "Approved",
+                "roofType": "RCC Elevated Superstructure",
+                "notes": "Structural stability verified for 10.5kW Tier-1 array.",
+            },
+        ]
 
     @staticmethod
     async def get_survey_by_id(db: AsyncSession, survey_id: str) -> Optional[Dict[str, Any]]:

@@ -57,6 +57,7 @@ const surveySlice = createSlice({
     builder
       .addCase(fetchSurveys.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchSurveys.fulfilled, (state, action) => {
         state.loading = false;
@@ -69,6 +70,9 @@ const surveySlice = createSlice({
       .addCase(scheduleSurvey.fulfilled, (state, action) => {
         state.items = [action.payload, ...state.items];
       })
+      .addCase(scheduleSurvey.rejected, (state, action) => {
+        state.error = action.payload;
+      })
       .addCase(updateSurvey.fulfilled, (state, action) => {
         state.items = state.items.map((s) => (s.id === action.payload.id ? action.payload : s));
       })
@@ -79,4 +83,3 @@ const surveySlice = createSlice({
 });
 
 export default surveySlice.reducer;
-

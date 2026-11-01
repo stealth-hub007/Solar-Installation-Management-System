@@ -77,8 +77,8 @@ export const SurveyDetailsPage = () => {
   const handleSubmitSurvey = async () => {
     if (!preSubmissionCheck.canSubmit) {
       setSubmissionFeedback({
-        type: 'error',
-        message: 'Please complete all mandatory measurements and upload at least 2 photographs before submitting.',
+        type: 'warning',
+        message: `Incomplete items: ${preSubmissionCheck.issues.join(' ')}`,
       });
       return;
     }
@@ -87,6 +87,11 @@ export const SurveyDetailsPage = () => {
       setSubmissionFeedback({
         type: 'success',
         message: 'Site survey successfully submitted for management approval!',
+      });
+    } else {
+      setSubmissionFeedback({
+        type: 'error',
+        message: res.error?.message || 'Submission failed. Please check measurements and try again.',
       });
     }
   };
@@ -128,13 +133,15 @@ export const SurveyDetailsPage = () => {
           className={`p-4 rounded-xl mb-6 text-xs flex items-center gap-3 ${
             submissionFeedback.type === 'success'
               ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+              : submissionFeedback.type === 'warning'
+              ? 'bg-amber-50 border border-amber-200 text-amber-800'
               : 'bg-rose-50 border border-rose-200 text-rose-800'
           }`}
         >
           {submissionFeedback.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           ) : (
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            <AlertTriangle className={`w-5 h-5 shrink-0 ${submissionFeedback.type === 'warning' ? 'text-amber-600' : 'text-rose-600'}`} />
           )}
           <span>{submissionFeedback.message}</span>
         </div>
@@ -249,4 +256,3 @@ export const SurveyDetailsPage = () => {
 };
 
 export default SurveyDetailsPage;
-

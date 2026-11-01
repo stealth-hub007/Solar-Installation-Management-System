@@ -3,9 +3,13 @@ from fastapi import APIRouter, Depends, Query, Body, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.dependencies.auth import require_sales_or_admin
 from app.services.sales_service import SalesService
 
-router = APIRouter(tags=["Sales Operations"])
+router = APIRouter(
+    tags=["Sales Operations"],
+    dependencies=[Depends(require_sales_or_admin)],
+)
 
 
 # ==============================================================================
@@ -310,6 +314,10 @@ async def update_order_status(
 async def list_surveys(db: AsyncSession = Depends(get_db)):
     return await SalesService.get_surveys(db)
 
+@router.get("/technicians", summary="List Active Field Technicians")
+async def list_technicians(db: AsyncSession = Depends(get_db)):
+    return await SalesService.get_active_technicians(db)
+
 
 @router.get("/surveys/{survey_id}", summary="Get Survey by ID")
 async def get_survey(
@@ -343,4 +351,3 @@ async def delete_survey(
     db: AsyncSession = Depends(get_db),
 ):
     return await SalesService.delete_survey(db, survey_id)
-

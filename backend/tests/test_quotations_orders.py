@@ -13,7 +13,11 @@ async def get_admin_token(async_client: AsyncClient) -> str:
     return login_resp.json()["data"]["access_token"]
 
 
-async def create_approved_survey(async_client: AsyncClient, token: str) -> str:
+async def create_approved_survey(
+    async_client: AsyncClient,
+    token: str,
+    system_capacity: str = "5kW",
+) -> str:
     tech_resp = await async_client.post(
         "/api/v1/users",
         headers={"Authorization": f"Bearer {token}"},
@@ -31,9 +35,9 @@ async def create_approved_survey(async_client: AsyncClient, token: str) -> str:
         headers={"Authorization": f"Bearer {token}"},
         json={
             "customer_name": "Order Test Customer",
-            "customer_phone": f"96{uuid.uuid4().hex[:8]}",
+            "customer_phone": f"96{uuid.uuid4().int % 10**8:08d}",
             "source": "PHONE_CALL",
-            "system_capacity": "3kW",
+            "system_capacity": system_capacity,
             "system_type": "ON_GRID",
         },
     )
@@ -53,7 +57,14 @@ async def create_approved_survey(async_client: AsyncClient, token: str) -> str:
     await async_client.put(
         f"/api/v1/surveys/{survey_id}/measurements",
         headers={"Authorization": f"Bearer {token}"},
-        json={"roof_area_sqft": 500.0, "roof_orientation": "SOUTH", "grid_connection_suitable": True},
+        json={
+            "roof_area_sqft": 500.0,
+            "roof_orientation": "SOUTH",
+            "shadow_free_area_sqft": 450.0,
+            "monthly_bill": 3500.0,
+            "cable_distance_meters": 20.0,
+            "grid_connection_suitable": True,
+        },
     )
     await async_client.post(f"/api/v1/surveys/{survey_id}/submit", headers={"Authorization": f"Bearer {token}"})
     await async_client.post(
@@ -78,6 +89,13 @@ async def test_quotation_to_order_and_payment_flow(async_client: AsyncClient):
     )
     assert quote_resp.status_code == 201
     quote_data = quote_resp.json()["data"]
+    assert quote_data["customer_name"] == "Order Test Customer"
+    package_resp = await async_client.get(
+        f"/api/v1/packages/{quote_data['package_id']}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert package_resp.status_code == 200
+    assert quote_data["system_capacity"] == package_resp.json()["data"]["capacity"]
     quotation_id = quote_data["id"]
     final_amount = quote_data["final_amount"]
 
@@ -141,3 +159,18 @@ async def test_quotation_to_order_and_payment_flow(async_client: AsyncClient):
     assert float(updated_order["paid_amount"]) == advance_amount
     assert updated_order["payment_status"] == "PARTIALLY_PAID"
     assert round(float(updated_order["outstanding_amount"]), 2) == round(float(final_amount) - advance_amount, 2)
+
+
+@pytest.mark.asyncio
+async def test_quotation_rejects_unconfigured_package_capacity(async_client: AsyncClient):
+    token = await get_admin_token(async_client)
+    survey_id = await create_approved_survey(async_client, token, system_capacity="3kW")
+
+    response = await async_client.post(
+        "/api/v1/quotations",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"survey_id": survey_id},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error_code"] == "PACKAGE_NOT_AVAILABLE"

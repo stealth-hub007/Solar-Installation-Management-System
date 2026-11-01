@@ -60,30 +60,25 @@ export const TechnicianHeader = () => {
   };
 
   return (
-    <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-20 min-h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-3 sm:px-6 py-2 sm:py-0 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4">
       {/* Left: Mobile Toggle & Top 1-Tap Portal Switcher */}
-      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <button
           onClick={toggleMobileSidebar}
-          className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
+          className="lg:hidden p-2 -ml-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition shrink-0"
           aria-label="Open technician sidebar"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         {/* TOP 1-TAP PORTAL SWITCHER */}
-        <div className="hidden sm:block shrink-0">
+        <div className="flex items-center min-w-0">
           <PortalSwitcher />
         </div>
       </div>
 
       {/* Right: Status Pill, Notifications, Technician Profile */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Mobile 1-Tap Switcher */}
-        <div className="sm:hidden">
-          <PortalSwitcher />
-        </div>
-
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
         {/* System Status Pill matching Admin */}
         <div className="hidden sm:inline-flex items-center px-3 py-1 rounded-full bg-[#F0F7FF] border border-[#BAE6FD] text-[#0369A1] text-[11px] font-semibold tracking-wide shrink-0">
           <span>System Live</span>

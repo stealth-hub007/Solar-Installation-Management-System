@@ -8,6 +8,9 @@ import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/common/Input';
 import Select from '../../../components/common/Select';
 import storageService from '../../../services/storageService';
+import enquiryAPI from '../services/enquiryAPI';
+import { surveyAPI } from '../services/surveyAPI';
+import quotationAPI from '../services/quotationAPI';
 import formatDate from '../../../utils/formatDate';
 import formatCurrency from '../../../utils/formatCurrency';
 import {
@@ -27,11 +30,6 @@ import {
   CheckCircle2,
   Plus,
 } from 'lucide-react';
-import {
-  SOLAR_PANEL_PRESETS,
-  INVERTER_PRESETS,
-} from '../utils/salesConstants';
-import { calculateEstimatedSubsidy } from '../utils/salesHelpers';
 
 export const EnquiryDetailsPage = () => {
   const { enquiryId } = useParams();
@@ -42,6 +40,8 @@ export const EnquiryDetailsPage = () => {
   const [surveys, setSurveys] = useState([]);
   const [quotations, setQuotations] = useState([]);
   const [successBanner, setSuccessBanner] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // In-place modals
   const [isAddFollowUpOpen, setIsAddFollowUpOpen] = useState(false);
@@ -66,41 +66,63 @@ export const EnquiryDetailsPage = () => {
   });
 
   const [quotationForm, setQuotationForm] = useState({
-    systemCapacity: 10.0,
-    panelModel: SOLAR_PANEL_PRESETS[0]?.name || 'Adani 540W Mono PERC',
-    inverterModel: INVERTER_PRESETS[2]?.name || 'Growatt 10kW 3-Phase',
-    panelCount: 20,
-    structureCost: 38000,
-    bosCost: 28000,
-    installationCost: 35000,
-    subsidy: 78000,
     discount: 10000,
     notes: '',
   });
 
-  const loadData = () => {
-    const list = storageService.getEnquiries();
-    const found = list.find((e) => e.id === enquiryId);
-    setEnquiry(found || null);
+  const loadData = async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const result = await enquiryAPI.getEnquiryById(enquiryId);
+      if (!result || !result.id) {
+        setEnquiry(null);
+        setSurveys([]);
+        setQuotations([]);
+        setFollowUps([]);
+        return;
+      }
 
-    if (found) {
+      const found = {
+        ...result,
+        id: result.id || enquiryId,
+        contact: result.contact || result.phone || '',
+        contactNumber: result.contactNumber || result.phone || '',
+        city: result.city || result.location || '',
+      };
+      setEnquiry(found);
+
+      const [allSurveys, allQuotations] = await Promise.all([
+        surveyAPI.getSurveys(),
+        quotationAPI.getQuotations(),
+      ]);
+      setSurveys(
+        allSurveys.filter(
+          (survey) =>
+            survey.enquiryId === found.id ||
+            survey.enquiryId === found.rawId ||
+            survey.customerName?.toLowerCase() === found.customerName?.toLowerCase()
+        )
+      );
+
       const allFollowUps = storageService.getFollowUps();
-      setFollowUps(allFollowUps.filter((f) => f.enquiryId === found.id || f.customerName?.toLowerCase() === found.customerName?.toLowerCase()));
+      setFollowUps(allFollowUps.filter((item) => item.enquiryId === found.id));
+      const relatedSurveyIds = new Set(
+        allSurveys
+          .filter(
+            (survey) =>
+              survey.enquiryId === found.id ||
+              survey.enquiryId === found.rawId ||
+              survey.customerName?.toLowerCase() === found.customerName?.toLowerCase()
+          )
+          .map((survey) => survey.id)
+      );
+      setQuotations(allQuotations.filter((quotation) => relatedSurveyIds.has(quotation.survey_id)));
 
-      const allSurveys = storageService.getSurveys();
-      setSurveys(allSurveys.filter((s) => s.enquiryId === found.id || s.customerName?.toLowerCase() === found.customerName?.toLowerCase()));
-
-      const allQuotations = storageService.getQuotations();
-      setQuotations(allQuotations.filter((q) => q.enquiryId === found.id || q.customerName?.toLowerCase() === found.customerName?.toLowerCase()));
-
-      // Initialize quotation form capacity from enquiry
-      const numericCap = parseFloat(found.capacity) || 10.0;
-      setQuotationForm((prev) => ({
-        ...prev,
-        systemCapacity: numericCap,
-        panelCount: Math.ceil((numericCap * 1000) / 540),
-        subsidy: calculateEstimatedSubsidy(numericCap, 'Residential'),
-      }));
+    } catch (error) {
+      setLoadError(error.message || 'Failed to load enquiry details');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -137,72 +159,81 @@ export const EnquiryDetailsPage = () => {
   };
 
   // Submit Survey in place
-  const handleScheduleSurveySubmit = (e) => {
+  const handleScheduleSurveySubmit = async (e) => {
     e.preventDefault();
     if (!enquiry) return;
 
-    storageService.createSurvey({
-      enquiryId: enquiry.id,
-      customerName: enquiry.customerName,
-      contact: enquiry.contactNumber || enquiry.contact,
-      surveyDate: surveyForm.surveyDate,
-      surveyTime: surveyForm.surveyTime,
-      address: enquiry.address || 'Site inspection location',
-      roofType: surveyForm.roofType,
-      shadowIssue: surveyForm.shadowIssue,
-      surveyorName: surveyForm.surveyorName,
-      status: 'Scheduled',
-    });
-
-    loadData();
-    setIsScheduleSurveyOpen(false);
-    triggerSuccess(`Site survey scheduled for ${enquiry.customerName} on ${surveyForm.surveyDate}!`);
+    try {
+      // Call real backend API — assigns to Vikram (vikram.tech@sunpower.com) by default
+      await surveyAPI.scheduleSurvey({
+        enquiryId: enquiry.rawId || enquiry.id,
+        scheduledDate: surveyForm.surveyDate,
+        scheduledTime: surveyForm.surveyTime,
+        customerName: enquiry.customerName,
+        siteLocation: enquiry.address || enquiry.city || 'Site inspection location',
+        notes: `Roof Type: ${surveyForm.roofType || 'RCC'} | Shadow: ${surveyForm.shadowIssue || 'None'} | Time: ${surveyForm.surveyTime || '10:00 AM'}`,
+      });
+      await loadData();
+      setIsScheduleSurveyOpen(false);
+      triggerSuccess(`Site survey scheduled for ${enquiry.customerName} on ${surveyForm.surveyDate}!`);
+    } catch (err) {
+      console.error('Schedule survey failed:', err);
+      setLoadError(err.message || 'Survey scheduling failed');
+    }
   };
 
   // Submit Quotation in place
-  const handleCreateQuotationSubmit = (e) => {
+  const handleCreateQuotationSubmit = async (e) => {
     e.preventDefault();
     if (!enquiry) return;
 
-    const baseCost = Number(quotationForm.systemCapacity) * 35000;
-    const subtotal =
-      baseCost +
-      Number(quotationForm.structureCost) +
-      Number(quotationForm.bosCost) +
-      Number(quotationForm.installationCost);
-    const subsidy = Number(quotationForm.subsidy) || 0;
-    const discount = Number(quotationForm.discount) || 0;
-    const taxableAmount = Math.max(0, subtotal - subsidy - discount);
-    const gstAmount = Math.round(taxableAmount * 0.138);
-    const finalAmount = taxableAmount + gstAmount;
+    const approvedSurvey = surveys.find(
+      (survey) =>
+        String(survey.approvalStatus || survey.approval_status)
+          .toUpperCase()
+          .replace(/ /g, '_') === 'APPROVED'
+    );
+    if (!approvedSurvey) {
+      setLoadError('An approved site survey is required before generating a quotation.');
+      return;
+    }
 
-    storageService.createQuotation({
-      enquiryId: enquiry.id,
-      customerName: enquiry.customerName,
-      contact: enquiry.contactNumber || enquiry.contact,
-      systemCapacity: Number(quotationForm.systemCapacity),
-      panelModel: quotationForm.panelModel,
-      inverterModel: quotationForm.inverterModel,
-      panelCount: Number(quotationForm.panelCount),
-      subtotal,
-      subsidy,
-      discount,
-      gstAmount,
-      finalAmount,
-      status: 'Sent',
-      notes: quotationForm.notes,
-    });
-
-    loadData();
-    setIsCreateQuotationOpen(false);
-    triggerSuccess(`Solar proposal created and linked to lead ${enquiry.id}!`);
+    try {
+      const quotation = await quotationAPI.createQuotation({
+        surveyId: approvedSurvey.rawId || approvedSurvey.id,
+        discount: Number(quotationForm.discount) || 0,
+        notes: quotationForm.notes,
+      });
+      setQuotations((current) => [quotation, ...current]);
+      setIsCreateQuotationOpen(false);
+      triggerSuccess(`Quotation ${quotation.displayId || quotation.quotation_number} created.`);
+    } catch (error) {
+      setLoadError(error.message || 'Quotation generation failed');
+    }
   };
+
+  const hasApprovedSurvey = surveys.some(
+    (survey) =>
+      String(survey.approvalStatus || survey.approval_status)
+        .toUpperCase()
+        .replace(/ /g, '_') === 'APPROVED'
+  );
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="p-8 text-center text-sm text-slate-500">Loading enquiry details...</div>
+      </PageContainer>
+    );
+  }
 
   if (!enquiry) {
     return (
       <PageContainer>
         <div className="p-8 text-center bg-white rounded-xl border border-slate-200">
-          <p className="text-sm font-semibold text-slate-700">Enquiry lead not found</p>
+          <p className="text-sm font-semibold text-slate-700">
+            {loadError || 'Enquiry lead not found'}
+          </p>
           <Button
             variant="outline"
             size="sm"
@@ -216,21 +247,13 @@ export const EnquiryDetailsPage = () => {
     );
   }
 
-  // Live calculation values for quotation modal
-  const baseCostCalc = Number(quotationForm.systemCapacity || 10) * 35000;
-  const subtotalCalc =
-    baseCostCalc +
-    Number(quotationForm.structureCost || 0) +
-    Number(quotationForm.bosCost || 0) +
-    Number(quotationForm.installationCost || 0);
-  const subsidyCalc = Number(quotationForm.subsidy || 0);
-  const discountCalc = Number(quotationForm.discount || 0);
-  const taxableCalc = Math.max(0, subtotalCalc - subsidyCalc - discountCalc);
-  const gstCalc = Math.round(taxableCalc * 0.138);
-  const finalNetCalc = taxableCalc + gstCalc;
-
   return (
     <PageContainer>
+      {loadError && (
+        <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-sm text-rose-700">
+          {loadError}
+        </div>
+      )}
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
@@ -276,6 +299,8 @@ export const EnquiryDetailsPage = () => {
             variant="primary"
             size="sm"
             onClick={() => setIsCreateQuotationOpen(true)}
+            disabled={!hasApprovedSurvey}
+            title={!hasApprovedSurvey ? 'Approve a site survey before generating a quotation' : undefined}
             className="shadow-card whitespace-nowrap"
           >
             <FileText className="w-3.5 h-3.5 shrink-0" />
@@ -454,7 +479,12 @@ export const EnquiryDetailsPage = () => {
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-[#0284C7]" /> Quotations ({quotations.length})
             </h4>
-            <Button variant="primary" size="xs" onClick={() => setIsCreateQuotationOpen(true)}>
+            <Button
+              variant="primary"
+              size="xs"
+              onClick={() => setIsCreateQuotationOpen(true)}
+              disabled={!hasApprovedSurvey}
+            >
               <Plus className="w-3 h-3 mr-1" /> Create
             </Button>
           </div>
@@ -464,12 +494,12 @@ export const EnquiryDetailsPage = () => {
               quotations.map((q) => (
                 <div key={q.id} className="py-2.5">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-[#0284C7] font-mono">{q.id}</span>
+                    <span className="font-bold text-[#0284C7] font-mono">{q.displayId || q.quotation_number || q.id}</span>
                     <StatusBadge status={q.status} />
                   </div>
                   <div className="flex justify-between items-center text-slate-600 text-[11px]">
-                    <span>{q.systemCapacity || q.capacity} kW System</span>
-                    <span className="font-extrabold text-slate-900">{formatCurrency(q.finalAmount || q.netPayable)}</span>
+                    <span>{q.systemCapacity || q.capacity || 'Solar'} System</span>
+                    <span className="font-extrabold text-slate-900">{formatCurrency(q.finalAmount || q.final_amount || q.netPayable)}</span>
                   </div>
                 </div>
               ))
@@ -603,7 +633,7 @@ export const EnquiryDetailsPage = () => {
       <Modal
         isOpen={isCreateQuotationOpen}
         onClose={() => setIsCreateQuotationOpen(false)}
-        title={`Create Solar Proposal & BOQ for ${enquiry.customerName}`}
+        title={`Create Solar Proposal for ${enquiry.customerName}`}
         size="lg"
       >
         <form onSubmit={handleCreateQuotationSubmit} className="space-y-4">
@@ -622,81 +652,10 @@ export const EnquiryDetailsPage = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Input
-              label="System Capacity (kW)"
-              type="number"
-              required
-              min="1"
-              suffix="kW"
-              value={quotationForm.systemCapacity}
-              onChange={(e) => {
-                const cap = Number(e.target.value);
-                const count = Math.ceil((cap * 1000) / 540);
-                const estSubsidy = calculateEstimatedSubsidy(cap, 'Residential');
-                setQuotationForm({
-                  ...quotationForm,
-                  systemCapacity: cap,
-                  panelCount: count,
-                  subsidy: estSubsidy,
-                });
-              }}
-            />
-            <Select
-              label="Solar PV Module"
-              value={quotationForm.panelModel}
-              onChange={(e) => setQuotationForm({ ...quotationForm, panelModel: e.target.value })}
-              options={SOLAR_PANEL_PRESETS.map((p) => p.name)}
-            />
-            <Select
-              label="Solar Inverter"
-              value={quotationForm.inverterModel}
-              onChange={(e) => setQuotationForm({ ...quotationForm, inverterModel: e.target.value })}
-              options={INVERTER_PRESETS.map((i) => i.name)}
-            />
+          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+            Package, equipment, taxes, and total are calculated from the approved survey and configured catalog.
           </div>
-
-          {/* Micro Grid with uniform baseline alignment */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 text-xs">
-            <Input
-              label="Panels Count"
-              type="number"
-              min="1"
-              value={quotationForm.panelCount}
-              onChange={(e) => setQuotationForm({ ...quotationForm, panelCount: Number(e.target.value) })}
-            />
-            <Input
-              label="Structure Cost"
-              type="number"
-              prefix="₹"
-              value={quotationForm.structureCost}
-              onChange={(e) => setQuotationForm({ ...quotationForm, structureCost: Number(e.target.value) })}
-            />
-            <Input
-              label="BOS & Wiring"
-              type="number"
-              prefix="₹"
-              value={quotationForm.bosCost}
-              onChange={(e) => setQuotationForm({ ...quotationForm, bosCost: Number(e.target.value) })}
-            />
-            <Input
-              label="Installation"
-              type="number"
-              prefix="₹"
-              value={quotationForm.installationCost}
-              onChange={(e) => setQuotationForm({ ...quotationForm, installationCost: Number(e.target.value) })}
-            />
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Govt PM Surya Ghar Subsidy"
-              type="number"
-              prefix="₹"
-              value={quotationForm.subsidy}
-              onChange={(e) => setQuotationForm({ ...quotationForm, subsidy: Number(e.target.value) })}
-              helperText="Residential: ₹78k for 3kW+"
-            />
             <Input
               label="Special Discount"
               type="number"
@@ -704,26 +663,11 @@ export const EnquiryDetailsPage = () => {
               value={quotationForm.discount}
               onChange={(e) => setQuotationForm({ ...quotationForm, discount: Number(e.target.value) })}
             />
-          </div>
-
-          {/* Live Calculation Summary */}
-          <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#F0F7FF] to-white border border-[#BAE6FD] text-xs">
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-600">Subtotal Components:</span>
-              <span className="font-semibold text-slate-800">{formatCurrency(subtotalCalc)}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-emerald-600 font-semibold">Government MNRE Subsidy:</span>
-              <span className="font-bold text-emerald-600">- {formatCurrency(subsidyCalc)}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-slate-100">
-              <span className="text-slate-600">GST Tax (13.8% Composite):</span>
-              <span className="font-semibold text-slate-800">+ {formatCurrency(gstCalc)}</span>
-            </div>
-            <div className="flex justify-between pt-2 text-sm font-extrabold text-[#0284C7]">
-              <span>Final Net Payable:</span>
-              <span>{formatCurrency(finalNetCalc)}</span>
-            </div>
+            <Input
+              label="Quotation Notes / Terms"
+              value={quotationForm.notes}
+              onChange={(e) => setQuotationForm({ ...quotationForm, notes: e.target.value })}
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -731,7 +675,7 @@ export const EnquiryDetailsPage = () => {
               Cancel
             </Button>
             <Button variant="primary" size="sm" type="submit">
-              Generate & Save Quotation (Stay Here)
+              Generate Quotation from Approved Survey
             </Button>
           </div>
         </form>

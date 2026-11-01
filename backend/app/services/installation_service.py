@@ -12,7 +12,9 @@ from app.models.installation import (
     InstallationJob, InstallationChecklist, InstallationPhoto,
     TechnicianWorkLog, InstallationSignoff, InstallationStatus
 )
-from app.models.order import Order, OrderStatus
+from app.models.order import Order, OrderItem, OrderStatus
+from app.models.dispatch import DeliveryConfirmation
+from app.models.product import Product, ProductCategory
 from app.models.user import User, UserRole
 from app.schemas.installation import (
     InstallationAssignRequest, ChecklistUpdateRequest, WorkLogCreate,
@@ -51,7 +53,7 @@ class InstallationService:
         job = await InstallationService.get_job_by_id(db, job_id)
 
         technician = await db.get(User, assign_in.technician_id)
-        if not technician or technician.role != UserRole.TECHNICIAN:
+        if not technician or technician.role != UserRole.TECHNICIAN or not technician.is_active:
             raise BadRequestException(
                 message="Assigned user must be an active Field Technician",
                 error_code="INVALID_TECHNICIAN",
@@ -74,6 +76,31 @@ class InstallationService:
         job = await InstallationService.get_job_by_id(db, job_id)
         if technician.role == UserRole.TECHNICIAN and job.assigned_technician_id != technician.id:
             raise ForbiddenException(message="Technicians can only start their own assigned installation jobs")
+
+        order = await db.get(Order, job.order_id)
+        if not order or order.order_status != OrderStatus.DISPATCHED:
+            raise BadRequestException(
+                message="Installation can only start after equipment delivery has been confirmed",
+                error_code="DELIVERY_NOT_CONFIRMED",
+            )
+        confirmation = await db.execute(
+            select(DeliveryConfirmation).where(DeliveryConfirmation.order_id == order.id)
+        )
+        if confirmation.scalar_one_or_none() is None:
+            raise BadRequestException(
+                message="Installation can only start after equipment delivery has been confirmed",
+                error_code="DELIVERY_NOT_CONFIRMED",
+            )
+        if not job.assigned_technician_id:
+            raise BadRequestException(
+                message="Assign a field technician before starting the installation",
+                error_code="TECHNICIAN_NOT_ASSIGNED",
+            )
+        if job.installation_status not in (InstallationStatus.SCHEDULED, InstallationStatus.PENDING_ASSIGNMENT):
+            raise BadRequestException(
+                message="Installation job cannot be started in its current state",
+                error_code="INSTALLATION_NOT_STARTABLE",
+            )
 
         job.installation_status = InstallationStatus.IN_PROGRESS
         if not job.start_time:
@@ -114,6 +141,8 @@ class InstallationService:
         technician: User,
     ) -> TechnicianWorkLog:
         job = await InstallationService.get_job_by_id(db, job_id)
+        if technician.role == UserRole.TECHNICIAN and job.assigned_technician_id != technician.id:
+            raise ForbiddenException(message="Technicians can only log work for assigned installation jobs")
 
         # Calculate duration
         duration_seconds = (log_in.end_time - log_in.start_time).total_seconds()
@@ -143,8 +172,11 @@ class InstallationService:
         job_id: uuid.UUID,
         signoff_in: CustomerSignoffRequest,
         signature_path: str,
+        technician: User,
     ) -> InstallationSignoff:
         job = await InstallationService.get_job_by_id(db, job_id)
+        if technician.role == UserRole.TECHNICIAN and job.assigned_technician_id != technician.id:
+            raise ForbiddenException(message="Technicians can only submit sign-off for assigned installation jobs")
 
         if job.signoff:
             signoff = job.signoff
@@ -175,8 +207,29 @@ class InstallationService:
     ) -> InstallationJob:
         job = await InstallationService.get_job_by_id(db, job_id)
 
+        if technician.role == UserRole.TECHNICIAN and job.assigned_technician_id != technician.id:
+            raise ForbiddenException(message="Technicians can only complete their own assigned installation jobs")
+        if job.installation_status != InstallationStatus.IN_PROGRESS:
+            raise BadRequestException(
+                message="Only an in-progress installation can be completed",
+                error_code="INSTALLATION_NOT_IN_PROGRESS",
+            )
+
         # STRICT BUSINESS RULE: Mandatory Checklist Completion
-        if not job.checklist or not job.checklist.is_fully_completed():
+        order_items = await db.execute(
+            select(OrderItem.product_id).where(OrderItem.order_id == job.order_id)
+        )
+        product_ids = order_items.scalars().all()
+        battery_result = await db.execute(
+            select(func.count(Product.id))
+            .join(ProductCategory, Product.category_id == ProductCategory.id)
+            .where(
+                Product.id.in_(product_ids),
+                func.lower(ProductCategory.name).contains("batter"),
+            )
+        )
+        requires_battery = battery_result.scalar_one() > 0
+        if not job.checklist or not job.checklist.is_fully_completed(requires_battery=requires_battery):
             raise BadRequestException(
                 message="Installation completion requires all mandatory checklist items to be verified (stands, panels, inverter, wiring, safety, earthing, testing)",
                 error_code="INCOMPLETE_INSTALLATION_CHECKLIST",
@@ -226,4 +279,3 @@ class InstallationService:
 
         res = await db.execute(stmt)
         return list(res.scalars().all())
-

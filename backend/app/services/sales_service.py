@@ -11,6 +11,7 @@ from app.models.quotation import Quotation, QuotationStatus
 from app.models.order import Order, OrderStatus, Payment, PaymentStatus
 from app.models.user import User, UserRole
 from app.models.system import AuditLog
+from app.core.exceptions import BadRequestException, NotFoundException
 
 
 DEMO_CUSTOMERS_SPEC = [
@@ -703,12 +704,26 @@ class SalesService:
                 "scheduledDate": s.scheduled_date.strftime("%Y-%m-%d") if s.scheduled_date else datetime.now(timezone.utc).strftime("%Y-%m-%d"),
                 "scheduledTime": s.scheduled_date.strftime("%I:%M %p") if s.scheduled_date else "10:30 AM",
                 "assignedSurveyor": u.full_name if u else "Unassigned Technician",
+                "assignedTechnicianId": str(s.assigned_technician_id) if s.assigned_technician_id else None,
                 "status": st,
                 "approvalStatus": appr,
                 "roofType": s.roof_orientation.value if hasattr(s.roof_orientation, "value") and s.roof_orientation else "RCC Flat Roof",
                 "notes": s.technician_remarks or "Site survey scheduled.",
             })
         return result
+
+    @staticmethod
+    async def get_active_technicians(db: AsyncSession) -> List[Dict[str, str]]:
+        stmt = (
+            select(User)
+            .where(User.role == UserRole.TECHNICIAN, User.is_active.is_(True))
+            .order_by(User.full_name.asc())
+        )
+        technicians = (await db.execute(stmt)).scalars().all()
+        return [
+            {"id": str(technician.id), "name": technician.full_name}
+            for technician in technicians
+        ]
 
     @staticmethod
     async def get_survey_by_id(db: AsyncSession, survey_id: str) -> Optional[Dict[str, Any]]:
@@ -720,62 +735,83 @@ class SalesService:
 
     @staticmethod
     async def schedule_survey(db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
-        # 1. Resolve enquiry
-        enquiry = None
-        enq_ref = data.get("enquiryId")
-        if enq_ref:
-            raw_enq_id = enq_ref.replace("ENQ-", "").strip().lower()
-            stmt = select(Enquiry).where(
-                or_(
-                    func.cast(Enquiry.id, String).ilike(f"%{raw_enq_id}%"),
-                    Enquiry.id == raw_enq_id if len(raw_enq_id) == 36 else False
-                )
+        enquiry_ref = data.get("enquiryId") or data.get("enquiry_id")
+        if not enquiry_ref:
+            raise BadRequestException(message="An enquiry ID is required to schedule a survey")
+
+        raw_enquiry_id = str(enquiry_ref).strip()
+        if raw_enquiry_id.upper().startswith("ENQ-"):
+            raw_enquiry_id = raw_enquiry_id[4:]
+
+        try:
+            enquiry_uuid = uuid.UUID(raw_enquiry_id)
+            enquiry = await db.get(Enquiry, enquiry_uuid)
+        except ValueError:
+            if len(raw_enquiry_id) < 8:
+                raise BadRequestException(message="Enquiry ID is invalid")
+            enquiry_stmt = select(Enquiry).where(
+                func.lower(func.cast(Enquiry.id, String)).startswith(raw_enquiry_id.lower())
             )
-            enquiry = (await db.execute(stmt)).scalars().first()
+            matching_enquiries = list((await db.execute(enquiry_stmt)).scalars().all())
+            if len(matching_enquiries) > 1:
+                raise BadRequestException(message="Enquiry ID is ambiguous; use the full enquiry ID")
+            enquiry = matching_enquiries[0] if matching_enquiries else None
 
         if not enquiry:
-            # Fallback to newest enquiry
-            enquiry = (await db.execute(select(Enquiry).order_by(Enquiry.created_at.desc()).limit(1))).scalars().first()
+            raise NotFoundException(message="Enquiry not found", error_code="ENQUIRY_NOT_FOUND")
 
-        # 2. Resolve or create customer
-        customer_id = enquiry.customer_id if enquiry else None
-        if not customer_id:
-            cust = Customer(name=data.get("customerName", "Customer Lead"), phone="9829012345")
-            db.add(cust)
-            await db.flush()
-            customer_id = cust.id
+        customer = await db.get(Customer, enquiry.customer_id)
+        if not customer:
+            raise NotFoundException(message="Customer for this enquiry was not found", error_code="CUSTOMER_NOT_FOUND")
 
-        # 3. Resolve active technician
-        tech_stmt = select(User).where(User.role == UserRole.TECHNICIAN).order_by(User.created_at.desc()).limit(1)
-        tech = (await db.execute(tech_stmt)).scalars().first()
-        if not tech:
-            tech = User(
-                email="tech.field@sunpower.com",
-                full_name="Karthik Technician",
-                role=UserRole.TECHNICIAN,
-                is_active=True,
-                hashed_password="hashed_demo_password"
+        assigned_tech_id = data.get("assigned_technician_id") or data.get("assignedTechnicianId")
+        assigned_surveyor_name = data.get("assigned_surveyor") or data.get("assignedSurveyor")
+        technician = None
+        if assigned_tech_id:
+            try:
+                technician = await db.get(User, uuid.UUID(str(assigned_tech_id)))
+            except ValueError as exc:
+                raise BadRequestException(message="Assigned technician ID is invalid") from exc
+            if not technician or technician.role != UserRole.TECHNICIAN or not technician.is_active:
+                raise BadRequestException(message="Assigned user must be an active Field Technician")
+        elif assigned_surveyor_name:
+            tech_stmt = select(User).where(
+                User.role == UserRole.TECHNICIAN,
+                User.is_active.is_(True),
+                func.lower(User.full_name) == str(assigned_surveyor_name).strip().lower(),
             )
-            db.add(tech)
-            await db.flush()
+            technician = (await db.execute(tech_stmt)).scalars().first()
 
-        # 4. Parse date
-        date_str = data.get("scheduledDate", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+        if not technician:
+            raise BadRequestException(
+                message="Select an active field technician before scheduling the survey",
+                error_code="TECHNICIAN_REQUIRED",
+            )
+
+        date_str = data.get("scheduledDate") or data.get("scheduled_date")
+        if not date_str:
+            raise BadRequestException(message="A survey date is required")
         try:
-            sched_dt = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
-        except Exception:
-            sched_dt = datetime.now(timezone.utc)
+            sched_dt = datetime.fromisoformat(str(date_str).replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise BadRequestException(message="Survey date must be a valid ISO date or datetime") from exc
+        if "T" not in str(date_str) and data.get("scheduledTime"):
+            try:
+                time_value = datetime.strptime(str(data["scheduledTime"]), "%I:%M %p").time()
+                sched_dt = sched_dt.replace(hour=time_value.hour, minute=time_value.minute)
+            except ValueError as exc:
+                raise BadRequestException(message="Survey time must use a format such as 10:30 AM") from exc
+        if sched_dt.tzinfo is None:
+            sched_dt = sched_dt.replace(tzinfo=timezone.utc)
 
-        # 5. Create real SiteSurvey in PostgreSQL
         new_survey = SiteSurvey(
-            enquiry_id=enquiry.id if enquiry else uuid.uuid4(),
-            customer_id=customer_id,
-            assigned_technician_id=tech.id,
+            enquiry_id=enquiry.id,
+            customer_id=customer.id,
+            assigned_technician_id=technician.id,
             scheduled_date=sched_dt,
-            roof_area_sqft=Decimal(str(data.get("roofAreaSqFt", 1200))),
             survey_status=SurveyStatus.SCHEDULED,
             approval_status=SurveyApprovalStatus.PENDING_APPROVAL,
-            technician_remarks=data.get("notes", "Scheduled by Sales via CRM"),
+            technician_remarks=data.get("notes"),
         )
         db.add(new_survey)
 
@@ -788,17 +824,29 @@ class SalesService:
 
         short_id = f"SRV-{str(new_survey.id)[:8].upper()}"
         return {
-            "id": short_id,
+            "id": str(new_survey.id),
+            "survey_id": str(new_survey.id),
             "rawId": str(new_survey.id),
+            "displayId": short_id,
+            "survey_number": short_id,
             "enquiryId": f"ENQ-{str(enquiry.id)[:8].upper()}" if enquiry else "—",
-            "customerId": f"CUST-{str(customer_id)[:6].upper()}",
-            "customerName": data.get("customerName", "Customer"),
-            "siteLocation": data.get("siteLocation", "Jaipur, Rajasthan"),
-            "scheduledDate": date_str,
+            "enquiry_id": str(enquiry.id) if enquiry else None,
+            "customerId": f"CUST-{str(customer.id)[:6].upper()}",
+            "customer_id": str(customer.id),
+            "customerName": customer.name,
+            "customer_name": customer.name,
+            "siteLocation": data.get("siteLocation") or data.get("site_address") or "Site address not provided",
+            "site_address": data.get("siteLocation") or data.get("site_address") or "Site address not provided",
+            "scheduledDate": str(date_str),
+            "scheduled_date": sched_dt.isoformat(),
             "scheduledTime": data.get("scheduledTime", "10:30 AM"),
-            "assignedSurveyor": tech.full_name,
+            "assignedSurveyor": technician.full_name,
+            "assignedTechnicianId": str(technician.id),
+            "technician_name": technician.full_name,
             "status": "Scheduled",
+            "survey_status": "SCHEDULED",
             "approvalStatus": "Pending Approval",
+            "approval_status": "PENDING_APPROVAL",
             "roofType": data.get("roofType", "RCC Flat Roof"),
             "notes": new_survey.technician_remarks,
             "createdDate": new_survey.created_at.isoformat(),
@@ -814,12 +862,17 @@ class SalesService:
             )
         )
         survey = (await db.execute(stmt)).scalars().first()
-        if survey and "scheduledDate" in patch:
+        if not survey:
+            raise NotFoundException(message="Site survey not found", error_code="SURVEY_NOT_FOUND")
+        if "scheduledDate" in patch:
             try:
-                survey.scheduled_date = datetime.fromisoformat(patch["scheduledDate"]).replace(tzinfo=timezone.utc)
-                await db.commit()
-            except Exception:
-                pass
+                scheduled_date = datetime.fromisoformat(str(patch["scheduledDate"]).replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise BadRequestException(message="Survey date must be a valid ISO date or datetime") from exc
+            if scheduled_date.tzinfo is None:
+                scheduled_date = scheduled_date.replace(tzinfo=timezone.utc)
+            survey.scheduled_date = scheduled_date
+            await db.commit()
         return {"id": survey_id, **patch}
 
     @staticmethod
@@ -832,7 +885,8 @@ class SalesService:
             )
         )
         survey = (await db.execute(stmt)).scalars().first()
-        if survey:
-            await db.delete(survey)
-            await db.commit()
+        if not survey:
+            raise NotFoundException(message="Site survey not found", error_code="SURVEY_NOT_FOUND")
+        await db.delete(survey)
+        await db.commit()
         return {"id": survey_id, "success": True}

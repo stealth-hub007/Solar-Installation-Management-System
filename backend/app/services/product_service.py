@@ -202,7 +202,7 @@ class ProductService:
     async def get_package_by_id(db: AsyncSession, package_id: uuid.UUID) -> Package:
         stmt = (
             select(Package)
-            .options(selectinload(Package.items).selectinload(PackageItem.product))
+            .options(selectinload(Package.items).selectinload(PackageItem.product).selectinload(Product.category))
             .where(Package.id == package_id)
         )
         res = await db.execute(stmt)
@@ -219,7 +219,7 @@ class ProductService:
     ) -> Package:
         stmt = (
             select(Package)
-            .options(selectinload(Package.items).selectinload(PackageItem.product))
+            .options(selectinload(Package.items).selectinload(PackageItem.product).selectinload(Product.category))
             .where(
                 Package.capacity == capacity,
                 Package.system_type == system_type,
@@ -229,28 +229,9 @@ class ProductService:
         res = await db.execute(stmt)
         package = res.scalars().first()
         if not package:
-            # Fallback to closest available package for the system type or default active package
-            fallback_stmt = (
-                select(Package)
-                .options(selectinload(Package.items).selectinload(PackageItem.product))
-                .where(Package.system_type == system_type, Package.is_active == True)
-                .order_by(Package.capacity.desc())
-            )
-            fallback_res = await db.execute(fallback_stmt)
-            package = fallback_res.scalars().first()
-            if not package:
-                any_pkg = await db.execute(
-                    select(Package)
-                    .options(selectinload(Package.items).selectinload(PackageItem.product))
-                    .where(Package.is_active == True)
-                    .limit(1)
-                )
-                package = any_pkg.scalars().first()
-
-        if not package:
-            raise NotFoundException(
-                message=f"No configured package found for {capacity.value} ({system_type.value})",
-                error_code="PACKAGE_NOT_FOUND",
+            raise BadRequestException(
+                message=f"No active package is configured for {capacity.value} ({system_type.value})",
+                error_code="PACKAGE_NOT_AVAILABLE",
             )
         return package
 
@@ -258,11 +239,10 @@ class ProductService:
     async def list_packages(db: AsyncSession) -> List[PackageResponse]:
         stmt = (
             select(Package)
-            .options(selectinload(Package.items).selectinload(PackageItem.product))
+            .options(selectinload(Package.items).selectinload(PackageItem.product).selectinload(Product.category))
             .where(Package.is_active == True)
             .order_by(Package.capacity, Package.system_type)
         )
         res = await db.execute(stmt)
         packages = list(res.scalars().all())
         return [PackageResponse.model_validate(p) for p in packages]
-

@@ -111,32 +111,27 @@ export const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between gap-4">
-      {/* Left: Mobile Toggle & 1-Tap Panel Switcher */}
-      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+    <header className="sticky top-0 z-20 min-h-16 bg-white/95 backdrop-blur border-b border-slate-200/80 px-3 sm:px-6 py-2 sm:py-0 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4">
+      {/* Top / Main Bar: Hamburger, Switcher, and User controls */}
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <button
           onClick={toggleMobileSidebar}
-          className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
+          className="lg:hidden p-2 -ml-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition shrink-0"
           aria-label="Open sidebar navigation"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* 1-Tap Panel Switcher (Admin <-> Sales <-> Warehouse <-> Technician) */}
-        <div className="hidden sm:block shrink-0">
+        {/* 1-Tap Panel Switcher */}
+        <div className="flex items-center min-w-0">
           <PortalSwitcher />
         </div>
       </div>
 
       {/* Right Controls: System Status, Notifications & User Profile */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Mobile Switcher */}
-        <div className="sm:hidden">
-          <PortalSwitcher />
-        </div>
-
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
         {/* System Status Pill */}
-        <div className="hidden sm:inline-flex items-center px-3 py-1 rounded-full bg-[#F0F7FF] border border-[#BAE6FD] text-[#0369A1] text-[11px] font-semibold tracking-wide">
+        <div className="hidden md:inline-flex items-center px-3 py-1 rounded-full bg-[#F0F7FF] border border-[#BAE6FD] text-[#0369A1] text-[11px] font-semibold tracking-wide">
           <span>System Live</span>
         </div>
 

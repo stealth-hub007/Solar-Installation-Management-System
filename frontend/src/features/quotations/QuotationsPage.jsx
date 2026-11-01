@@ -6,12 +6,14 @@ import Table, { TablePagination } from '../../components/ui/Table';
 import { StatusBadge } from '../../components/ui/Badge';
 import Button from '../../components/common/Button';
 import Modal from '../../components/ui/Modal';
-import { FileText, Plus, Download, Eye, Check } from 'lucide-react';
+import { FileText, Plus, Download, Eye, Check, AlertTriangle } from 'lucide-react';
 import storageService from '../../services/storageService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import { paginateCollection } from '../../services/mockData';
 import { quotationAPI } from '../sales/services/quotationAPI';
+
+const useMock = import.meta.env.VITE_USE_MOCK !== 'false';
 
 const initialQuotations = [
   { id: 'QUO-701', customerName: 'Sunita Agarwal', capacity: 8.0, systemCapacity: 8.0, dailyGen: '36 kWh', dailyGeneration: '36 kWh', totalCost: 368000, subtotal: 368000, subsidy: 78000, netPayable: 324000, finalAmount: 324000, status: 'Sent', date: '2026-10-28T10:00:00Z', createdDate: '2026-10-28T10:00:00Z' },
@@ -22,23 +24,27 @@ const initialQuotations = [
 ];
 
 const normalizeQuote = (q) => {
-  const cap = Number(q.capacity ?? q.systemCapacity) || 10.0;
-  const sub = Number(q.totalCost) > 0 ? Number(q.totalCost) : (Number(q.subtotal) > 0 ? Number(q.subtotal) : (Number(q.finalAmount) > 0 ? Number(q.finalAmount) : Math.round(cap * 45000)));
-  const subBenefit = q.subsidy !== undefined ? Number(q.subsidy) : (cap <= 10 ? 78000 : 0);
-  const net = Number(q.netPayable) > 0 ? Number(q.netPayable) : (Number(q.finalAmount) > 0 ? Number(q.finalAmount) : Math.max(0, sub - subBenefit));
-  const gen = q.dailyGen ?? q.dailyGeneration ?? `${Math.round(cap * 4.5)} kWh`;
-  const dt = q.date ?? q.createdDate ?? '2026-10-28T10:00:00Z';
+  const capacityValue = q.capacity ?? q.systemCapacity ?? q.system_capacity;
+  const parsedCapacity = Number.parseFloat(String(capacityValue ?? ''));
+  const capacity = Number.isFinite(parsedCapacity) ? parsedCapacity : null;
+  const subtotal = Number(q.totalCost ?? q.subtotal ?? q.finalAmount ?? q.final_amount ?? 0);
+  const net = Number(q.netPayable ?? q.finalAmount ?? q.final_amount ?? subtotal);
+  const subsidy = q.subsidy === undefined || q.subsidy === null ? undefined : Number(q.subsidy);
+  const gen = q.dailyGen ?? q.dailyGeneration;
+  const dt = q.date ?? q.createdDate ?? q.quotation_date ?? q.created_at;
   return {
     ...q,
-    capacity: cap,
-    systemCapacity: cap,
+    displayId: q.displayId || q.quotation_number || q.id,
+    customerName: q.customerName || q.customer_name || '—',
+    capacity,
+    systemCapacity: capacity,
     dailyGen: gen,
     dailyGeneration: gen,
-    totalCost: sub,
-    subtotal: sub,
+    totalCost: subtotal,
+    subtotal,
     netPayable: net,
     finalAmount: net,
-    subsidy: subBenefit,
+    subsidy,
     date: dt,
     createdDate: dt,
   };
@@ -46,6 +52,7 @@ const normalizeQuote = (q) => {
 
 export const QuotationsPage = () => {
   const [quotations, setQuotations] = useState(() => {
+    if (!useMock) return [];
     try {
       const stored = storageService.getQuotations();
       if (Array.isArray(stored) && stored.length > 0) {
@@ -56,15 +63,32 @@ export const QuotationsPage = () => {
       return initialQuotations;
     }
   });
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    quotationAPI.getQuotations()
+    let active = true;
+    quotationAPI.getQuotations({ page: 1, size: 100 })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setQuotations(data.map(normalizeQuote));
+        if (active) {
+          const records = Array.isArray(data) ? data : [];
+          setQuotations(
+            records.length > 0
+              ? records.map(normalizeQuote)
+              : (useMock ? initialQuotations.map(normalizeQuote) : [])
+          );
         }
       })
-      .catch(() => {});
+      .catch((error) => {
+        if (active) {
+          setLoadError(error.message || 'Failed to load quotations.');
+          if (useMock) setQuotations(initialQuotations.map(normalizeQuote));
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
   }, []);
 
   const [page, setPage] = useState(1);
@@ -88,7 +112,7 @@ export const QuotationsPage = () => {
   const columns = [
     {
       header: 'Quote Ref',
-      accessor: 'id',
+      accessor: 'displayId',
       cell: ({ value }) => (
         <span className="font-mono text-xs font-semibold text-[#0284C7]">{value}</span>
       ),
@@ -178,8 +202,20 @@ export const QuotationsPage = () => {
         subtitle="Generate and track solar project cost estimates, MNRE subsidy deductions, and customer contract proposals"
       />
 
+      {loadError && (
+        <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" /> {loadError}
+        </div>
+      )}
+
       <Card padding={false} className="overflow-hidden">
-        <Table columns={columns} data={paginated.data} />
+        <Table
+          columns={columns}
+          data={paginated.data}
+          loading={loading}
+          emptyTitle="No quotations found"
+          emptyDescription="No quotations have been generated yet."
+        />
         <TablePagination
           currentPage={paginated.pagination.page}
           pageSize={paginated.pagination.pageSize}
@@ -198,7 +234,7 @@ export const QuotationsPage = () => {
         <Modal
           isOpen={!!selectedQuo}
           onClose={() => setSelectedQuo(null)}
-          title={`Solar Proposal: ${selectedQuo.id}`}
+          title={`Solar Proposal: ${selectedQuo.displayId || selectedQuo.id}`}
           subtitle={`Prepared for ${selectedQuo.customerName}`}
           footer={
             <div className="flex justify-between w-full">

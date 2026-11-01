@@ -1,10 +1,21 @@
 from typing import Optional, List
 from datetime import datetime
 import uuid
+import re
 from decimal import Decimal
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 
 from app.models.customer import EnquirySource, SystemCapacity, SystemType, LeadStatus
+
+
+def validate_phone_number(value: str) -> str:
+    value = value.strip()
+    if not re.fullmatch(r"\+?[0-9\s().-]+", value):
+        raise ValueError("Phone number must contain only digits and standard phone separators")
+    digit_count = sum(character.isdigit() for character in value)
+    if not 10 <= digit_count <= 15:
+        raise ValueError("Phone number must contain between 10 and 15 digits")
+    return value
 
 
 class AddressCreate(BaseModel):
@@ -30,12 +41,22 @@ class CustomerCreate(BaseModel):
     email: Optional[EmailStr] = None
     address: Optional[AddressCreate] = None
 
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        return validate_phone_number(value)
+
 
 class CustomerUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     phone: Optional[str] = Field(None, min_length=8, max_length=20)
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = None
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: Optional[str]) -> Optional[str]:
+        return validate_phone_number(value) if value is not None else value
 
 
 class CustomerResponse(BaseModel):
@@ -71,6 +92,11 @@ class EnquiryCreate(BaseModel):
     assigned_sales_id: Optional[uuid.UUID] = None
     remarks: Optional[str] = None
 
+    @field_validator("customer_phone")
+    @classmethod
+    def validate_customer_phone(cls, value: Optional[str]) -> Optional[str]:
+        return validate_phone_number(value) if value is not None else value
+
 
 class PublicEnquiryCreate(BaseModel):
     """Schema for public website contact form submissions without employee credentials."""
@@ -85,6 +111,11 @@ class PublicEnquiryCreate(BaseModel):
     message: str = Field(..., min_length=5, max_length=2000, description="Customer project requirements / message")
     consent: bool = Field(True, description="Consent to be contacted")
     honeypot: Optional[str] = Field(None, description="Bot mitigation field — must remain empty")
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        return validate_phone_number(value)
 
 
 class EnquiryUpdate(BaseModel):
@@ -144,4 +175,3 @@ class EnquiryResponse(BaseModel):
     followups: List[FollowupResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
-

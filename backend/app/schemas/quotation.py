@@ -35,8 +35,10 @@ class QuotationResponse(BaseModel):
     id: uuid.UUID
     quotation_number: str
     customer_id: uuid.UUID
+    customer_name: Optional[str] = None
     survey_id: uuid.UUID
     package_id: uuid.UUID
+    system_capacity: Optional[str] = None
     quotation_date: datetime
     valid_until: datetime
     subtotal: Decimal
@@ -53,4 +55,3 @@ class QuotationResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-

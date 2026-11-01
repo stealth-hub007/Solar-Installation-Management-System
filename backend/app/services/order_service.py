@@ -11,7 +11,7 @@ from app.models.order import Order, OrderItem, OrderStatus, PaymentStatus
 from app.models.quotation import Quotation, QuotationStatus
 from app.models.customer import Customer
 from app.models.installation import InstallationJob, InstallationChecklist, InstallationStatus
-from app.models.user import User
+from app.models.survey import SiteSurvey
 from app.models.user import User
 from app.schemas.order import OrderConvertRequest, OrderCloseRequest, OrderResponse
 from app.schemas.common import PaginatedData
@@ -84,11 +84,13 @@ class OrderService:
         # 5. Business Rule 5: Automatically create pending installation job
         total_jobs = (await db.execute(select(func.count(InstallationJob.id)))).scalar_one()
         job_number = f"INS-{today_str}-{total_jobs + 1:04d}"
+        survey = await db.get(SiteSurvey, quotation.survey_id)
 
         installation_job = InstallationJob(
             job_number=job_number,
             order_id=order.id,
             customer_id=order.customer_id,
+            assigned_technician_id=survey.assigned_technician_id if survey else None,
             installation_status=InstallationStatus.PENDING_ASSIGNMENT,
             scheduled_date=convert_in.expected_installation_date,
         )
@@ -163,16 +165,17 @@ class OrderService:
         order = await OrderService.get_order_by_id(db, order_id)
 
         # Must be INSTALLED to close
-        if order.order_status not in (OrderStatus.INSTALLED, OrderStatus.IN_PROGRESS):
+        if order.order_status != OrderStatus.INSTALLED:
             raise BadRequestException(
-                message=(
-                    f"Only orders in INSTALLED or IN_PROGRESS status can be closed. "
-                    f"Current status: {order.order_status.value}"
-                ),
+                message=f"Only installed orders can be closed. Current status: {order.order_status.value}",
                 error_code="ORDER_NOT_CLOSEABLE",
+            )
+        if order.outstanding_amount > Decimal("0.00"):
+            raise BadRequestException(
+                message="The order must be fully paid before project closure",
+                error_code="ORDER_NOT_FULLY_PAID",
             )
 
         order.order_status = OrderStatus.COMPLETED
         await db.commit()
         return await OrderService.get_order_by_id(db, order.id)
-

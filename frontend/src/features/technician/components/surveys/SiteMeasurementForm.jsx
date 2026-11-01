@@ -8,12 +8,12 @@ import { calculateShadowFreeAreaPercent } from '../../utils/technicianHelpers';
 
 export const SiteMeasurementForm = ({ survey, onSave, isSaving }) => {
   const [formData, setFormData] = useState({
-    roof_area_sqft: survey.roof_area_sqft || 850,
-    shadow_free_area_sqft: survey.shadow_free_area_sqft || 750,
-    roof_orientation: survey.roof_orientation || 'SOUTH',
-    roof_tilt_degrees: survey.roof_tilt_degrees || 15,
-    monthly_bill: survey.monthly_bill || 8500,
-    cable_distance_meters: survey.cable_distance_meters || 18,
+    roof_area_sqft: survey.roof_area_sqft || '',
+    shadow_free_area_sqft: survey.shadow_free_area_sqft || '',
+    roof_orientation: survey.roof_orientation || '',
+    roof_tilt_degrees: survey.roof_tilt_degrees ?? '',
+    monthly_bill: survey.monthly_bill ?? '',
+    cable_distance_meters: survey.cable_distance_meters || '',
     grid_connection_suitable: survey.grid_connection_suitable ?? true,
     technician_remarks: survey.technician_remarks || '',
   });
@@ -252,4 +252,3 @@ export const SiteMeasurementForm = ({ survey, onSave, isSaving }) => {
 };
 
 export default SiteMeasurementForm;
-

@@ -105,6 +105,10 @@ export const validateSurveyForm = (formData) => {
     errors.scheduledDate = 'Survey date is required';
   }
 
+  if (!formData.assignedTechnicianId) {
+    errors.assignedTechnicianId = 'Select an active field technician';
+  }
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors,
@@ -131,4 +135,3 @@ export const validateQuotationForm = (formData) => {
     errors,
   };
 };
-

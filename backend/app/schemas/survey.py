@@ -45,6 +45,14 @@ class SurveyResponse(BaseModel):
     enquiry_id: uuid.UUID
     customer_id: uuid.UUID
     assigned_technician_id: uuid.UUID
+    customer_name: Optional[str] = None
+    customerName: Optional[str] = None
+    contact: Optional[str] = None
+    site_address: Optional[str] = None
+    siteAddress: Optional[str] = None
+    technician_name: Optional[str] = None
+    assignedSurveyor: Optional[str] = None
+    survey_number: Optional[str] = None
     scheduled_date: datetime
     roof_area_sqft: Optional[Decimal] = None
     roof_orientation: Optional[RoofOrientation] = None
@@ -62,6 +70,10 @@ class SurveyResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     photos: List[SurveyPhotoResponse] = []
+    proposedCapacity: Optional[str] = "5.0 kW"
+    roofType: Optional[str] = "RCC Flat Roof"
+    displayId: Optional[str] = None
+    scheduledTime: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

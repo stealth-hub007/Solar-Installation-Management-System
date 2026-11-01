@@ -5,7 +5,7 @@ import Card from '../../../components/ui/Card';
 import Button from '../../../components/common/Button';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import ConfirmDialog from '../../../components/common/ConfirmDialog';
-import storageService from '../../../services/storageService';
+import quotationAPI from '../services/quotationAPI';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import {
@@ -27,18 +27,44 @@ export const QuotationDetailsPage = () => {
   const navigate = useNavigate();
 
   const [quotation, setQuotation] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isAcceptOpen, setIsAcceptOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [createdOrder, setCreatedOrder] = useState(null);
 
   useEffect(() => {
-    const found = storageService.getQuotationById(quotationId);
-    setQuotation(found || null);
+    let active = true;
+    quotationAPI.getQuotationById(quotationId)
+      .then((result) => {
+        if (active) setQuotation(result || null);
+      })
+      .catch((loadError) => {
+        if (active) setError(loadError.message || 'Failed to load quotation');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
   }, [quotationId]);
 
-  const handleAcceptConfirm = () => {
+  const handleAcceptConfirm = async () => {
     if (!quotation) return;
-    const { quotation: updated, order } = storageService.acceptQuotation(quotation.id, true);
-    setQuotation(updated);
-    setIsAcceptOpen(false);
+    setIsSaving(true);
+    setError('');
+    try {
+      const accepted = String(quotation.status).toUpperCase() === 'ACCEPTED'
+        ? quotation
+        : await quotationAPI.acceptQuotation(quotation.id);
+      setQuotation(accepted);
+      setIsAcceptOpen(false);
+      const order = await quotationAPI.convertQuotationToOrder(quotation.id);
+      setCreatedOrder(order);
+    } catch (requestError) {
+      setError(requestError.message || 'Quotation acceptance or order creation failed');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handlePrint = () => {
@@ -49,7 +75,9 @@ export const QuotationDetailsPage = () => {
     return (
       <PageContainer>
         <div className="p-8 text-center bg-white rounded-xl border border-slate-200">
-          <p className="text-sm font-semibold text-slate-700">Quotation not found</p>
+          <p className="text-sm font-semibold text-slate-700">
+            {loading ? 'Loading quotation...' : error || 'Quotation not found'}
+          </p>
           <Button
             variant="outline"
             size="sm"
@@ -85,7 +113,7 @@ export const QuotationDetailsPage = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                Quotation {quotation.id}
+                Quotation {quotation.displayId || quotation.quotation_number || quotation.id}
               </h1>
               <StatusBadge status={quotation.status} />
             </div>
@@ -100,13 +128,25 @@ export const QuotationDetailsPage = () => {
             <Printer className="w-3.5 h-3.5 mr-1" /> Print Proposal
           </Button>
 
-          {quotation.status !== 'Accepted' && (
+          {String(quotation.status).toUpperCase() !== 'CONVERTED TO ORDER' && (
             <Button variant="success" size="sm" onClick={() => setIsAcceptOpen(true)}>
-              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Accepted & Convert
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+              {String(quotation.status).toUpperCase() === 'ACCEPTED' ? 'Create Order' : 'Mark Accepted & Convert'}
             </Button>
           )}
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+      {createdOrder && (
+        <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
+          Quotation accepted and order {createdOrder.order_number} created. Record the advance payment against this order.
+        </div>
+      )}
 
       {/* Formal Bill / Quotation Document Container */}
       <Card className="p-6 sm:p-8 border border-slate-200 shadow-elevated bg-white max-w-4xl mx-auto print:shadow-none print:border-none">
@@ -256,6 +296,7 @@ export const QuotationDetailsPage = () => {
         isOpen={isAcceptOpen}
         onClose={() => setIsAcceptOpen(false)}
         onConfirm={handleAcceptConfirm}
+        isLoading={isSaving}
         title="Accept Quotation & Convert to Order"
         message={`Mark quotation ${quotation.id} as Accepted by customer ${quotation.customerName}? An official solar installation order will be generated automatically.`}
         type="success"
@@ -266,4 +307,3 @@ export const QuotationDetailsPage = () => {
 };
 
 export default QuotationDetailsPage;
-

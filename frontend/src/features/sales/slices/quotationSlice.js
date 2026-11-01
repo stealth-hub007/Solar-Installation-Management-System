@@ -103,7 +103,7 @@ const quotationSlice = createSlice({
         state.items = state.items.map((q) => (q.id === action.payload.id ? action.payload : q));
       })
       .addCase(acceptQuotation.fulfilled, (state, action) => {
-        state.items = state.items.map((q) => (q.id === action.payload.quotation.id ? action.payload.quotation : q));
+        state.items = state.items.map((q) => (q.id === action.payload.id ? action.payload : q));
       })
       .addCase(deleteQuotation.fulfilled, (state, action) => {
         state.items = state.items.filter((q) => q.id !== action.payload.id);
@@ -113,4 +113,3 @@ const quotationSlice = createSlice({
 
 export const { setSelectedQuotation } = quotationSlice.actions;
 export default quotationSlice.reducer;
-

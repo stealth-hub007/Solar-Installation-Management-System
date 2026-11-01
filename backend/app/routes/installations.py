@@ -166,7 +166,9 @@ async def capture_signoff(
         feedback_rating=feedback_rating,
         feedback_remarks=feedback_remarks,
     )
-    signoff = await InstallationService.capture_customer_signoff(db, installation_id, signoff_in, sig_path)
+    signoff = await InstallationService.capture_customer_signoff(
+        db, installation_id, signoff_in, sig_path, current_user
+    )
     return APIResponse(
         success=True,
         message="Customer sign-off recorded successfully",
@@ -192,4 +194,3 @@ async def complete_job(
         message="Installation completed and verified successfully",
         data=InstallationJobResponse.model_validate(job),
     )
-

@@ -84,10 +84,12 @@ async def get_order(
 )
 async def close_order(
     order_id: uuid.UUID,
-    close_in: OrderCloseRequest,
+    close_in: Optional[OrderCloseRequest] = None,
     current_admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    if close_in is None:
+        close_in = OrderCloseRequest(closure_notes="Project completed and marked closed by Admin")
     order = await OrderService.close_order(db, order_id, close_in, current_admin)
     return APIResponse(
         success=True,

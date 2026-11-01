@@ -16,7 +16,7 @@ async def get_admin_token(async_client: AsyncClient) -> str:
 async def test_customer_lifecycle(async_client: AsyncClient):
     """Test creating, retrieving, updating, and adding addresses for a customer."""
     token = await get_admin_token(async_client)
-    phone = f"98{uuid.uuid4().hex[:8]}"
+    phone = f"98{uuid.uuid4().int % 10**8:08d}"
 
     # 1. Create customer
     payload = {
@@ -66,10 +66,23 @@ async def test_customer_lifecycle(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_customer_rejects_malformed_phone_number(async_client: AsyncClient):
+    token = await get_admin_token(async_client)
+
+    response = await async_client.post(
+        "/api/v1/customers",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "Invalid Phone Customer", "phone": "97f48a6c1c"},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_enquiry_lifecycle_and_followups(async_client: AsyncClient):
     """Test creating an enquiry, assigning sales executive, and logging followups."""
     token = await get_admin_token(async_client)
-    phone = f"99{uuid.uuid4().hex[:8]}"
+    phone = f"99{uuid.uuid4().int % 10**8:08d}"
 
     # Create enquiry with new customer details inline
     enquiry_payload = {
@@ -118,4 +131,3 @@ async def test_enquiry_lifecycle_and_followups(async_client: AsyncClient):
     assert get_resp.status_code == 200
     assert get_resp.json()["data"]["lead_status"] == "CONTACTED"
     assert len(get_resp.json()["data"]["followups"]) == 1
-

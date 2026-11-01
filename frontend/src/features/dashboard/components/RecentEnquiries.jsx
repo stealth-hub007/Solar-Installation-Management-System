@@ -10,6 +10,40 @@ import ConfirmDeleteModal from './modals/ConfirmDeleteModal';
 import formatDate from '../../../utils/formatDate';
 import useDebounce from '../../../hooks/useDebounce';
 
+const formatPhoneNumber = (phone) => {
+  const rawPhone = String(phone || '').trim();
+  const digits = rawPhone.replace(/\D/g, '');
+
+  if (digits.length === 10) {
+    return {
+      display: `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`,
+      dial: `+91${digits}`,
+    };
+  }
+
+  if (digits.length === 12 && digits.startsWith('91')) {
+    const nationalNumber = digits.slice(2);
+    return {
+      display: `+91 ${nationalNumber.slice(0, 5)} ${nationalNumber.slice(5)}`,
+      dial: `+${digits}`,
+    };
+  }
+
+  if (digits.length === 11 && digits.startsWith('0')) {
+    const nationalNumber = digits.slice(1);
+    return {
+      display: `+91 ${nationalNumber.slice(0, 5)} ${nationalNumber.slice(5)}`,
+      dial: `+91${nationalNumber}`,
+    };
+  }
+
+  if (digits.length >= 10 && digits.length <= 15) {
+    return { display: rawPhone, dial: `+${digits}` };
+  }
+
+  return null;
+};
+
 export const RecentEnquiries = ({
   data = [],
   pagination,
@@ -83,53 +117,66 @@ export const RecentEnquiries = ({
     {
       header: 'Contact, Address & Files',
       accessor: 'contactNumber',
-      cell: ({ row }) => (
-        <div className="min-w-0 max-w-[340px]">
-          {/* Top: Phone Number */}
-          <a
-            href={`tel:${row.contactNumber}`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 hover:text-[#0284C7] font-mono whitespace-nowrap"
-          >
-            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>{row.contactNumber}</span>
-          </a>
-
-          {/* Under phone number: Email, Address, and Files in ONE SINGLE ROW */}
-          <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5 truncate leading-tight">
-            {row.email && (
+      cell: ({ row }) => {
+        const phone = formatPhoneNumber(row.contactNumber);
+        return (
+          <div className="min-w-0 max-w-[340px]">
+            {/* Top: Phone Number */}
+            {phone ? (
               <a
-                href={`mailto:${row.email}`}
-                className="inline-flex items-center gap-1 text-slate-600 hover:text-[#0284C7] truncate shrink-0 max-w-[130px]"
-                title={row.email}
+                href={`tel:${phone.dial}`}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 hover:text-[#0284C7] font-mono whitespace-nowrap"
               >
-                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                <span className="truncate">{row.email}</span>
+                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{phone.display}</span>
               </a>
-            )}
-
-            {row.address && (
+            ) : (
               <span
-                className="inline-flex items-center gap-1 text-slate-600 truncate max-w-[130px]"
-                title={row.address}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 whitespace-nowrap"
+                title="The saved phone number is not valid."
               >
-                <span className="text-slate-300">•</span>
-                <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                <span className="truncate">{row.address}</span>
+                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>Invalid phone number</span>
               </span>
             )}
 
-            {row.files && (
-              <span
-                className="inline-flex items-center gap-1 text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded text-[10px] font-medium border border-sky-100 shrink-0 max-w-[110px]"
-                title={row.files}
-              >
-                <FileText className="w-3 h-3 text-[#0284C7] shrink-0" />
-                <span className="truncate">{row.files}</span>
-              </span>
-            )}
+            {/* Under phone number: Email, Address, and Files in ONE SINGLE ROW */}
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5 truncate leading-tight">
+              {row.email && (
+                <a
+                  href={`mailto:${row.email}`}
+                  className="inline-flex items-center gap-1 text-slate-600 hover:text-[#0284C7] truncate shrink-0 max-w-[130px]"
+                  title={row.email}
+                >
+                  <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span className="truncate">{row.email}</span>
+                </a>
+              )}
+
+              {row.address && (
+                <span
+                  className="inline-flex items-center gap-1 text-slate-600 truncate max-w-[130px]"
+                  title={row.address}
+                >
+                  <span className="text-slate-300">•</span>
+                  <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span className="truncate">{row.address}</span>
+                </span>
+              )}
+
+              {row.files && (
+                <span
+                  className="inline-flex items-center gap-1 text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded text-[10px] font-medium border border-sky-100 shrink-0 max-w-[110px]"
+                  title={row.files}
+                >
+                  <FileText className="w-3 h-3 text-[#0284C7] shrink-0" />
+                  <span className="truncate">{row.files}</span>
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       header: 'Capacity',
@@ -290,7 +337,9 @@ export const RecentEnquiries = ({
           <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-100 text-xs sm:text-sm">
             <div className="flex justify-between items-center border-b border-slate-200/60 pb-2">
               <span className="text-slate-500">Contact Number</span>
-              <span className="font-mono font-semibold text-slate-800">{viewEnquiry.contactNumber}</span>
+              <span className="font-mono font-semibold text-slate-800">
+                {formatPhoneNumber(viewEnquiry.contactNumber)?.display || 'Invalid phone number'}
+              </span>
             </div>
             <div className="flex justify-between items-center border-b border-slate-200/60 pb-2">
               <span className="text-slate-500">Email Address</span>

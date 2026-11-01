@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/common/PageHeader';
 import Card from '../../components/ui/Card';
@@ -15,6 +15,7 @@ export const SurveysPage = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [selectedSurvey, setSelectedSurvey] = useState(null);
   const [approvingId, setApprovingId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
@@ -22,23 +23,28 @@ export const SurveysPage = () => {
   const [rejectModal, setRejectModal] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
 
-  const loadSurveys = async () => {
+  const loadSurveys = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axiosInstance.get('/v1/surveys');
-      const raw = res.data?.data?.items || res.data?.data || res.data || [];
-      setSurveys(Array.isArray(raw) ? raw : []);
+      const res = await axiosInstance.get('/v1/surveys', {
+        params: { page, size: pageSize },
+      });
+      const responseData = res.data?.data;
+      const raw = responseData?.items || responseData || res.data || [];
+      const surveyItems = Array.isArray(raw) ? raw : [];
+      setSurveys(surveyItems);
+      setTotalRecords(responseData?.total ?? surveyItems.length);
     } catch (err) {
       setError(err.message || 'Failed to load surveys');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize]);
 
   useEffect(() => {
     loadSurveys();
-  }, []);
+  }, [loadSurveys]);
 
   const handleApprove = async (survey) => {
     setApprovingId(survey.id);
@@ -78,10 +84,7 @@ export const SurveysPage = () => {
     }
   };
 
-  // Paginate client-side
-  const totalRecords = surveys.length;
   const totalPages = Math.ceil(totalRecords / pageSize) || 1;
-  const paginated = surveys.slice((page - 1) * pageSize, page * pageSize);
 
   const getApprovalStatus = (s) => s.approval_status || s.approvalStatus || 'PENDING_APPROVAL';
   const getSurveyStatus = (s) => s.survey_status || s.surveyStatus || s.status || 'SCHEDULED';
@@ -144,13 +147,15 @@ export const SurveysPage = () => {
       headerClassName: 'w-40 text-center',
       cell: ({ row }) => {
         const approvalStatus = getApprovalStatus(row);
-        const isPending = approvalStatus === 'PENDING_APPROVAL';
+        const surveyStatus = getSurveyStatus(row);
+        // Show approve/reject if survey is SUBMITTED and not yet APPROVED/REJECTED
+        const canReview = surveyStatus === 'SUBMITTED' || (approvalStatus === 'PENDING_APPROVAL' && surveyStatus !== 'SCHEDULED');
         return (
           <div className="flex items-center justify-center gap-1">
             <Button variant="outline" size="xs" icon={Eye} onClick={() => setSelectedSurvey(row)}>
               Review
             </Button>
-            {isPending && (
+            {canReview && (
               <>
                 <Button
                   variant="primary"
@@ -204,7 +209,7 @@ export const SurveysPage = () => {
       <Card padding={false} className="overflow-hidden">
         <Table
           columns={columns}
-          data={paginated}
+          data={surveys}
           loading={loading}
           emptyTitle="No surveys found"
           emptyDescription="No site surveys have been scheduled yet."
@@ -228,7 +233,7 @@ export const SurveysPage = () => {
           subtitle={`Site Feasibility for ${selectedSurvey.customer_name || selectedSurvey.customer?.full_name || '—'}`}
           footer={
             <div className="flex justify-between w-full gap-2">
-              {getApprovalStatus(selectedSurvey) === 'PENDING_APPROVAL' ? (
+              {(getApprovalStatus(selectedSurvey) === 'PENDING_APPROVAL' || getSurveyStatus(selectedSurvey) === 'SUBMITTED') && getApprovalStatus(selectedSurvey) !== 'APPROVED' && getApprovalStatus(selectedSurvey) !== 'REJECTED' ? (
                 <div className="flex gap-2">
                   <Button
                     variant="primary"

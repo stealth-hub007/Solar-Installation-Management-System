@@ -8,6 +8,7 @@ import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/common/Input';
 import Select from '../../../components/common/Select';
 import storageService from '../../../services/storageService';
+import { surveyAPI } from '../services/surveyAPI';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import {
@@ -245,27 +246,42 @@ export const CustomerDetailsPage = () => {
   };
 
   // Submit Schedule Survey (In-Place)
-  const handleScheduleSurveySubmit = (e) => {
+  const handleScheduleSurveySubmit = async (e) => {
     e.preventDefault();
     if (!customer) return;
 
-    storageService.createSurvey({
-      customerId: customer.id,
-      customerName: customer.name,
-      contact: customer.phone,
-      surveyDate: surveyForm.surveyDate,
-      surveyTime: surveyForm.surveyTime,
-      address: customer.address || customer.city,
-      roofType: surveyForm.roofType,
-      shadowIssue: surveyForm.shadowIssue,
-      surveyorName: surveyForm.surveyorName,
-      status: 'Scheduled',
-    });
-
-    loadCustomerData();
-    setIsScheduleSurveyOpen(false);
-    setActiveTab('surveys');
-    triggerSuccess(`Site survey scheduled for ${customer.name} on ${surveyForm.surveyDate}!`);
+    try {
+      await surveyAPI.scheduleSurvey({
+        customerId: customer.id,
+        customerName: customer.name,
+        contact: customer.phone,
+        scheduledDate: surveyForm.surveyDate,
+        siteLocation: customer.address || customer.city || 'Site inspection location',
+        notes: `Roof Type: ${surveyForm.roofType || 'RCC'} | Shadow: ${surveyForm.shadowIssue || 'None'} | Time: ${surveyForm.surveyTime || '10:00 AM'}`,
+      });
+      loadCustomerData();
+      setIsScheduleSurveyOpen(false);
+      setActiveTab('surveys');
+      triggerSuccess(`Site survey scheduled for ${customer.name} on ${surveyForm.surveyDate}!`);
+    } catch (err) {
+      console.error('Failed to schedule survey via API:', err);
+      storageService.createSurvey({
+        customerId: customer.id,
+        customerName: customer.name,
+        contact: customer.phone,
+        surveyDate: surveyForm.surveyDate,
+        surveyTime: surveyForm.surveyTime,
+        address: customer.address || customer.city,
+        roofType: surveyForm.roofType,
+        shadowIssue: surveyForm.shadowIssue,
+        surveyorName: surveyForm.surveyorName,
+        status: 'Scheduled',
+      });
+      loadCustomerData();
+      setIsScheduleSurveyOpen(false);
+      setActiveTab('surveys');
+      triggerSuccess(`Site survey scheduled for ${customer.name} on ${surveyForm.surveyDate}!`);
+    }
   };
 
   if (!customer) {

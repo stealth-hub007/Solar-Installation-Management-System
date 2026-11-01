@@ -160,7 +160,7 @@ export const OrdersPage = () => {
       headerClassName: 'w-40 text-center',
       cell: ({ row }) => {
         const orderStatus = (row.order_status || '').toUpperCase();
-        const canClose = orderStatus === 'INSTALLED' || orderStatus === 'IN_PROGRESS';
+        const canClose = orderStatus === 'INSTALLED' && Number(row.outstanding_amount) <= 0;
         return (
           <div className="flex items-center justify-center gap-1">
             <Button variant="outline" size="xs" icon={Eye} onClick={() => setViewingOrder(row)}>

@@ -33,7 +33,7 @@ async def create_quotation(
     return APIResponse(
         success=True,
         message="Quotation created and PDF generated successfully",
-        data=QuotationResponse.model_validate(quotation),
+        data=await QuotationService.get_quotation_response(db, quotation.id),
     )
 
 
@@ -70,11 +70,11 @@ async def get_quotation(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    quotation = await QuotationService.get_quotation_by_id(db, quotation_id)
+    quotation = await QuotationService.get_quotation_response(db, quotation_id)
     return APIResponse(
         success=True,
         message="Quotation retrieved successfully",
-        data=QuotationResponse.model_validate(quotation),
+        data=quotation,
     )
 
 
@@ -93,7 +93,7 @@ async def accept_quotation(
     return APIResponse(
         success=True,
         message="Quotation marked as ACCEPTED",
-        data=QuotationResponse.model_validate(quotation),
+        data=await QuotationService.get_quotation_response(db, quotation.id),
     )
 
 
@@ -111,7 +111,7 @@ async def reject_quotation(
     return APIResponse(
         success=True,
         message="Quotation marked as REJECTED",
-        data=QuotationResponse.model_validate(quotation),
+        data=await QuotationService.get_quotation_response(db, quotation.id),
     )
 
 
@@ -133,4 +133,3 @@ async def download_quotation_pdf(
         media_type="application/pdf",
         filename=f"{quotation.quotation_number}.pdf",
     )
-

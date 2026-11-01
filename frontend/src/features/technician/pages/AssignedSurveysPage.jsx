@@ -7,7 +7,7 @@ import Card from '../../../components/ui/Card';
 import Table, { TablePagination } from '../../../components/ui/Table';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import Button from '../../../components/common/Button';
-import { Search, MapPin, Eye, Wrench, Calendar, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Search, MapPin, Eye, Wrench, Calendar, AlertTriangle } from 'lucide-react';
 import { fetchAssignedSurveys } from '../slices/assignedSurveySlice';
 import useTechnicianFilters from '../hooks/useTechnicianFilters';
 import { SURVEY_STATUSES } from '../utils/technicianConstants';
@@ -17,7 +17,7 @@ export const AssignedSurveysPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const { items: surveys, loading } = useSelector((state) => state.assignedSurveys);
+  const { items: surveys, loading, error } = useSelector((state) => state.assignedSurveys);
 
   useEffect(() => {
     dispatch(fetchAssignedSurveys());
@@ -143,7 +143,19 @@ export const AssignedSurveysPage = () => {
       <PageHeader
         title="Assigned Site Surveys"
         subtitle="Perform physical rooftop inspections, structural measurements, azimuth verification, and shadow analysis"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => dispatch(fetchAssignedSurveys())} loading={loading}>
+            Refresh
+          </Button>
+        }
       />
+
+      {error && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700" role="alert">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <Card padding={false} className="overflow-hidden">
         {/* Search & Filter Toolbar */}
@@ -195,4 +207,3 @@ export const AssignedSurveysPage = () => {
 };
 
 export default AssignedSurveysPage;
-

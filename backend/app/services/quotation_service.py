@@ -169,6 +169,21 @@ class QuotationService:
         return quotation
 
     @staticmethod
+    async def get_quotation_response(db: AsyncSession, quotation_id: uuid.UUID) -> QuotationResponse:
+        quotation = await QuotationService.get_quotation_by_id(db, quotation_id)
+        response = QuotationResponse.model_validate(quotation)
+
+        customer = await db.get(Customer, quotation.customer_id)
+        if customer:
+            response.customer_name = customer.name
+
+        package = await db.get(Package, quotation.package_id)
+        if package:
+            response.system_capacity = package.capacity.value
+
+        return response
+
+    @staticmethod
     async def accept_quotation(db: AsyncSession, quotation_id: uuid.UUID) -> Quotation:
         quotation = await QuotationService.get_quotation_by_id(db, quotation_id)
         if quotation.status == QuotationStatus.ACCEPTED:
@@ -200,7 +215,12 @@ class QuotationService:
         status: Optional[QuotationStatus] = None,
     ) -> PaginatedData[QuotationResponse]:
         skip = (page - 1) * size
-        stmt = select(Quotation).options(selectinload(Quotation.items))
+        stmt = (
+            select(Quotation, Customer.name, Package.capacity)
+            .join(Customer, Customer.id == Quotation.customer_id)
+            .join(Package, Package.id == Quotation.package_id)
+            .options(selectinload(Quotation.items))
+        )
         count_stmt = select(func.count(Quotation.id))
 
         if customer_id:
@@ -215,9 +235,13 @@ class QuotationService:
 
         stmt = stmt.order_by(Quotation.created_at.desc()).offset(skip).limit(size)
         res = await db.execute(stmt)
-        quotations = list(res.scalars().all())
+        quotations = res.all()
 
         total_pages = math.ceil(total / size) if total > 0 else 0
-        items = [QuotationResponse.model_validate(q) for q in quotations]
+        items = []
+        for quotation, customer_name, capacity in quotations:
+            response = QuotationResponse.model_validate(quotation)
+            response.customer_name = customer_name
+            response.system_capacity = capacity.value
+            items.append(response)
         return PaginatedData(items=items, total=total, page=page, size=size, total_pages=total_pages)
-

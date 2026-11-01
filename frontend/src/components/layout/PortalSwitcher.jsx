@@ -91,7 +91,7 @@ export const PortalSwitcher = ({ className = '' }) => {
 
   return (
     <div
-      className={`inline-flex items-center p-1 sm:p-1.5 bg-slate-100 border border-slate-200/90 rounded-xl shadow-xs select-none shrink-0 gap-1 ${className}`}
+      className={`flex items-center max-w-full overflow-x-auto scrollbar-none p-1 sm:p-1.5 bg-slate-100 border border-slate-200/90 rounded-xl shadow-xs select-none gap-1 shrink-0 ${className}`}
       role="tablist"
       aria-label="Panel Selector"
     >
@@ -106,7 +106,7 @@ export const PortalSwitcher = ({ className = '' }) => {
             onClick={() => {
               if (!p.isActive) navigate(p.path);
             }}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer
+            className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer shrink-0
               ${
                 p.isActive
                   ? 'bg-white text-[#0284C7] shadow-sm font-bold ring-1 ring-slate-900/5'
@@ -116,11 +116,11 @@ export const PortalSwitcher = ({ className = '' }) => {
             title={p.title}
           >
             <Icon
-              className={`w-4 h-4 transition-colors shrink-0 ${
+              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors shrink-0 ${
                 p.isActive ? 'text-[#0284C7]' : 'text-slate-400'
               }`}
             />
-            <span className="leading-none">{p.name}</span>
+            <span className="leading-none text-[11px] sm:text-xs">{p.name}</span>
             {p.isActive && (
               <span className="w-1.5 h-1.5 rounded-full bg-[#0284C7] hidden md:inline-block ml-0.5" />
             )}

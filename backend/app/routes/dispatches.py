@@ -79,7 +79,7 @@ async def get_dispatch(
 async def confirm_delivery(
     dispatch_id: uuid.UUID,
     confirm_in: DeliveryConfirmRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_warehouse_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     confirmation = await DispatchService.confirm_delivery(db, dispatch_id, confirm_in, current_user)
@@ -88,4 +88,3 @@ async def confirm_delivery(
         message="Delivery confirmed and warranties registered automatically",
         data=DeliveryConfirmationResponse.model_validate(confirmation),
     )
-

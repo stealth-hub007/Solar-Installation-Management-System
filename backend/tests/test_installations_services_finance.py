@@ -38,6 +38,59 @@ async def test_installation_service_tickets_and_finance_flow(async_client: Async
         json={"order_id": order_id, "amount": order_data["total_amount"], "payment_type": "FINAL"},
     )
 
+    # Reserve and dispatch the order, then confirm delivery before installation starts.
+    for item in order_data["items"]:
+        await async_client.post(
+            "/api/v1/inventory/add-stock",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "product_id": item["product_id"],
+                "quantity": 50,
+                "remarks": "Automated installation test replenishment",
+            },
+        )
+    reserve_resp = await async_client.post(
+        f"/api/v1/inventory/reserve/{order_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert reserve_resp.status_code == 200
+
+    dispatch_items = []
+    for item in order_data["items"]:
+        product_resp = await async_client.get(
+            f"/api/v1/products/{item['product_id']}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        serial_id = None
+        if product_resp.json()["data"]["is_serial_tracked"]:
+            serial_resp = await async_client.post(
+                "/api/v1/serials/register",
+                headers={"Authorization": f"Bearer {token}"},
+                json={
+                    "product_id": item["product_id"],
+                    "serial_numbers": [f"INST-{uuid.uuid4().hex[:10].upper()}"],
+                },
+            )
+            assert serial_resp.status_code == 201
+            serial_id = serial_resp.json()["data"][0]["id"]
+        dispatch_items.append({
+            "product_id": item["product_id"],
+            "quantity": item["quantity"],
+            "serial_id": serial_id,
+        })
+    dispatch_resp = await async_client.post(
+        "/api/v1/dispatches",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"order_id": order_id, "items": dispatch_items},
+    )
+    assert dispatch_resp.status_code == 201
+    delivery_resp = await async_client.post(
+        f"/api/v1/dispatches/{dispatch_resp.json()['data']['id']}/confirm-delivery",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"received_by_name": "Installation Test Customer"},
+    )
+    assert delivery_resp.status_code == 200
+
     # 3. Retrieve Pending Installation Job automatically generated for order
     jobs_resp = await async_client.get(
         "/api/v1/installations",
@@ -79,7 +132,7 @@ async def test_installation_service_tickets_and_finance_flow(async_client: Async
             "mounting_stands_installed": True,
             "solar_panels_installed": True,
             "inverter_installed": True,
-            "battery_installed": False,
+            "battery_installed": True,
             "wiring_completed": True,
             "safety_equipment_installed": True,
             "earthing_completed": True,

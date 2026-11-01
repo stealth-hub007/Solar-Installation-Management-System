@@ -29,6 +29,7 @@ import {
   updateSurvey,
   deleteSurvey,
 } from '../slices/surveySlice';
+import surveyAPI from '../services/surveyAPI';
 import useSalesFilters from '../hooks/useSalesFilters';
 import { ROOF_TYPES, SURVEY_STATUSES } from '../utils/salesConstants';
 import { validateSurveyForm } from '../utils/salesValidators';
@@ -45,6 +46,10 @@ export const SurveysPage = () => {
   const [viewingSurvey, setViewingSurvey] = useState(null);
   const [reschedulingSurvey, setReschedulingSurvey] = useState(null);
   const [deletingSurvey, setDeletingSurvey] = useState(null);
+  const [technicians, setTechnicians] = useState([]);
+  const [techniciansLoading, setTechniciansLoading] = useState(false);
+  const [technicianLoadError, setTechnicianLoadError] = useState('');
+  const [scheduleError, setScheduleError] = useState('');
 
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('11:00 AM');
@@ -56,7 +61,7 @@ export const SurveysPage = () => {
     siteLocation: '',
     scheduledDate: new Date().toISOString().split('T')[0],
     scheduledTime: '10:30 AM',
-    assignedSurveyor: 'Kailash Chand (Field Tech)',
+    assignedTechnicianId: '',
     roofType: 'RCC Flat Roof',
     roofAreaSqFt: 1200,
     notes: '',
@@ -65,6 +70,11 @@ export const SurveysPage = () => {
 
   useEffect(() => {
     dispatch(fetchSurveys());
+    setTechniciansLoading(true);
+    surveyAPI.getTechnicians()
+      .then(setTechnicians)
+      .catch((err) => setTechnicianLoadError(err.message || 'Failed to load active technicians'))
+      .finally(() => setTechniciansLoading(false));
     if (searchParams.get('schedule') === 'true') {
       setIsScheduleOpen(true);
       if (searchParams.get('customer')) {
@@ -98,6 +108,7 @@ export const SurveysPage = () => {
   });
 
   const handleOpenSchedule = () => {
+    setScheduleError('');
     setFormData({
       customerName: '',
       enquiryId: '',
@@ -105,7 +116,7 @@ export const SurveysPage = () => {
       siteLocation: '',
       scheduledDate: new Date().toISOString().split('T')[0],
       scheduledTime: '10:30 AM',
-      assignedSurveyor: 'Kailash Chand (Field Tech)',
+      assignedTechnicianId: '',
       roofType: 'RCC Flat Roof',
       roofAreaSqFt: 1200,
       notes: '',
@@ -122,8 +133,14 @@ export const SurveysPage = () => {
       return;
     }
 
-    await dispatch(scheduleSurvey(formData));
-    setIsScheduleOpen(false);
+    setScheduleError('');
+    try {
+      await dispatch(scheduleSurvey(formData)).unwrap();
+      setIsScheduleOpen(false);
+      dispatch(fetchSurveys());
+    } catch (err) {
+      setScheduleError(typeof err === 'string' ? err : 'Failed to schedule survey. Please retry.');
+    }
   };
 
   const handleRescheduleSubmit = async () => {
@@ -312,11 +329,16 @@ export const SurveysPage = () => {
       {/* MODAL: Schedule Survey */}
       <Modal
         isOpen={isScheduleOpen}
-        onClose={() => setIsScheduleOpen(false)}
+        onClose={() => { setIsScheduleOpen(false); setScheduleError(''); }}
         title="Schedule Site Feasibility Survey"
         size="lg"
       >
         <form onSubmit={handleSaveSurvey} className="space-y-4">
+          {(technicianLoadError || scheduleError) && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700" role="alert">
+              {technicianLoadError || scheduleError}
+            </div>
+          )}
           <Input
             label="Customer Name"
             required
@@ -385,14 +407,16 @@ export const SurveysPage = () => {
 
           <Select
             label="Assigned Field Surveyor"
-            value={formData.assignedSurveyor}
-            onChange={(e) => setFormData({ ...formData, assignedSurveyor: e.target.value })}
-            options={[
-              'Kailash Chand (Field Tech)',
-              'Manoj Saini (Sr. Surveyor)',
-              'Dinesh Kumar (Field Tech)',
-              'Sunil Sharma (Survey Engineer)',
-            ]}
+            required
+            value={formData.assignedTechnicianId}
+            onChange={(e) => setFormData({ ...formData, assignedTechnicianId: e.target.value })}
+            options={technicians.map((technician) => ({
+              value: technician.id,
+              label: technician.name,
+            }))}
+            placeholder={techniciansLoading ? 'Loading technicians...' : 'Select an active technician'}
+            disabled={techniciansLoading || technicians.length === 0}
+            error={formErrors.assignedTechnicianId || technicianLoadError || (!techniciansLoading && technicians.length === 0 ? 'No active field technicians are available.' : undefined)}
           />
 
           <Input
@@ -408,7 +432,12 @@ export const SurveysPage = () => {
             <Button variant="outline" size="sm" onClick={() => setIsScheduleOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" type="submit">
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              disabled={techniciansLoading || technicians.length === 0 || !formData.assignedTechnicianId}
+            >
               Dispatch Survey
             </Button>
           </div>
@@ -534,4 +563,3 @@ export const SurveysPage = () => {
 };
 
 export default SurveysPage;
-

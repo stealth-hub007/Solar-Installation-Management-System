@@ -7,7 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.config import settings
-from app.dependencies.auth import get_current_user, require_sales_or_admin, require_admin
+from app.dependencies.auth import (
+    get_current_user,
+    require_sales_or_admin,
+    require_admin,
+    require_technician_or_admin,
+)
 from app.models.user import User, UserRole
 from app.models.survey import SurveyStatus, SurveyApprovalStatus
 from app.schemas.common import APIResponse, PaginatedResponse
@@ -37,7 +42,7 @@ async def schedule_survey(
     return APIResponse(
         success=True,
         message="Site survey scheduled successfully",
-        data=SurveyResponse.model_validate(survey),
+        data=await SurveyService.get_survey_response(db, survey.id),
     )
 
 
@@ -91,7 +96,7 @@ async def get_survey(
     return APIResponse(
         success=True,
         message="Survey retrieved successfully",
-        data=SurveyResponse.model_validate(survey),
+        data=await SurveyService.get_survey_response(db, survey.id),
     )
 
 
@@ -104,14 +109,14 @@ async def get_survey(
 async def record_measurements(
     survey_id: uuid.UUID,
     measurements: SurveyMeasurementUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_technician_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     survey = await SurveyService.save_measurements(db, survey_id, measurements, current_user)
     return APIResponse(
         success=True,
         message="Survey measurements updated successfully",
-        data=SurveyResponse.model_validate(survey),
+        data=await SurveyService.get_survey_response(db, survey.id),
     )
 
 
@@ -126,7 +131,7 @@ async def upload_survey_photo(
     survey_id: uuid.UUID,
     file: UploadFile = File(...),
     caption: Optional[str] = Form(None),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_technician_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     if not file.filename:
@@ -168,14 +173,14 @@ async def upload_survey_photo(
 )
 async def submit_survey(
     survey_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_technician_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     survey = await SurveyService.submit_survey(db, survey_id, current_user)
     return APIResponse(
         success=True,
         message="Site survey submitted for approval",
-        data=SurveyResponse.model_validate(survey),
+        data=await SurveyService.get_survey_response(db, survey.id),
     )
 
 
@@ -195,30 +200,61 @@ async def review_survey(
     return APIResponse(
         success=True,
         message=f"Survey {approval_in.approval_status.value.lower()} successfully",
-        data=SurveyResponse.model_validate(survey),
+        data=await SurveyService.get_survey_response(db, survey.id),
     )
 
 
 @router.patch(
     "/{survey_id}/approve",
     response_model=APIResponse[SurveyResponse],
-    summary="Approve or Reject Survey (Alias)",
+    summary="Approve Survey (Alias)",
 )
 @router.post(
     "/{survey_id}/approve",
     response_model=APIResponse[SurveyResponse],
-    summary="Approve or Reject Survey (Alias)",
+    summary="Approve Survey (Alias)",
 )
 async def approve_survey_alias(
     survey_id: uuid.UUID,
-    approval_in: SurveyApprovalRequest,
+    approval_in: Optional[SurveyApprovalRequest] = None,
     current_admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    if approval_in is None:
+        approval_in = SurveyApprovalRequest(approval_status=SurveyApprovalStatus.APPROVED)
     survey = await SurveyService.review_survey(db, survey_id, approval_in, current_admin)
     return APIResponse(
         success=True,
         message=f"Survey {approval_in.approval_status.value.lower()} successfully",
-        data=SurveyResponse.model_validate(survey),
+        data=await SurveyService.get_survey_response(db, survey.id),
+    )
+
+
+@router.patch(
+    "/{survey_id}/reject",
+    response_model=APIResponse[SurveyResponse],
+    summary="Reject Survey (Alias)",
+)
+@router.post(
+    "/{survey_id}/reject",
+    response_model=APIResponse[SurveyResponse],
+    summary="Reject Survey (Alias)",
+)
+async def reject_survey_alias(
+    survey_id: uuid.UUID,
+    approval_in: Optional[SurveyApprovalRequest] = None,
+    current_admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    if approval_in is None:
+        approval_in = SurveyApprovalRequest(
+            approval_status=SurveyApprovalStatus.REJECTED,
+            rejection_reason="Rejected by Admin",
+        )
+    survey = await SurveyService.review_survey(db, survey_id, approval_in, current_admin)
+    return APIResponse(
+        success=True,
+        message=f"Survey {approval_in.approval_status.value.lower()} successfully",
+        data=await SurveyService.get_survey_response(db, survey.id),
     )
 

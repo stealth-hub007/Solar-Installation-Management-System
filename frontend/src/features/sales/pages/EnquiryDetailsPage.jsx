@@ -169,6 +169,7 @@ export const EnquiryDetailsPage = () => {
         enquiryId: enquiry.rawId || enquiry.id,
         scheduledDate: surveyForm.surveyDate,
         scheduledTime: surveyForm.surveyTime,
+        assignedSurveyor: surveyForm.surveyorName,
         customerName: enquiry.customerName,
         siteLocation: enquiry.address || enquiry.city || 'Site inspection location',
         notes: `Roof Type: ${surveyForm.roofType || 'RCC'} | Shadow: ${surveyForm.shadowIssue || 'None'} | Time: ${surveyForm.surveyTime || '10:00 AM'}`,

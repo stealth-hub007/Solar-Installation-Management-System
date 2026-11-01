@@ -7,7 +7,6 @@ import {
   fetchProjectAnalytics,
   fetchInstallationAnalytics,
   fetchInventoryAnalytics,
-  fetchOperationalAlerts,
   fetchRecentProjects,
   fetchRecentPayments,
   fetchRecentEnquiries,
@@ -25,12 +24,9 @@ import {
   createServiceTicket,
   updateServiceTicket,
   deleteServiceTicket,
-  createAlert,
-  deleteAlert,
   resetAllData,
   setStatsTimeRange,
   setRevenuePeriod,
-  setAlertSeverity,
   setProjectsFilters,
   setProjectsPagination,
   resetProjectsFilters,
@@ -54,8 +50,6 @@ import {
   selectProjectAnalytics,
   selectInstallationAnalytics,
   selectInventoryAnalytics,
-  selectSortedAlerts,
-  selectOperationalAlertsState,
   selectRecentProjects,
   selectRecentPayments,
   selectRecentEnquiries,
@@ -70,7 +64,6 @@ import RevenueChart from '../components/RevenueChart';
 import ProjectStatusChart from '../components/ProjectStatusChart';
 import InstallationChart from '../components/InstallationChart';
 import InventoryChart from '../components/InventoryChart';
-import OperationalAlerts from '../components/OperationalAlerts';
 import RecentProjects from '../components/RecentProjects';
 import RecentPayments from '../components/RecentPayments';
 import RecentEnquiries from '../components/RecentEnquiries';
@@ -129,9 +122,6 @@ export const AdminDashboard = () => {
   const projectState = useSelector(selectProjectAnalytics);
   const installationState = useSelector(selectInstallationAnalytics);
   const inventoryState = useSelector(selectInventoryAnalytics);
-  const alertsState = useSelector(selectOperationalAlertsState);
-  const sortedAlerts = useSelector(selectSortedAlerts);
-
   const projectsState = useSelector(selectRecentProjects);
   const paymentsState = useSelector(selectRecentPayments);
   const enquiriesState = useSelector(selectRecentEnquiries);
@@ -148,7 +138,6 @@ export const AdminDashboard = () => {
         dispatch(fetchProjectAnalytics()),
         dispatch(fetchInstallationAnalytics()),
         dispatch(fetchInventoryAnalytics()),
-        dispatch(fetchOperationalAlerts({ severity: alertsState.filterSeverity })),
         dispatch(
           fetchRecentProjects({
             page: projectsState.pagination.page,
@@ -207,7 +196,6 @@ export const AdminDashboard = () => {
     dispatch,
     statsState.timeRange,
     revenueState.period,
-    alertsState.filterSeverity,
   ]);
 
   useEffect(() => {
@@ -338,11 +326,6 @@ export const AdminDashboard = () => {
     dispatch(fetchRevenueAnalytics(period));
   };
 
-  const handleAlertSeverityChange = (severity) => {
-    dispatch(setAlertSeverity(severity));
-    dispatch(fetchOperationalAlerts({ severity }));
-  };
-
   // CRUD Handlers for Projects
   const handleCreateProject = async (data) => {
     await dispatch(createProject(data));
@@ -407,15 +390,6 @@ export const AdminDashboard = () => {
     dispatch(fetchRecentServiceTickets(serviceTicketsState.pagination));
   };
 
-  // CRUD Handlers for Alerts
-  const handleCreateAlert = async (data) => {
-    await dispatch(createAlert(data));
-  };
-
-  const handleDismissAlert = async (id) => {
-    await dispatch(deleteAlert(id));
-  };
-
   const tableTabs = [
     { id: 'projects', label: 'Recent Projects', icon: FolderKanban, count: projectsState.pagination.totalRecords },
     { id: 'payments', label: 'Recent Payments', icon: CreditCard, count: paymentsState.pagination.totalRecords },
@@ -445,21 +419,7 @@ export const AdminDashboard = () => {
         />
       </section>
 
-      {/* 3. Operational Action Alerts Section */}
-      <section aria-label="Operational Alerts">
-        <OperationalAlerts
-          alerts={sortedAlerts}
-          filterSeverity={alertsState.filterSeverity}
-          onFilterChange={handleAlertSeverityChange}
-          isLoading={alertsState.isLoading}
-          error={alertsState.error}
-          onRetry={() => dispatch(fetchOperationalAlerts({ severity: alertsState.filterSeverity }))}
-          onCreateAlert={handleCreateAlert}
-          onDismissAlert={handleDismissAlert}
-        />
-      </section>
-
-      {/* 4. Analytics Charts Grid */}
+      {/* 3. Analytics Charts Grid */}
       <section aria-label="Operations and Financial Analytics" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* A. Revenue Analytics */}
         <RevenueChart

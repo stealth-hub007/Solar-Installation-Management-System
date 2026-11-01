@@ -52,7 +52,6 @@ const WarrantyPage = lazy(() => import('../features/warranty/WarrantyPage'));
 const ServiceTicketsPage = lazy(() => import('../features/service-tickets/ServiceTicketsPage'));
 const FinancePage = lazy(() => import('../features/finance/FinancePage'));
 const ReportsPage = lazy(() => import('../features/reports/ReportsPage'));
-const NotificationsPage = lazy(() => import('../features/notifications/NotificationsPage'));
 const AuditLogsPage = lazy(() => import('../features/audit-logs/AuditLogsPage'));
 const SettingsPage = lazy(() => import('../features/settings/SettingsPage'));
 const ProfileOverviewPage = lazy(() => import('../features/profile/ProfileOverviewPage'));
@@ -221,10 +220,6 @@ export const router = createBrowserRouter([
       {
         path: 'reports',
         element: <ReportsPage />,
-      },
-      {
-        path: 'notifications',
-        element: <NotificationsPage />,
       },
       {
         path: 'audit-logs',

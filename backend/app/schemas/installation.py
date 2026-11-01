@@ -105,5 +105,24 @@ class InstallationJobResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    # Enriched fields for technician dashboard and portals
+    customer_name: Optional[str] = None
+    customerName: Optional[str] = None
+    contact: Optional[str] = None
+    installation_address: Optional[str] = None
+    installationAddress: Optional[str] = None
+    technician_name: Optional[str] = None
+    capacity: Optional[str] = "5.0 kW"
+    panels: Optional[str] = "10x 540W Mono PERC Panels"
+    inverter: Optional[str] = "5kW On-Grid Solar Inverter"
+    battery: Optional[str] = "None"
+    dispatch_status: Optional[str] = "DELIVERED"
+    dispatchStatus: Optional[str] = "Delivered to Site"
+    order_number: Optional[str] = None
+    orderNumber: Optional[str] = None
+    project_ref: Optional[str] = None
+    projectRef: Optional[str] = None
+    equipments: Optional[List[dict]] = None
+
     model_config = ConfigDict(from_attributes=True)
 

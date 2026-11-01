@@ -34,6 +34,7 @@ class TechnicianDashboardResponse(BaseModel):
     # Backward compatible fields
     assigned_surveys_count: int
     pending_surveys_count: int
+    completed_surveys: int = 0
     assigned_installations_count: int
     completed_installations_count: int
     total_work_hours_logged: Decimal

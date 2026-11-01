@@ -34,10 +34,11 @@ async def list_jobs(
 ):
     effective_tech_id = current_user.id if current_user.role == UserRole.TECHNICIAN else None
     jobs = await InstallationService.list_jobs(db, technician_id=effective_tech_id, status=status)
+    enriched_jobs = [await InstallationService.enrich_job(db, j) for j in jobs]
     return APIResponse(
         success=True,
         message="Installation jobs retrieved successfully",
-        data=[InstallationJobResponse.model_validate(j) for j in jobs],
+        data=enriched_jobs,
     )
 
 
@@ -55,7 +56,7 @@ async def get_job(
     return APIResponse(
         success=True,
         message="Installation job retrieved successfully",
-        data=InstallationJobResponse.model_validate(job),
+        data=await InstallationService.enrich_job(db, job),
     )
 
 
@@ -74,7 +75,7 @@ async def assign_technician(
     return APIResponse(
         success=True,
         message="Field technician assigned and installation scheduled",
-        data=InstallationJobResponse.model_validate(job),
+        data=await InstallationService.enrich_job(db, job),
     )
 
 
@@ -92,7 +93,7 @@ async def start_installation(
     return APIResponse(
         success=True,
         message="Installation job started",
-        data=InstallationJobResponse.model_validate(job),
+        data=await InstallationService.enrich_job(db, job),
     )
 
 
@@ -192,5 +193,5 @@ async def complete_job(
     return APIResponse(
         success=True,
         message="Installation completed and verified successfully",
-        data=InstallationJobResponse.model_validate(job),
+        data=await InstallationService.enrich_job(db, job),
     )

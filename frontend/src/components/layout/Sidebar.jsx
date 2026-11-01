@@ -18,7 +18,6 @@ import {
   Headphones,
   DollarSign,
   BarChart3,
-  Bell,
   History,
   Settings,
   Sun,
@@ -141,12 +140,6 @@ export const navigationItems = [
         shortName: 'Reports',
         path: '/admin/reports',
         icon: BarChart3,
-      },
-      {
-        name: 'Notifications',
-        shortName: 'Notifications',
-        path: '/admin/notifications',
-        icon: Bell,
       },
       {
         name: 'Audit Logs',

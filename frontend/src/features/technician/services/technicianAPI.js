@@ -13,7 +13,7 @@ export const technicianAPI = {
         pendingSurveys: d.pending_site_surveys ?? d.pending_surveys_count ?? 0,
         inProgressSurveys: d.in_progress_surveys ?? 0,
         submittedSurveys: d.submitted_surveys ?? 0,
-        completedSurveys: d.completed_installations ?? 0,
+        completedSurveys: d.completed_surveys ?? d.submitted_surveys ?? 0,
         surveysAwaitingApproval: d.surveys_awaiting_approval ?? 0,
         surveysRequiringCorrections: d.surveys_requiring_corrections ?? 0,
         upcomingSiteVisits: d.upcoming_site_visits ?? 0,

@@ -256,6 +256,8 @@ export const CustomerDetailsPage = () => {
         customerName: customer.name,
         contact: customer.phone,
         scheduledDate: surveyForm.surveyDate,
+        scheduledTime: surveyForm.surveyTime || '10:00 AM',
+        assignedSurveyor: surveyForm.surveyorName,
         siteLocation: customer.address || customer.city || 'Site inspection location',
         notes: `Roof Type: ${surveyForm.roofType || 'RCC'} | Shadow: ${surveyForm.shadowIssue || 'None'} | Time: ${surveyForm.surveyTime || '10:00 AM'}`,
       });

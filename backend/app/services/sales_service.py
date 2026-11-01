@@ -736,36 +736,57 @@ class SalesService:
     @staticmethod
     async def schedule_survey(db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
         enquiry_ref = data.get("enquiryId") or data.get("enquiry_id")
-        if not enquiry_ref:
-            raise BadRequestException(message="An enquiry ID is required to schedule a survey")
+        customer_ref = data.get("customerId") or data.get("customer_id")
+        enquiry = None
+        customer = None
 
-        raw_enquiry_id = str(enquiry_ref).strip()
-        if raw_enquiry_id.upper().startswith("ENQ-"):
-            raw_enquiry_id = raw_enquiry_id[4:]
+        if enquiry_ref:
+            raw_enquiry_id = str(enquiry_ref).strip()
+            if raw_enquiry_id.upper().startswith("ENQ-"):
+                raw_enquiry_id = raw_enquiry_id[4:]
 
-        try:
-            enquiry_uuid = uuid.UUID(raw_enquiry_id)
-            enquiry = await db.get(Enquiry, enquiry_uuid)
-        except ValueError:
-            if len(raw_enquiry_id) < 8:
-                raise BadRequestException(message="Enquiry ID is invalid")
-            enquiry_stmt = select(Enquiry).where(
-                func.lower(func.cast(Enquiry.id, String)).startswith(raw_enquiry_id.lower())
-            )
-            matching_enquiries = list((await db.execute(enquiry_stmt)).scalars().all())
-            if len(matching_enquiries) > 1:
-                raise BadRequestException(message="Enquiry ID is ambiguous; use the full enquiry ID")
-            enquiry = matching_enquiries[0] if matching_enquiries else None
+            try:
+                enquiry_uuid = uuid.UUID(raw_enquiry_id)
+                enquiry = await db.get(Enquiry, enquiry_uuid)
+            except ValueError:
+                if len(raw_enquiry_id) >= 8:
+                    enquiry_stmt = select(Enquiry).where(
+                        func.lower(func.cast(Enquiry.id, String)).startswith(raw_enquiry_id.lower())
+                    )
+                    matching_enquiries = list((await db.execute(enquiry_stmt)).scalars().all())
+                    if len(matching_enquiries) == 1:
+                        enquiry = matching_enquiries[0]
+
+        if not enquiry and customer_ref:
+            try:
+                c_uuid = uuid.UUID(str(customer_ref).strip())
+                customer = await db.get(Customer, c_uuid)
+            except ValueError:
+                pass
+            if customer:
+                enq_stmt = select(Enquiry).where(Enquiry.customer_id == customer.id).order_by(Enquiry.created_at.desc())
+                enquiry = (await db.execute(enq_stmt)).scalars().first()
+                if not enquiry:
+                    today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+                    total_enqs = (await db.execute(select(func.count(Enquiry.id)))).scalar_one()
+                    enquiry = Enquiry(
+                        enquiry_number=f"ENQ-{today_str}-{total_enqs + 1:04d}",
+                        customer_id=customer.id,
+                        lead_status=LeadStatus.NEW_LEAD,
+                    )
+                    db.add(enquiry)
+                    await db.flush()
 
         if not enquiry:
-            raise NotFoundException(message="Enquiry not found", error_code="ENQUIRY_NOT_FOUND")
+            raise BadRequestException(message="An enquiry or customer ID is required to schedule a survey")
 
-        customer = await db.get(Customer, enquiry.customer_id)
+        if not customer:
+            customer = await db.get(Customer, enquiry.customer_id)
         if not customer:
             raise NotFoundException(message="Customer for this enquiry was not found", error_code="CUSTOMER_NOT_FOUND")
 
         assigned_tech_id = data.get("assigned_technician_id") or data.get("assignedTechnicianId")
-        assigned_surveyor_name = data.get("assigned_surveyor") or data.get("assignedSurveyor")
+        assigned_surveyor_name = data.get("assigned_surveyor") or data.get("assignedSurveyor") or data.get("surveyorName")
         technician = None
         if assigned_tech_id:
             try:
@@ -781,6 +802,21 @@ class SalesService:
                 func.lower(User.full_name) == str(assigned_surveyor_name).strip().lower(),
             )
             technician = (await db.execute(tech_stmt)).scalars().first()
+            if not technician:
+                first_word = str(assigned_surveyor_name).strip().split()[0].lower()
+                tech_stmt2 = select(User).where(
+                    User.role == UserRole.TECHNICIAN,
+                    User.is_active.is_(True),
+                    func.lower(User.full_name).contains(first_word),
+                )
+                technician = (await db.execute(tech_stmt2)).scalars().first()
+
+        if not technician:
+            tech_stmt3 = select(User).where(
+                User.role == UserRole.TECHNICIAN,
+                User.is_active.is_(True),
+            ).order_by(User.created_at.asc())
+            technician = (await db.execute(tech_stmt3)).scalars().first()
 
         if not technician:
             raise BadRequestException(

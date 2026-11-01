@@ -17,6 +17,7 @@ async def create_approved_survey(
     async_client: AsyncClient,
     token: str,
     system_capacity: str = "5kW",
+    system_type: str = "ON_GRID",
 ) -> str:
     tech_resp = await async_client.post(
         "/api/v1/users",
@@ -38,7 +39,7 @@ async def create_approved_survey(
             "customer_phone": f"96{uuid.uuid4().int % 10**8:08d}",
             "source": "PHONE_CALL",
             "system_capacity": system_capacity,
-            "system_type": "ON_GRID",
+            "system_type": system_type,
         },
     )
     enquiry_id = enquiry_resp.json()["data"]["id"]
@@ -164,7 +165,7 @@ async def test_quotation_to_order_and_payment_flow(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_quotation_rejects_unconfigured_package_capacity(async_client: AsyncClient):
     token = await get_admin_token(async_client)
-    survey_id = await create_approved_survey(async_client, token, system_capacity="3kW")
+    survey_id = await create_approved_survey(async_client, token, system_capacity="5kW", system_type="OFF_GRID")
 
     response = await async_client.post(
         "/api/v1/quotations",

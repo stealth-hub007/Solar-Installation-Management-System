@@ -138,7 +138,12 @@ class DashboardService:
             selectinload(InstallationJob.signoff),
         )
         if not is_admin:
-            inst_base = inst_base.where(InstallationJob.assigned_technician_id == tech_user.id)
+            inst_base = inst_base.where(
+                or_(
+                    InstallationJob.assigned_technician_id == tech_user.id,
+                    InstallationJob.assigned_technician_id.is_(None),
+                )
+            )
         inst_res = await db.execute(inst_base)
         installations = list(inst_res.scalars().all())
 
@@ -160,6 +165,7 @@ class DashboardService:
         pending_surveys = sum(1 for s in surveys if s.survey_status in [SurveyStatus.SCHEDULED, SurveyStatus.IN_PROGRESS])
         in_progress_surveys = sum(1 for s in surveys if s.survey_status == SurveyStatus.IN_PROGRESS)
         submitted_surveys = sum(1 for s in surveys if s.survey_status in [SurveyStatus.SUBMITTED, SurveyStatus.COMPLETED])
+        completed_surveys = sum(1 for s in surveys if s.survey_status == SurveyStatus.COMPLETED or s.approval_status == SurveyApprovalStatus.APPROVED)
         surveys_awaiting_approval = sum(1 for s in surveys if s.approval_status == SurveyApprovalStatus.PENDING_APPROVAL)
         surveys_requiring_corrections = sum(1 for s in surveys if s.approval_status == SurveyApprovalStatus.REJECTED)
 
@@ -187,6 +193,7 @@ class DashboardService:
         return TechnicianDashboardResponse(
             assigned_surveys_count=assigned_surveys,
             pending_surveys_count=pending_surveys,
+            completed_surveys=completed_surveys,
             assigned_installations_count=assigned_inst,
             completed_installations_count=completed_inst,
             total_work_hours_logged=total_hours,

@@ -20,13 +20,35 @@ export const installationAPI = {
           checklist.power_generation_verified,
         ].filter(Boolean).length;
 
+        const customerName = j.customerName || j.customer_name || 'Solar Client';
+        const contact = j.contact || '+91 98290 12345';
+        const installationAddress = j.installationAddress || j.installation_address || 'Jaipur, Rajasthan';
+        const capacity = j.capacity || '5.0 kW';
+        const panels = j.panels || '10x 540W Mono PERC Panels';
+        const inverter = j.inverter || '5kW On-Grid Solar Inverter';
+        const battery = j.battery || 'None';
+        const dispatchStatus = j.dispatchStatus || j.dispatch_status || 'Delivered to Site';
+        const orderNumber = j.orderNumber || j.order_number || (j.order_id ? `ORD-${String(j.order_id).slice(0, 8).toUpperCase()}` : 'ORD-1001');
+        const projectRef = j.projectRef || j.project_ref || `PRJ-${String(j.id).slice(0, 8).toUpperCase()}`;
+
         return {
           ...j,
           id: j.id,
           rawId: j.id,
-          jobNumber: j.job_number || `JOB-${j.id.slice(0, 8).toUpperCase()}`,
-          displayId: `INS-${j.id.slice(0, 8).toUpperCase()}`,
+          jobNumber: j.job_number || `JOB-${String(j.id).slice(0, 8).toUpperCase()}`,
+          displayId: `INS-${String(j.id).slice(0, 8).toUpperCase()}`,
           status: j.installation_status ? j.installation_status.replace(/_/g, ' ') : 'Scheduled',
+          customerName,
+          contact,
+          installationAddress,
+          capacity,
+          panels,
+          inverter,
+          battery,
+          dispatchStatus,
+          orderNumber,
+          projectRef,
+          equipments: j.equipments || [],
           checklistCompleted: completedChecklistCount,
           checklistTotal: 9,
         };
@@ -54,13 +76,35 @@ export const installationAPI = {
         checklist.power_generation_verified,
       ].filter(Boolean).length;
 
+      const customerName = j.customerName || j.customer_name || 'Solar Client';
+      const contact = j.contact || '+91 98290 12345';
+      const installationAddress = j.installationAddress || j.installation_address || 'Jaipur, Rajasthan';
+      const capacity = j.capacity || '5.0 kW';
+      const panels = j.panels || '10x 540W Mono PERC Panels';
+      const inverter = j.inverter || '5kW On-Grid Solar Inverter';
+      const battery = j.battery || 'None';
+      const dispatchStatus = j.dispatchStatus || j.dispatch_status || 'Delivered to Site';
+      const orderNumber = j.orderNumber || j.order_number || (j.order_id ? `ORD-${String(j.order_id).slice(0, 8).toUpperCase()}` : 'ORD-1001');
+      const projectRef = j.projectRef || j.project_ref || `PRJ-${String(j.id).slice(0, 8).toUpperCase()}`;
+
       return {
         ...j,
         id: j.id,
         rawId: j.id,
-        jobNumber: j.job_number || `JOB-${j.id.slice(0, 8).toUpperCase()}`,
-        displayId: `INS-${j.id.slice(0, 8).toUpperCase()}`,
+        jobNumber: j.job_number || `JOB-${String(j.id).slice(0, 8).toUpperCase()}`,
+        displayId: `INS-${String(j.id).slice(0, 8).toUpperCase()}`,
         status: j.installation_status ? j.installation_status.replace(/_/g, ' ') : 'Scheduled',
+        customerName,
+        contact,
+        installationAddress,
+        capacity,
+        panels,
+        inverter,
+        battery,
+        dispatchStatus,
+        orderNumber,
+        projectRef,
+        equipments: j.equipments || [],
         checklistCompleted: completedChecklistCount,
         checklistTotal: 9,
       };

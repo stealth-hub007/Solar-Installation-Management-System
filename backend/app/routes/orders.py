@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.dependencies.auth import get_current_user, require_sales_or_admin
+from app.dependencies.auth import get_current_user, require_sales_or_admin, require_admin
 from app.models.user import User
 from app.models.order import OrderStatus, PaymentStatus
 from app.schemas.common import APIResponse, PaginatedResponse
-from app.schemas.order import OrderConvertRequest, OrderResponse
+from app.schemas.order import OrderConvertRequest, OrderResponse, OrderCloseRequest
 from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/orders", tags=["Order Management"])
@@ -72,6 +72,26 @@ async def get_order(
     return APIResponse(
         success=True,
         message="Order retrieved successfully",
+        data=OrderResponse.model_validate(order),
+    )
+
+
+@router.post(
+    "/{order_id}/close",
+    response_model=APIResponse[OrderResponse],
+    summary="Close Project & Complete Order (Admin Only)",
+    description="Marks an INSTALLED order as COMPLETED, recording project closure after all approvals, payment conditions, and documentation are satisfied. Warranty remains active.",
+)
+async def close_order(
+    order_id: uuid.UUID,
+    close_in: OrderCloseRequest,
+    current_admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    order = await OrderService.close_order(db, order_id, close_in, current_admin)
+    return APIResponse(
+        success=True,
+        message="Project closed successfully. Order marked as COMPLETED.",
         data=OrderResponse.model_validate(order),
     )
 

@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, or_, desc, asc
+from sqlalchemy import select, func, and_, or_, desc, asc, String
 
 from app.models.customer import Customer, CustomerAddress, Enquiry, LeadStatus, EnquirySource
 from app.models.survey import SiteSurvey, SurveyApprovalStatus, SurveyStatus
@@ -50,20 +50,46 @@ DEMO_QUOTES_SPEC = [
 class SalesService:
     @staticmethod
     async def get_sales_stats(db: AsyncSession) -> Dict[str, Any]:
-        total_customers = (await db.execute(select(func.count(Customer.id)))).scalar_one() or 10
-        total_enquiries = (await db.execute(select(func.count(Enquiry.id)))).scalar_one() or 12
+        total_customers = (await db.execute(select(func.count(Customer.id)))).scalar_one() or 0
+        total_enquiries = (await db.execute(select(func.count(Enquiry.id)))).scalar_one() or 0
         new_leads = (await db.execute(
             select(func.count(Enquiry.id)).where(Enquiry.lead_status == LeadStatus.NEW)
-        )).scalar_one() or 3
+        )).scalar_one() or 0
         converted_enq = (await db.execute(
             select(func.count(Enquiry.id)).where(Enquiry.lead_status == LeadStatus.CONVERTED)
-        )).scalar_one() or 4
+        )).scalar_one() or 0
         
         conversion_rate = round((converted_enq / max(1, total_enquiries)) * 100.0, 1)
 
+        tot_surveys = (await db.execute(select(func.count(SiteSurvey.id)))).scalar_one() or 0
+        upcoming_surveys = (await db.execute(
+            select(func.count(SiteSurvey.id)).where(
+                SiteSurvey.survey_status.in_([SurveyStatus.SCHEDULED, SurveyStatus.IN_PROGRESS])
+            )
+        )).scalar_one() or 0
+
+        tot_quotes = (await db.execute(select(func.count(Quotation.id)))).scalar_one() or 0
+        accepted_quotes = (await db.execute(
+            select(func.count(Quotation.id)).where(Quotation.status == QuotationStatus.ACCEPTED)
+        )).scalar_one() or 0
+        pending_quotes = (await db.execute(
+            select(func.count(Quotation.id)).where(
+                Quotation.status.in_([QuotationStatus.DRAFT, QuotationStatus.SENT])
+            )
+        )).scalar_one() or 0
+
+        tot_orders = (await db.execute(select(func.count(Order.id)))).scalar_one() or 0
+
+        # Pending follow-ups: leads that are in CONTACTED or FOLLOW_UP_REQUIRED status
+        pending_followups = (await db.execute(
+            select(func.count(Enquiry.id)).where(
+                Enquiry.lead_status.in_([LeadStatus.CONTACTED, LeadStatus.FOLLOW_UP_REQUIRED])
+            )
+        )).scalar_one() or 0
+
         monthly_revenue = 3148000.0
         target = 6000000.0
-        achieved_pct = round((monthly_revenue / target) * 100.0, 1) # 52.5%
+        achieved_pct = round((monthly_revenue / target) * 100.0, 1)
 
         return {
             "totalCustomers": total_customers,
@@ -71,12 +97,15 @@ class SalesService:
             "newLeads": new_leads,
             "convertedEnquiries": converted_enq,
             "conversionRate": conversion_rate,
-            "pendingFollowUps": 5,
-            "completedFollowUps": 2,
-            "upcomingSurveys": 3,
-            "pendingQuotations": 3,
-            "acceptedQuotations": 2,
-            "totalOrders": 4,
+            "totalFollowUps": pending_followups + converted_enq,
+            "pendingFollowUps": pending_followups,
+            "completedFollowUps": converted_enq,
+            "totalSurveys": tot_surveys,
+            "upcomingSurveys": upcoming_surveys,
+            "totalQuotations": tot_quotes,
+            "pendingQuotations": pending_quotes,
+            "acceptedQuotations": accepted_quotes,
+            "totalOrders": tot_orders,
             "monthlySalesRevenue": monthly_revenue,
             "monthlyTarget": target,
             "targetAchievementPercent": achieved_pct,
@@ -312,18 +341,33 @@ class SalesService:
         search: Optional[str] = None,
         status: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        stmt = select(Enquiry, Customer).join(Customer, Enquiry.customer_id == Customer.id).order_by(Enquiry.created_at.asc())
+        # Sort DESCENDING so newest submissions (e.g. from website) appear at the top
+        stmt = select(Enquiry, Customer).join(Customer, Enquiry.customer_id == Customer.id).order_by(Enquiry.created_at.desc())
         rows = (await db.execute(stmt)).all()
         result = []
-        for idx, (enq, cust) in enumerate(rows):
-            enq_num = f"ENQ-{4401 + idx}"
+        for (enq, cust) in rows:
+            short_id = str(enq.id)[:8].upper()
+            enq_num = f"ENQ-{short_id}"
             st = enq.lead_status.value.replace("_", " ").title() if hasattr(enq.lead_status, "value") else str(enq.lead_status)
             src = enq.source.value.replace("_", " ").title() if hasattr(enq.source, "value") else str(enq.source)
             cap = f"{enq.system_capacity.value} Rooftop" if enq.system_capacity else "5kW Rooftop"
             notes = enq.customer_requirements or enq.remarks or "Interested in rooftop subsidy scheme"
+
+            # Retrieve real address from customer_addresses table
+            addr_stmt = select(CustomerAddress).where(CustomerAddress.customer_id == cust.id)
+            cust_addrs = (await db.execute(addr_stmt)).scalars().all()
+            if cust_addrs:
+                loc_str = f"{cust_addrs[0].address_line}, {cust_addrs[0].city}" if cust_addrs[0].city not in cust_addrs[0].address_line else cust_addrs[0].address_line
+            else:
+                loc_str = "Jaipur, Rajasthan"
+
             if search:
                 s = search.lower()
-                if s not in enq_num.lower() and s not in cust.name.lower():
+                if (s not in enq_num.lower() and 
+                    s not in cust.name.lower() and 
+                    s not in (cust.email or "").lower() and 
+                    s not in cust.phone.lower() and
+                    s not in loc_str.lower()):
                     continue
             if status and status != "all" and st.lower() != status.lower():
                 continue
@@ -331,19 +375,21 @@ class SalesService:
             result.append({
                 "id": enq_num,
                 "rawId": str(enq.id),
-                "customerId": f"CUST-{101 + idx}",
+                "customerId": f"CUST-{str(cust.id)[:6].upper()}",
                 "customerName": cust.name,
-                "phone": f"+91 {cust.phone}",
+                "phone": f"+91 {cust.phone}" if not cust.phone.startswith("+") else cust.phone,
                 "email": cust.email or "",
                 "source": src,
                 "capacity": cap,
-                "propertyType": "Residential" if "ltd" not in cust.name.lower() else "Commercial",
-                "location": "Jaipur, Rajasthan",
+                "propertyType": "Commercial" if any(w in cust.name.lower() for w in ["ltd", "textiles", "school", "hospital", "corp", "infra"]) else "Residential",
+                "location": loc_str,
+                "address": loc_str,
                 "assignedSalesperson": "Vikram Singh (Sales)",
                 "enquiryDate": enq.created_at.isoformat() if enq.created_at else datetime.now(timezone.utc).isoformat(),
                 "nextFollowUp": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
                 "status": st,
                 "notes": notes,
+                "remarks": enq.remarks or "",
             })
         return result
 
@@ -624,69 +670,45 @@ class SalesService:
 
     @staticmethod
     async def get_surveys(db: AsyncSession) -> List[Dict[str, Any]]:
-        # 4 Surveys: 3 Scheduled, 1 Completed
-        return [
-            {
-                "id": "SRV-101",
-                "rawId": str(uuid.uuid4()),
-                "enquiryId": "ENQ-4401",
-                "customerId": "CUST-104",
-                "customerName": "Sunita Agarwal",
-                "siteLocation": "34 Civil Lines, Jaipur",
-                "scheduledDate": "2026-11-02",
-                "scheduledTime": "10:30 AM",
-                "assignedSurveyor": "Vikram Singh (Field Tech)",
-                "status": "Scheduled",
-                "approvalStatus": "Pending Approval",
-                "roofType": "RCC Flat Roof",
-                "notes": "PM Surya Ghar 8kW shadow feasibility survey.",
-            },
-            {
-                "id": "SRV-102",
-                "rawId": str(uuid.uuid4()),
-                "enquiryId": "ENQ-4402",
-                "customerId": "CUST-110",
-                "customerName": "Kailash Yadav",
-                "siteLocation": "MIA Phase II, Alwar",
-                "scheduledDate": "2026-11-03",
-                "scheduledTime": "11:30 AM",
-                "assignedSurveyor": "Vikram Singh (Field Tech)",
-                "status": "Scheduled",
-                "approvalStatus": "Pending Approval",
-                "roofType": "Tin Shed Structure",
-                "notes": "15kW agricultural feeder rooftop verification.",
-            },
-            {
-                "id": "SRV-103",
-                "rawId": str(uuid.uuid4()),
-                "enquiryId": "ENQ-4403",
-                "customerId": "CUST-106",
-                "customerName": "Golden Hospitality",
-                "siteLocation": "Lake Palace Road, Udaipur",
-                "scheduledDate": "2026-11-04",
-                "scheduledTime": "02:00 PM",
-                "assignedSurveyor": "Amit Verma (Field Tech)",
-                "status": "Scheduled",
-                "approvalStatus": "Pending Approval",
-                "roofType": "RCC Flat Roof",
-                "notes": "25kW resort solar plant rooftop azimuth check.",
-            },
-            {
-                "id": "SRV-104",
-                "rawId": str(uuid.uuid4()),
-                "enquiryId": "ENQ-4404",
-                "customerId": "CUST-101",
-                "customerName": "Rajesh Sharma",
-                "siteLocation": "B-12, Vaishali Nagar, Jaipur",
-                "scheduledDate": "2026-10-28",
-                "scheduledTime": "11:00 AM",
-                "assignedSurveyor": "Vikram Singh (Field Tech)",
-                "status": "Completed",
-                "approvalStatus": "Approved",
-                "roofType": "RCC Elevated Superstructure",
-                "notes": "Structural stability verified for 10.5kW Tier-1 array.",
-            },
-        ]
+        # Fetch real SiteSurveys from database joined with Customer, Technician (User), and Enquiry
+        stmt = (
+            select(SiteSurvey, Customer, User, Enquiry)
+            .outerjoin(Customer, SiteSurvey.customer_id == Customer.id)
+            .outerjoin(User, SiteSurvey.assigned_technician_id == User.id)
+            .outerjoin(Enquiry, SiteSurvey.enquiry_id == Enquiry.id)
+            .order_by(SiteSurvey.created_at.desc())
+        )
+        rows = (await db.execute(stmt)).all()
+        result = []
+        for s, c, u, e in rows:
+            short_id = f"SRV-{str(s.id)[:8].upper()}"
+            st = s.survey_status.value.replace("_", " ").title() if hasattr(s.survey_status, "value") else str(s.survey_status)
+            appr = s.approval_status.value.replace("_", " ").title() if hasattr(s.approval_status, "value") else str(s.approval_status)
+            
+            # Location
+            loc = "Jaipur, Rajasthan"
+            if c:
+                addr_stmt = select(CustomerAddress).where(CustomerAddress.customer_id == c.id)
+                addrs = (await db.execute(addr_stmt)).scalars().all()
+                if addrs:
+                    loc = addrs[0].address_line
+
+            result.append({
+                "id": short_id,
+                "rawId": str(s.id),
+                "enquiryId": f"ENQ-{str(e.id)[:8].upper()}" if e else "—",
+                "customerId": f"CUST-{str(c.id)[:6].upper()}" if c else "—",
+                "customerName": c.name if c else "Customer",
+                "siteLocation": loc,
+                "scheduledDate": s.scheduled_date.strftime("%Y-%m-%d") if s.scheduled_date else datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "scheduledTime": s.scheduled_date.strftime("%I:%M %p") if s.scheduled_date else "10:30 AM",
+                "assignedSurveyor": u.full_name if u else "Unassigned Technician",
+                "status": st,
+                "approvalStatus": appr,
+                "roofType": s.roof_orientation.value if hasattr(s.roof_orientation, "value") and s.roof_orientation else "RCC Flat Roof",
+                "notes": s.technician_remarks or "Site survey scheduled.",
+            })
+        return result
 
     @staticmethod
     async def get_survey_by_id(db: AsyncSession, survey_id: str) -> Optional[Dict[str, Any]]:
@@ -698,18 +720,119 @@ class SalesService:
 
     @staticmethod
     async def schedule_survey(db: AsyncSession, data: Dict[str, Any]) -> Dict[str, Any]:
+        # 1. Resolve enquiry
+        enquiry = None
+        enq_ref = data.get("enquiryId")
+        if enq_ref:
+            raw_enq_id = enq_ref.replace("ENQ-", "").strip().lower()
+            stmt = select(Enquiry).where(
+                or_(
+                    func.cast(Enquiry.id, String).ilike(f"%{raw_enq_id}%"),
+                    Enquiry.id == raw_enq_id if len(raw_enq_id) == 36 else False
+                )
+            )
+            enquiry = (await db.execute(stmt)).scalars().first()
+
+        if not enquiry:
+            # Fallback to newest enquiry
+            enquiry = (await db.execute(select(Enquiry).order_by(Enquiry.created_at.desc()).limit(1))).scalars().first()
+
+        # 2. Resolve or create customer
+        customer_id = enquiry.customer_id if enquiry else None
+        if not customer_id:
+            cust = Customer(name=data.get("customerName", "Customer Lead"), phone="9829012345")
+            db.add(cust)
+            await db.flush()
+            customer_id = cust.id
+
+        # 3. Resolve active technician
+        tech_stmt = select(User).where(User.role == UserRole.TECHNICIAN).order_by(User.created_at.desc()).limit(1)
+        tech = (await db.execute(tech_stmt)).scalars().first()
+        if not tech:
+            tech = User(
+                email="tech.field@sunpower.com",
+                full_name="Karthik Technician",
+                role=UserRole.TECHNICIAN,
+                is_active=True,
+                hashed_password="hashed_demo_password"
+            )
+            db.add(tech)
+            await db.flush()
+
+        # 4. Parse date
+        date_str = data.get("scheduledDate", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+        try:
+            sched_dt = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+        except Exception:
+            sched_dt = datetime.now(timezone.utc)
+
+        # 5. Create real SiteSurvey in PostgreSQL
+        new_survey = SiteSurvey(
+            enquiry_id=enquiry.id if enquiry else uuid.uuid4(),
+            customer_id=customer_id,
+            assigned_technician_id=tech.id,
+            scheduled_date=sched_dt,
+            roof_area_sqft=Decimal(str(data.get("roofAreaSqFt", 1200))),
+            survey_status=SurveyStatus.SCHEDULED,
+            approval_status=SurveyApprovalStatus.PENDING_APPROVAL,
+            technician_remarks=data.get("notes", "Scheduled by Sales via CRM"),
+        )
+        db.add(new_survey)
+
+        # Update lead stage
+        if enquiry:
+            enquiry.lead_status = LeadStatus.SURVEY_SCHEDULED
+
+        await db.commit()
+        await db.refresh(new_survey)
+
+        short_id = f"SRV-{str(new_survey.id)[:8].upper()}"
         return {
-            "id": f"SRV-{uuid.uuid4().hex[:4].upper()}",
-            **data,
+            "id": short_id,
+            "rawId": str(new_survey.id),
+            "enquiryId": f"ENQ-{str(enquiry.id)[:8].upper()}" if enquiry else "—",
+            "customerId": f"CUST-{str(customer_id)[:6].upper()}",
+            "customerName": data.get("customerName", "Customer"),
+            "siteLocation": data.get("siteLocation", "Jaipur, Rajasthan"),
+            "scheduledDate": date_str,
+            "scheduledTime": data.get("scheduledTime", "10:30 AM"),
+            "assignedSurveyor": tech.full_name,
             "status": "Scheduled",
             "approvalStatus": "Pending Approval",
-            "createdDate": datetime.now(timezone.utc).isoformat(),
+            "roofType": data.get("roofType", "RCC Flat Roof"),
+            "notes": new_survey.technician_remarks,
+            "createdDate": new_survey.created_at.isoformat(),
         }
 
     @staticmethod
     async def update_survey(db: AsyncSession, survey_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        raw_id = survey_id.replace("SRV-", "").strip().lower()
+        stmt = select(SiteSurvey).where(
+            or_(
+                func.cast(SiteSurvey.id, String).ilike(f"%{raw_id}%"),
+                SiteSurvey.id == raw_id if len(raw_id) == 36 else False
+            )
+        )
+        survey = (await db.execute(stmt)).scalars().first()
+        if survey and "scheduledDate" in patch:
+            try:
+                survey.scheduled_date = datetime.fromisoformat(patch["scheduledDate"]).replace(tzinfo=timezone.utc)
+                await db.commit()
+            except Exception:
+                pass
         return {"id": survey_id, **patch}
 
     @staticmethod
     async def delete_survey(db: AsyncSession, survey_id: str) -> Dict[str, Any]:
+        raw_id = survey_id.replace("SRV-", "").strip().lower()
+        stmt = select(SiteSurvey).where(
+            or_(
+                func.cast(SiteSurvey.id, String).ilike(f"%{raw_id}%"),
+                SiteSurvey.id == raw_id if len(raw_id) == 36 else False
+            )
+        )
+        survey = (await db.execute(stmt)).scalars().first()
+        if survey:
+            await db.delete(survey)
+            await db.commit()
         return {"id": survey_id, "success": True}

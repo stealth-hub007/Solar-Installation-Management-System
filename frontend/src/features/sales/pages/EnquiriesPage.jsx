@@ -43,6 +43,7 @@ export const EnquiriesPage = () => {
   const { items: enquiries, loading, error } = useSelector((state) => state.salesEnquiries);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [viewingEnquiry, setViewingEnquiry] = useState(null);
   const [deletingEnquiry, setDeletingEnquiry] = useState(null);
   const [statusChangeEnquiry, setStatusChangeEnquiry] = useState(null);
   const [newSelectedStatus, setNewSelectedStatus] = useState('');
@@ -151,9 +152,9 @@ export const EnquiriesPage = () => {
       sortable: true,
       cell: ({ value, row }) => (
         <span
-          onClick={() => navigate(`/sales/enquiries/${row.id}`)}
+          onClick={() => setViewingEnquiry(row)}
           className="font-mono text-xs font-bold text-[#0284C7] hover:underline cursor-pointer"
-          title={`Click to open lead timeline for ${row.id}`}
+          title={`Click to view prefilled details for ${row.id}`}
         >
           {value}
         </span>
@@ -166,17 +167,23 @@ export const EnquiriesPage = () => {
       cell: ({ row }) => (
         <div className="space-y-0.5 max-w-[200px]">
           <span
-            onClick={() => navigate(`/sales/enquiries/${row.id}`)}
+            onClick={() => setViewingEnquiry(row)}
             className="font-bold text-slate-900 hover:text-[#0284C7] hover:underline cursor-pointer block truncate transition-colors"
-            title={`Click to open lead enquiry panel for ${row.customerName}`}
+            title={`Click to view prefilled details for ${row.customerName}`}
           >
             {row.customerName}
           </span>
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+          <div className="flex flex-col text-[11px] text-slate-500">
             <span className="flex items-center gap-1">
-              <Phone className="w-3 h-3 text-[#0284C7]" />
+              <Phone className="w-3 h-3 text-[#0284C7] shrink-0" />
               {row.contactNumber || row.phone}
             </span>
+            {row.email && (
+              <span className="flex items-center gap-1 text-slate-400 truncate">
+                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                <span className="truncate">{row.email}</span>
+              </span>
+            )}
           </div>
         </div>
       ),
@@ -253,9 +260,9 @@ export const EnquiriesPage = () => {
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           <button
-            onClick={() => navigate(`/sales/enquiries/${row.id}`)}
+            onClick={() => setViewingEnquiry(row)}
             className="w-7.5 h-7.5 inline-flex items-center justify-center text-slate-500 hover:text-[#0284C7] hover:bg-sky-50 rounded-lg transition"
-            title="View enquiry details & timeline"
+            title="View complete prefilled enquiry details"
           >
             <Eye className="w-4 h-4" />
           </button>
@@ -470,6 +477,143 @@ export const EnquiriesPage = () => {
         type="danger"
         confirmText="Delete Enquiry"
       />
+
+      {/* MODAL: View Enquiry Details (In-Place, Prefilled, No Horizontal Scrollbar) */}
+      {viewingEnquiry && (
+        <Modal
+          isOpen={!!viewingEnquiry}
+          onClose={() => setViewingEnquiry(null)}
+          title={`Enquiry Details: ${viewingEnquiry.id}`}
+          subtitle={`Lead submission for ${viewingEnquiry.customerName}`}
+          size="lg"
+          footer={
+            <div className="flex justify-between items-center w-full">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={ClipboardCheck}
+                  onClick={() => {
+                    const target = viewingEnquiry;
+                    setViewingEnquiry(null);
+                    navigate(
+                      `/sales/surveys?schedule=true&enquiryId=${target.id}&customer=${encodeURIComponent(
+                        target.customerName
+                      )}`
+                    );
+                  }}
+                >
+                  Schedule Survey
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={FileText}
+                  onClick={() => {
+                    const target = viewingEnquiry;
+                    setViewingEnquiry(null);
+                    navigate(
+                      `/sales/quotations?create=true&enquiryId=${target.id}&customer=${encodeURIComponent(
+                        target.customerName
+                      )}`
+                    );
+                  }}
+                >
+                  Create Quotation
+                </Button>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setViewingEnquiry(null)}>
+                Close
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {/* Header info badge bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold text-[#0284C7] bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-lg">
+                  {viewingEnquiry.id}
+                </span>
+                <StatusBadge status={viewingEnquiry.enquiryStatus || viewingEnquiry.status || 'New'} />
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                  {viewingEnquiry.source || viewingEnquiry.enquirySource || 'Website Form'}
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 font-medium">
+                Logged: {formatDate(viewingEnquiry.createdDate || viewingEnquiry.enquiryDate)}
+              </span>
+            </div>
+
+            {/* Grid of prefilled fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">
+                  Customer / Lead Name
+                </span>
+                <span className="text-sm font-bold text-slate-900 block truncate">
+                  {viewingEnquiry.customerName || '—'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">
+                  Contact Phone
+                </span>
+                <span className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                  {viewingEnquiry.contactNumber || viewingEnquiry.phone || '—'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">
+                  Email Address
+                </span>
+                <span className="text-sm font-semibold text-slate-900 flex items-center gap-1.5 truncate">
+                  <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="truncate">{viewingEnquiry.email || '—'}</span>
+                </span>
+              </div>
+
+              <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">
+                  Solar Capacity Needed
+                </span>
+                <span className="text-sm font-bold text-[#0284C7]">
+                  {viewingEnquiry.capacity || '—'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-white border border-slate-200 rounded-xl sm:col-span-2">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">
+                  Installation / Property Address
+                </span>
+                <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  {viewingEnquiry.location || viewingEnquiry.address || 'Jaipur, Rajasthan'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-white border border-slate-200 rounded-xl sm:col-span-2">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">
+                  Customer Message & Project Requirements
+                </span>
+                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
+                  {viewingEnquiry.notes || viewingEnquiry.customer_requirements || 'No specific technical notes provided.'}
+                </p>
+              </div>
+
+              {viewingEnquiry.remarks && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl sm:col-span-2 text-xs text-slate-500">
+                  <span className="font-semibold text-slate-600 block mb-0.5">Source Notes:</span>
+                  {viewingEnquiry.remarks}
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
     </PageContainer>
   );
 };

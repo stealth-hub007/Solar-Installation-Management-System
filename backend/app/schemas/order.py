@@ -14,6 +14,10 @@ class OrderConvertRequest(BaseModel):
     expected_installation_date: Optional[datetime] = None
 
 
+class OrderCloseRequest(BaseModel):
+    closure_notes: Optional[str] = Field(None, description="Admin notes about project closure")
+
+
 class OrderItemResponse(BaseModel):
     id: uuid.UUID
     product_id: uuid.UUID

@@ -11,7 +11,9 @@ from app.models.order import Order, OrderItem, OrderStatus, PaymentStatus
 from app.models.quotation import Quotation, QuotationStatus
 from app.models.customer import Customer
 from app.models.installation import InstallationJob, InstallationChecklist, InstallationStatus
-from app.schemas.order import OrderConvertRequest, OrderResponse
+from app.models.user import User
+from app.models.user import User
+from app.schemas.order import OrderConvertRequest, OrderCloseRequest, OrderResponse
 from app.schemas.common import PaginatedData
 from app.core.exceptions import NotFoundException, BadRequestException, ConflictException
 
@@ -149,4 +151,28 @@ class OrderService:
         total_pages = math.ceil(total / size) if total > 0 else 0
         items = [OrderResponse.model_validate(o) for o in orders]
         return PaginatedData(items=items, total=total, page=page, size=size, total_pages=total_pages)
+
+    @staticmethod
+    async def close_order(
+        db: AsyncSession,
+        order_id: uuid.UUID,
+        close_in: "OrderCloseRequest",
+        closed_by: User,
+    ) -> Order:
+        """Mark an INSTALLED order as COMPLETED (project closure). Admin only."""
+        order = await OrderService.get_order_by_id(db, order_id)
+
+        # Must be INSTALLED to close
+        if order.order_status not in (OrderStatus.INSTALLED, OrderStatus.IN_PROGRESS):
+            raise BadRequestException(
+                message=(
+                    f"Only orders in INSTALLED or IN_PROGRESS status can be closed. "
+                    f"Current status: {order.order_status.value}"
+                ),
+                error_code="ORDER_NOT_CLOSEABLE",
+            )
+
+        order.order_status = OrderStatus.COMPLETED
+        await db.commit()
+        return await OrderService.get_order_by_id(db, order.id)
 

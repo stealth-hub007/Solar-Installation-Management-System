@@ -198,3 +198,27 @@ async def review_survey(
         data=SurveyResponse.model_validate(survey),
     )
 
+
+@router.patch(
+    "/{survey_id}/approve",
+    response_model=APIResponse[SurveyResponse],
+    summary="Approve or Reject Survey (Alias)",
+)
+@router.post(
+    "/{survey_id}/approve",
+    response_model=APIResponse[SurveyResponse],
+    summary="Approve or Reject Survey (Alias)",
+)
+async def approve_survey_alias(
+    survey_id: uuid.UUID,
+    approval_in: SurveyApprovalRequest,
+    current_admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    survey = await SurveyService.review_survey(db, survey_id, approval_in, current_admin)
+    return APIResponse(
+        success=True,
+        message=f"Survey {approval_in.approval_status.value.lower()} successfully",
+        data=SurveyResponse.model_validate(survey),
+    )
+
